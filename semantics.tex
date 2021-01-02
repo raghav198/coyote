@@ -1,0 +1,92 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{proof}
+\usepackage{syntax}
+
+\title{Copse++}
+\author{Raghav Malik}
+\date{}
+
+\begin{document}
+\maketitle
+I'm {\em very} open to renaming, Copse++ was the first thing that popped into my head.
+\section{Description}
+Copse++ has two IR languages; I've called them IR-1 and IR-2.
+% IR-1 is higher level and more natural to write programs in, whereas IR-2 corresponds to the decision tree evaluations.
+IR-1 is intended to be a direct compilation target from a higher level language, and as such its grammar corresponds more closely to a natural way of representing programs.
+By contrast, IR-2 is a lower level representation that directly encodes decision trees and targets the Copse backend.
+As such, a compiler from IR-1 to IR-2 essentially converts programs into decision trees that can be evaluated.
+What follows is now an outline of the grammars for IR-1 and IR-2, as well as the rewrite rules for compilation.
+\section{IR-1 Grammar}
+\begin{grammar}
+
+    <program> ::= `inputs' <var>* `outputs' <var>* <chain>
+
+    <chain> ::= nil \alt <op> `->' <chain> \alt <output>
+
+    <op> ::= `compare1' <expr> <expr> <chain> <chain> \alt
+    `compare2' <expr> <expr> <chain> <chain> \alt
+    `assign' <var> <expr>
+
+    <var> ::= [a-z]
+
+    <val> ::= [0-9]+
+
+    <term> ::= <var> \alt <val>
+
+    <expr> ::= <term>*
+
+    <output> ::= `output' <var>* \alt `secret-output' <var>*
+
+
+\end{grammar}
+A program consists of a declaration of the input and output variables, followed by a {\em continuation chain} (the linked-list equivalent of a block).
+The only operations supported right now are variable assignment, and comparison using the less-than operator; all expressions are sums of indvidual terms (e.g. $a + b + 4$).
+
+Every program implicitly includes an instruction to output all of the output variables as the last link in the chain, so that's not specified in the grammar.
+
+The instructions `compare1' and `compare2' are identical except in the IR-2 they produce.
+\section{IR-2 Grammar}
+\begin{grammar}
+    <node> ::= <phi1-node> \alt <phi2-node> \alt `output' <var>* \alt `secret-output' <var>*
+
+    <phi1-node> ::= `phi1' <expr> <expr> <node> <node>
+
+    <phi2-node> ::= `phi2' <var>* <node> <node>
+\end{grammar}
+The $\phi_1$ and $\phi_2$ nodes represent the two different ways to compile a comparison (corresponding to compare1 and compare2, respectively).
+$\phi_1$ is a branch in a classic decision tree, comparing two expressions and choosing one of two paths to follow depending on the comparison result.
+In the world of secure computation, it can be thought of as introducing nondeterminism, causing the execution to split and follow both paths and end up in a ``superposition'' of the final states.
+$\phi_2$ does the opposite of this.
+A $\phi_2$ node evaluates its left subtree, the result of which is a superposition of all possible program states along with an encrypted bitvector encoding the actual path that would be taken as a result of the input values.
+These are both double-blinded and sent back to the client (or one of the clients in the case of a traditional MPC setup) for measurement.
+The measurement effectively ``collapses'' the program state; the collapsed state is returned to the evaluator which uses it as a secret input in evaluating the right subtree of the $\phi_2$ node.
+
+Intermittently collapsing the states by inserting $\phi_2$ nodes into the IR reduces the total width and number of branches in the final set of decision trees at the cost of additional rounds of communication; an optimal program balances between these two factors.
+\subsection{Double-blinded state collapsing}
+When there are multiple parties involved in the MPC setup, it may be desirable to prevent any of them from learning intermediate values in the program execution.
+The double-blinded state collapsing protocol accomplishes this.
+
+The nondeterministic program state is a set of homomorphically encrypted vectors, where each slot of a vector holds one possible value for one variable in the program state.
+We assume (as is common in MPC scenarios) that the program itself (including structure and constant values) is public knowledge; this means that the evaluator can easily construct these vectors, even without knowing what values are in them.
+The output that Copse produces when evaluating a traditional vectorized and encrypted decision tree is simply a one-hot bitvector, where each slot corresponds to a leaf node of the tree; this bitvector encodes which label was selected, but not what the label was.
+This bitvector is homomorphically encrypted, so it is unreadable by the evaluator but can be easily opened by the client.
+The bitvector can be used to collapse the nondeterminism into a single true program state; however, simply doing this violates the double-blind.
+Instead, the evaluator first constructs a random permutation matrix.
+The matrix is applied to both the bitvector and every vector of the nondeterministic state; thus, they are still in correspondence with each other, but both have been shuffled the same way.
+The evaluator then randomly generates an AES key and homomorphically applies AES encryption to each element of each vector in the nondeterministic program state, making it unreadable to the client.
+These are then sent to the client, who homomorphically decrypts both to get a plaintext bitvector and a set of vectors of AES-encrypted values, neither of which reveal anything about the actual intermediate value.
+However, they can use the plaintext bitvector to select the AES-encrypted value for each variable, effectively collapsing the superposition of states into a single one.
+This is then homomorphically encrypted and sent back to the evaluator, who then uses its key to homomorphically remove the AES encryption, resulting in a single homomorphically encrypted value for each intermediate variable at the time the phi-node was encountered.
+\section{Rewrite Rules for Compilation}
+The following inference rules define the rewrite relation $a \implies b$ from IR-1 to IR-2 (read as ``a rewrites to b'').
+The operator $V(c_1,\dots,c_n)$ denotes the set of all variables defined in continuation chains $c_1,\dots,c_n$.
+The syntax $c[v:=e]$ means ``replace all instances of $v$ in $c$ with $e$''
+\begin{itemize}
+    \item[] \infer{\texttt{compare1}~e_1~e_2~c_1~c_2~\texttt{->}~c_3\implies \texttt{phi1}~e_1~e_2~(c_1'~\texttt{->}c_3')~(c_2'\texttt{->}c_3')}{c_1\implies c_1' & c_2\implies c_2'& c_3\implies c_3'}
+    \item[] \infer{c_0~\texttt{->}~(\texttt{compare2}~e_1~e_2~c_1~c_2~\texttt{->}~c_3)\implies \texttt{phi2}~V(c_0, c_1, c_2)~c_0'~c_3'}{c_0~\texttt{->}~(\texttt{compare1}~e_1~e_1~c_1~c_2)~\texttt{->}~\texttt{secret-output}~V(c_0, c_1, c_2)\implies c_0' & c_3\implies c_3'}
+    \item[] \infer{\texttt{assign}~v~e~\texttt{->}~c\implies c'[v:=e]}{c\implies c'}
+\end{itemize}
+Forms like {\em output}, {\em secret-output}, and expressions and variables are mapped from IR-1 to IR-2 unchanged.
+\end{document}
