@@ -4,6 +4,8 @@ from ast_def import *
 from typing import Dict
 from vectorize import build_vector_program
 
+seed(4)
+
 
 def lookup_code(program: List[Instr], tag: int, modulus: List[int]) -> List[Instr]:
     """Find a subset of a scalar program thats used to compute a particular value relative to
@@ -50,7 +52,7 @@ def quotient_relative_expression(expr: Expression, modulus: List[int]) -> Expres
 
 if __name__ == '__main__':
     # Generate a random expression for testing
-    expr = fuzzer(0.9)
+    expr = fuzzer(0.8)
     print(expr)
 
     # Compile to a scalar program
@@ -69,6 +71,8 @@ if __name__ == '__main__':
 
     quotients = []
     # Get an optimal set of breakpoints for this stage
+    all_outputs = []
+    stage_dicts = []
     while True:
         bkset, _ = bkset_calc.solve()  # get_breakset(expr, tag_lookup)
         if len(bkset) == 0:
@@ -80,26 +84,52 @@ if __name__ == '__main__':
 
         # Scalar program for this stage
         stage_code = sum([lookup_code(code, bk, quotients) for bk in bkset], [])
+        stage_inputs = []
+        for instr in stage_code:
+            if instr.lhs.val in all_outputs:
+                stage_inputs.append(instr.lhs)
+            if instr.rhs.val in all_outputs:
+                stage_inputs.append(instr.rhs)
+
         quotients += bkset
 
-        # print('\n'.join(map(str, stage_code)))
+        print('\n'.join(map(str, stage_code)))
         vectorized_code = build_vector_program(stage_code, len(bkset))
+        all_outputs += bkset
+        # print('vector code: ', vectorized_code)
+        # print('stage inputs: ', stage_inputs)
 
         vector_cost_estimate += len(vectorized_code) + len(bkset)
 
         print('\n'.join(map(str, vectorized_code)))
-        print(f'=== insert code to shuffle {bkset} ===')
+        # print([instr.dest for instr in stage_code])
+        # print(lanes)
+
+        stage_dict = {}
+
+        for stage_output in bkset:
+            stage_dict[stage_output] = list(
+                filter(lambda l: l in all_outputs, tag_lookup[stage_output].subtags))
+
+        stage_dicts.append(stage_dict)
+
+        # print(f'=== insert code to shuffle {bkset} ===')
 
     # now, generate scalar code for whatever remains
     stage_code = lookup_code(code, expr.tag, quotients)
     vectorized_code = build_vector_program(stage_code, 1)
+    # print(lanes)
     vector_cost_estimate += len(vectorized_code)
     print('\n'.join(map(str, vectorized_code)))
 
     end = time()
 
-    print(f'Synthesized vector program in {int(1000 * (end - start))} ms')
-    print(f'Reduced {len(code)} scalar instructions to approx {vector_cost_estimate}')
+    print('=' * 30)
+    print('STAGE DICTIONARIES:')
+    print(stage_dicts)
+
+    # print(f'Synthesized vector program in {int(1000 * (end - start))} ms')
+    # print(f'Reduced {len(code)} scalar instructions to approx {vector_cost_estimate}')
 
 
 """
