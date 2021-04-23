@@ -42,7 +42,11 @@ class BreaksetCalculator:
         self.weights = weights
 
         for tag in tags:
-            self.opt.add(self.in_clique[tag] == 0)
+            try:
+                self.opt.add(self.in_clique[tag] == 0)
+            except IndexError:
+                print(
+                    f'Warning: attempting to disallow a nonexistent tag {tag} (if this is the last stage, its probably fine)')
 
         self.update_connections()
 
