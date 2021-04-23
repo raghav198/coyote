@@ -153,16 +153,16 @@ if __name__ == '__main__':
         opt.add(_lane[l] >= 0)
 
     #Set up the || chain
-    for stage_dict in stage_dicts:
+    for stage_dict in interstage_dicts:
         for key in stage_dict.keys():
             opt.add(z3.And([_lane[key] != _lane[key1] for key1 in stage_dict.keys() if key!=key1] ))
-    for stage_dict in stage_dicts[1:]:
+    for stage_dict in interstage_dicts[1:]:
         for key,val in stage_dict.items():
 	        opt.add(z3.Or([_lane[key] == _lane[i] for i in val]))
   
-    #opt.check()
-    #print(opt.model())
-    print("jsccn")
+    opt.check()
+    print(opt.model())
+    #print("jsccn")
     '''#if more than one value is produced in same vector
     length = 1
     for k in range(0,len(code)):
