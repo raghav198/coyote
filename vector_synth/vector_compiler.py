@@ -67,17 +67,21 @@ if __name__ == '__main__':
     print('\n'.join(map(str, code)))
 
     vector_cost_estimate = 0
+    final_vector_code = []
 
     bkset_calc = BreaksetCalculator(*build_graph(expr, tag_lookup))
 
     quotients = []
     # Get an optimal set of breakpoints for this stage
-    all_outputs = []
-    stage_dicts = []
-    while True:
+    unused_outputs = set()
+    interstage_dicts = []
+    intrastage_dicts = []
+    final_stage = False
+    while not final_stage:
         bkset, _ = bkset_calc.solve()  # get_breakset(expr, tag_lookup)
         if len(bkset) == 0:
-            break
+            final_stage = True
+            bkset = [expr.tag]
         bkset_calc.disallow(bkset)
         for b in bkset:
             bkset_calc.disallow(list(filter(lambda t: isinstance(t, int), tag_lookup[b].subtags)))
@@ -85,49 +89,57 @@ if __name__ == '__main__':
 
         # Scalar program for this stage
         stage_code = sum([lookup_code(code, bk, quotients) for bk in bkset], [])
-        stage_inputs = []
-        for instr in stage_code:
-            if instr.lhs.val in all_outputs:
-                stage_inputs.append(instr.lhs)
-            if instr.rhs.val in all_outputs:
-                stage_inputs.append(instr.rhs)
 
         quotients += bkset
+        intermediates = [instr.dest.val for instr in stage_code]
 
         print('\n'.join(map(str, stage_code)))
         vectorized_code = build_vector_program(stage_code, len(bkset))
-        all_outputs += bkset
+        unused_outputs |= set(bkset)
         # print('vector code: ', vectorized_code)
         # print('stage inputs: ', stage_inputs)
 
         vector_cost_estimate += len(vectorized_code) + len(bkset)
+        final_vector_code += vectorized_code
 
         print('\n'.join(map(str, vectorized_code)))
         # print([instr.dest for instr in stage_code])
         # print(lanes)
 
         stage_dict = {}
+        intrastage_dict = {}
 
         for stage_output in bkset:
-            stage_dict[stage_output] = list(
-                filter(lambda l: l in all_outputs, tag_lookup[stage_output].subtags))
+            equiv_class = set(
+                filter(lambda l: l in unused_outputs, tag_lookup[stage_output].subtags))
+            stage_dict[stage_output] = equiv_class
+            unused_outputs -= equiv_class
 
-        stage_dicts.append(stage_dict)
+            intrastage_dict[stage_output] = list(
+                filter(lambda l: l in intermediates, tag_lookup[stage_output].subtags))
 
+        interstage_dicts.append(stage_dict)
+        intrastage_dicts.append(intrastage_dict)
         # print(f'=== insert code to shuffle {bkset} ===')
 
     # now, generate scalar code for whatever remains
-    stage_code = lookup_code(code, expr.tag, quotients)
-    vectorized_code = build_vector_program(stage_code, 1)
-    # print(lanes)
-    vector_cost_estimate += len(vectorized_code)
-    print('\n'.join(map(str, vectorized_code)))
+    # stage_code = lookup_code(code, expr.tag, quotients)
+    # stage_dicts.append(
+    #     {expr.tag: set(filter(lambda l: l in unused_outputs, tag_lookup[expr.tag].subtags))})
+
+    # vectorized_code = build_vector_program(stage_code, 1)
+    # # print(lanes)
+    # vector_cost_estimate += len(vectorized_code)
+    print('=' * 30)
+    print('FINAL VECTORIZED CODE:')
+    print('\n'.join(map(str, final_vector_code)))
 
     end = time()
 
     print('=' * 30)
     print('STAGE DICTIONARIES:')
-    print(stage_dicts)
+    print(interstage_dicts)
+    print(intrastage_dicts)
 
     # print(f'Synthesized vector program in {int(1000 * (end - start))} ms')
     # print(f'Reduced {len(code)} scalar instructions to approx {vector_cost_estimate}')
