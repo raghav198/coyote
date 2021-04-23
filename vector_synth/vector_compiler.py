@@ -3,6 +3,7 @@ from covectorizability_graph import build_graph, BreaksetCalculator
 from ast_def import *
 from typing import Dict
 from vectorize import build_vector_program
+import z3
 
 seed(4)
 
@@ -52,7 +53,7 @@ def quotient_relative_expression(expr: Expression, modulus: List[int]) -> Expres
 
 if __name__ == '__main__':
     # Generate a random expression for testing
-    expr = fuzzer(0.8)
+    expr = fuzzer(0.9)
     print(expr)
 
     # Compile to a scalar program
@@ -132,7 +133,37 @@ if __name__ == '__main__':
     # print(f'Reduced {len(code)} scalar instructions to approx {vector_cost_estimate}')
 
 
-"""
-1. For each vector instruction, the list of outputs (unused until a future stage)
-2. For each stage, all the inputs that correspond to a particular one of its outputs
-"""
+
+    opt = z3.Solver()
+    _lane =  z3.IntVector('lane', len(code))
+    _arr =  z3.IntVector('arr', len(code))
+    for l in range(0,len(code)):
+        opt.add(_lane[l] >= 0)
+
+    #Set up the || chain
+    for stage_dict in stage_dicts:
+        for key in stage_dict.keys():
+            opt.add(z3.And([_lane[key] != _lane[key1] for key1 in stage_dict.keys() if key!=key1] ))
+    for stage_dict in stage_dicts[1:]:
+        for key,val in stage_dict.items():
+	        opt.add(z3.Or([_lane[key] == _lane[i] for i in val]))
+  
+    #opt.check()
+    #print(opt.model())
+    print("jsccn")
+    '''#if more than one value is produced in same vector
+    length = 1
+    for k in range(0,len(code)):
+    #Set up the || chain
+        for stage_dict in stage_dicts:
+	        for key,val in stage_dict.items():
+		        for i in range(0,length):
+			        opt.add(z3.Or([_lane[key] == _lane[j] + arr[i] for j in val]))
+        if(opt.check() == z3.sat):
+            print(opt.model())
+            break
+        else:
+            print("jsccn")
+            length += 1'''
+    
+
