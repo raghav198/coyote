@@ -2,10 +2,10 @@ from time import time
 from covectorizability_graph import build_graph, BreaksetCalculator
 from ast_def import *
 from typing import Dict
-from vectorize import build_vector_program
-import z3
+from vectorize import synthesize_schedule, build_vector_program
+from lane_placement import place_lanes
 
-seed(4)
+seed(5)
 
 
 def lookup_code(program: List[Instr], tag: int, modulus: List[int]) -> List[Instr]:
@@ -62,49 +62,47 @@ if __name__ == '__main__':
     comp.compile(expr)
     code = comp.code
 
-    start = time()
-
+    print('=' * 30)
+    print('ORIGINAL SCALAR PROGRAM:')
     print('\n'.join(map(str, code)))
+    print('=' * 30)
 
-    vector_cost_estimate = 0
-    final_vector_code = []
+    start = time()
 
     bkset_calc = BreaksetCalculator(*build_graph(expr, tag_lookup))
 
     quotients = []
-    # Get an optimal set of breakpoints for this stage
     unused_outputs = set()
+
     interstage_dicts = []
     intrastage_dicts = []
+
+    program_stages = []
+
+    max_warp = -1
+
+    # Get an optimal set of breakpoints for this stage
     final_stage = False
     while not final_stage:
         bkset, _ = bkset_calc.solve()  # get_breakset(expr, tag_lookup)
+        if len(bkset) > max_warp:
+            max_warp = len(bkset)
+
         if len(bkset) == 0:
             final_stage = True
             bkset = [expr.tag]
         bkset_calc.disallow(bkset)
         for b in bkset:
             bkset_calc.disallow(list(filter(lambda t: isinstance(t, int), tag_lookup[b].subtags)))
-        # expr = quotient_relative_expression(expr, bkset)
 
         # Scalar program for this stage
         stage_code = sum([lookup_code(code, bk, quotients) for bk in bkset], [])
+        program_stages.append(stage_code)
 
         quotients += bkset
         intermediates = [instr.dest.val for instr in stage_code]
 
-        print('\n'.join(map(str, stage_code)))
-        vectorized_code = build_vector_program(stage_code, len(bkset))
         unused_outputs |= set(bkset)
-        # print('vector code: ', vectorized_code)
-        # print('stage inputs: ', stage_inputs)
-
-        vector_cost_estimate += len(vectorized_code) + len(bkset)
-        final_vector_code += vectorized_code
-
-        print('\n'.join(map(str, vectorized_code)))
-        # print([instr.dest for instr in stage_code])
-        # print(lanes)
 
         stage_dict = {}
         intrastage_dict = {}
@@ -120,19 +118,15 @@ if __name__ == '__main__':
 
         interstage_dicts.append(stage_dict)
         intrastage_dicts.append(intrastage_dict)
-        # print(f'=== insert code to shuffle {bkset} ===')
 
-    # now, generate scalar code for whatever remains
-    # stage_code = lookup_code(code, expr.tag, quotients)
-    # stage_dicts.append(
-    #     {expr.tag: set(filter(lambda l: l in unused_outputs, tag_lookup[expr.tag].subtags))})
-
-    # vectorized_code = build_vector_program(stage_code, 1)
-    # # print(lanes)
-    # vector_cost_estimate += len(vectorized_code)
-    print('=' * 30)
-    print('FINAL VECTORIZED CODE:')
-    print('\n'.join(map(str, final_vector_code)))
+    instr_lanes = place_lanes(interstage_dicts, intrastage_dicts)
+    for i in range(len(instr_lanes)):
+        print(f'({i}: {instr_lanes[i]})', end=' ')
+    print()
+    vector_program = []
+    for stage in program_stages:
+        sched = synthesize_schedule(stage, max_warp)
+        vector_program += build_vector_program(stage, instr_lanes, sched)
 
     end = time()
 
@@ -141,41 +135,10 @@ if __name__ == '__main__':
     print(interstage_dicts)
     print(intrastage_dicts)
 
-    # print(f'Synthesized vector program in {int(1000 * (end - start))} ms')
+    print('=' * 30)
+    print('FINAL VECTOR PROGRAM:')
+    print('\n'.join(map(str, vector_program)))
+    print('=' * 30)
+
+    print(f'Synthesized vector program in {int(1000 * (end - start))} ms')
     # print(f'Reduced {len(code)} scalar instructions to approx {vector_cost_estimate}')
-
-
-
-    opt = z3.Solver()
-    _lane =  z3.IntVector('lane', len(code))
-    _arr =  z3.IntVector('arr', len(code))
-    for l in range(0,len(code)):
-        opt.add(_lane[l] >= 0)
-
-    #Set up the || chain
-    for stage_dict in interstage_dicts:
-        for key in stage_dict.keys():
-            opt.add(z3.And([_lane[key] != _lane[key1] for key1 in stage_dict.keys() if key!=key1] ))
-    for stage_dict in interstage_dicts[1:]:
-        for key,val in stage_dict.items():
-	        opt.add(z3.Or([_lane[key] == _lane[i] for i in val]))
-  
-    opt.check()
-    print(opt.model())
-    #print("jsccn")
-    '''#if more than one value is produced in same vector
-    length = 1
-    for k in range(0,len(code)):
-    #Set up the || chain
-        for stage_dict in stage_dicts:
-	        for key,val in stage_dict.items():
-		        for i in range(0,length):
-			        opt.add(z3.Or([_lane[key] == _lane[j] + arr[i] for j in val]))
-        if(opt.check() == z3.sat):
-            print(opt.model())
-            break
-        else:
-            print("jsccn")
-            length += 1'''
-    
-
