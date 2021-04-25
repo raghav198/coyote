@@ -7,6 +7,7 @@ import collections
 from collections import defaultdict
 from vectorize import synthesize_schedule, build_vector_program
 from lane_placement import place_lanes
+from vectorize import VecInstr
 
 
 seed(5)
@@ -81,7 +82,7 @@ if __name__ == '__main__':
     interstage_dicts = []
     intrastage_dicts = []
 
-    program_stages = []
+    program_stages: List[List[Instr]] = []
 
     max_warp = -1
 
@@ -127,10 +128,26 @@ if __name__ == '__main__':
     for i in range(len(instr_lanes)):
         print(f'({i}: {instr_lanes[i]})', end=' ')
     print()
-    vector_program = []
+    vector_program: List[VecInstr] = []
+    total_schedule = [0] * len(code)
     for stage in program_stages:
         sched = synthesize_schedule(stage, max_warp)
+        for s, i in zip(sched, stage):
+            total_schedule[i.dest.val] = s + len(vector_program)
         vector_program += build_vector_program(stage, instr_lanes, sched)
+
+    for vec_instr in vector_program:
+        left_blends = set()
+        right_blends = set()
+        for symbol in vec_instr.left:
+            if symbol != Atom(BLANK_SYMBOL) and symbol.reg:
+                left_blends |= {total_schedule[symbol.val]}
+        for symbol in vec_instr.right:
+            if symbol != Atom(BLANK_SYMBOL) and symbol.reg:
+                right_blends |= {total_schedule[symbol.val]}
+
+        print(
+            f'For instruction {vec_instr.dest}: left blends {left_blends}, right blends {right_blends}')
 
     end = time()
 

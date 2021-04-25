@@ -149,7 +149,7 @@ def build_vector_program_automatic(program: List[Instr], warp: int) -> List[VecI
     return vectorized_code
 
 
-def build_vector_program(program: List[Instr], lanes: List[int], schedule: List[int]):
+def build_vector_program(program: List[Instr], lanes: List[int], schedule: List[int]) -> List[VecInstr]:
     print('Building stage:')
     print('\n'.join(map(str, program)))
     vectorized_code = []
@@ -166,7 +166,6 @@ def build_vector_program(program: List[Instr], lanes: List[int], schedule: List[
 
         for i in instrs:
             lane_num = lanes[program[i].dest.val]
-            print(f'Instruction {i} goes on lane {lane_num}!')
             dest[lane_num] = program[i].dest.val
             lhs[lane_num] = program[i].lhs
             rhs[lane_num] = program[i].rhs
