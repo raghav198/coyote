@@ -4,6 +4,8 @@ from ast_def import *
 from typing import Dict
 from vectorize import build_vector_program
 import z3
+import collections
+from collections import defaultdict
 
 seed(4)
 
@@ -144,8 +146,8 @@ if __name__ == '__main__':
     # print(f'Synthesized vector program in {int(1000 * (end - start))} ms')
     # print(f'Reduced {len(code)} scalar instructions to approx {vector_cost_estimate}')
 
-
-
+    lanes = []
+    #Minimize shuffles with z3
     opt = z3.Solver()
     _lane =  z3.IntVector('lane', len(code))
     _arr =  z3.IntVector('arr', len(code))
@@ -161,9 +163,15 @@ if __name__ == '__main__':
 	        opt.add(z3.Or([_lane[key] == _lane[i] for i in val]))
   
     opt.check()
-    print(opt.model())
-    #print("jsccn")
-    '''#if more than one value is produced in same vector
+    model = opt.model()
+    print('=' * 30)
+    print('LANE ASSIGNMENT:')
+    print(model)
+    lanes = [model[l].as_long() for l in _lane]
+
+    '''for i in range(0,len(lanes)):
+        print(i, lanes[i])
+    #if more than one value is produced in same vector
     length = 1
     for k in range(0,len(code)):
     #Set up the || chain
@@ -177,5 +185,30 @@ if __name__ == '__main__':
         else:
             print("jsccn")
             length += 1'''
-    
+  
+  
+    shift_list = []   
+    def shuffle(vector, howMuch):
+	    shift_list = collections.deque(vector)
+	    shift_list.rotate(howMuch)
+	    return (list(shift_list))
 
+    print('=' * 30)
+    print('SHIFTS:')
+    for stage_dict in interstage_dicts[1:]:
+        for key,val in stage_dict.items():
+            for i in val:
+                if lanes[key] > lanes[i]:
+                    print("%"+str(i)+" >> "+str(lanes[key] - lanes[i]))
+                    for vector in final_vector_code:
+                        if(i in [dest.val for dest in vector.dest]):
+                            print(i, vector.dest)
+                            shift_list.append(shuffle(vector.dest, lanes[key] - lanes[i]))
+                elif lanes[key] < lanes[i]:
+                    print("%"+str(i)+" << "+str(lanes[i] - lanes[key]))
+                    for vector in final_vector_code:
+                        if(i in [dest.val for dest in vector.dest]):
+                            print(i, vector.dest)
+                            shift_list.append(shuffle(vector.dest, lanes[key] - lanes[i]))
+    print('\nSHIFTED VECTORS:')
+    print(shift_list)
