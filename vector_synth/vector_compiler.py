@@ -2,9 +2,10 @@ from time import time
 from covectorizability_graph import build_graph, BreaksetCalculator
 from ast_def import *
 from typing import Dict
-from vectorize import synthesize_schedule, build_vector_program
-from lane_placement import place_lanes
+from vectorize import synthesize_schedule
+from build_code import place_lanes, build_vector_program
 from vectorize import VecInstr
+from collections import defaultdict
 
 seed(5)
 
@@ -52,26 +53,7 @@ def quotient_relative_expression(expr: Expression, modulus: List[int]) -> Expres
               quotient_relative_expression(expr.rhs, modulus))
 
 
-if __name__ == '__main__':
-    # Generate a random expression for testing
-    expr = fuzzer(0.9)
-    print(expr)
-
-    # Compile to a scalar program
-    tag_lookup: Dict[int, Op] = {}
-    comp = Compiler(tag_lookup)
-    comp.compile(expr)
-    code = comp.code
-
-    print('=' * 30)
-    print('ORIGINAL SCALAR PROGRAM:')
-    print('\n'.join(map(str, code)))
-    print('=' * 30)
-
-    start = time()
-
-    bkset_calc = BreaksetCalculator(*build_graph(expr, tag_lookup))
-
+def divide_stages(code, bkset_calc):
     quotients = []
     unused_outputs = set()
 
@@ -120,30 +102,88 @@ if __name__ == '__main__':
         interstage_dicts.append(stage_dict)
         intrastage_dicts.append(intrastage_dict)
 
+    return program_stages, interstage_dicts, intrastage_dicts, max_warp
+
+
+if __name__ == '__main__':
+    # Generate a random expression for testing
+    expr = fuzzer(0.9)
+    print(expr)
+
+    # Compile to a scalar program
+    tag_lookup: Dict[int, Op] = {}
+    comp = Compiler(tag_lookup)
+    comp.compile(expr)
+    code = comp.code
+
+    print('=' * 30)
+    print('ORIGINAL SCALAR PROGRAM:')
+    print('\n'.join(map(str, code)))
+    print('=' * 30)
+
+    start = time()
+
+    bkset_calc = BreaksetCalculator(*build_graph(expr, tag_lookup))
+
+    program_stages, interstage_dicts, intrastage_dicts, max_warp = divide_stages(code, bkset_calc)
+
     instr_lanes = place_lanes(interstage_dicts, intrastage_dicts)
-    for i in range(len(instr_lanes)):
-        print(f'({i}: {instr_lanes[i]})', end=' ')
-    print()
+
     vector_program: List[VecInstr] = []
     total_schedule = [0] * len(code)
+
     for stage in program_stages:
         sched = synthesize_schedule(stage, max_warp)
         for s, i in zip(sched, stage):
             total_schedule[i.dest.val] = s + len(vector_program)
         vector_program += build_vector_program(stage, instr_lanes, sched)
 
-    for vec_instr in vector_program:
-        left_blends = set()
-        right_blends = set()
+    temp = 0
+    for i, vec_instr in enumerate(vector_program):
+
+        # left_blends = set()
+        # right_blends = set()
+
+        # left_lanes = [0] * max_warp
+        # right_lanes = [0] * max_warp
+
+        left_blend = defaultdict(lambda: [0] * max_warp)
+        right_blend = defaultdict(lambda: [0] * max_warp)
+
         for symbol in vec_instr.left:
             if symbol != Atom(BLANK_SYMBOL) and symbol.reg:
-                left_blends |= {total_schedule[symbol.val]}
+
+                left_blend[total_schedule[symbol.val]][instr_lanes[symbol.val]] = 1
+
+                # left_blends |= {total_schedule[symbol.val]}
+                # left_lanes[instr_lanes[symbol.val]] = 1
         for symbol in vec_instr.right:
             if symbol != Atom(BLANK_SYMBOL) and symbol.reg:
-                right_blends |= {total_schedule[symbol.val]}
+                # right_blends |= {total_schedule[symbol.val]}
+                # right_lanes[instr_lanes[symbol.val]] = 1
+                right_blend[total_schedule[symbol.val]][instr_lanes[symbol.val]] = 1
 
-        print(
-            f'For instruction {vec_instr.dest}: left blends {left_blends}, right blends {right_blends}')
+        if len(left_blend.keys()) > 1:
+            blend_line = ', '.join([f'v{v}@{"".join(map(str, m))}' for v, m in left_blend.items()])
+            print(f't{temp} = blend({blend_line})')
+            vec_instr.left = f't{temp}'
+            temp += 1
+        elif len(left_blend.keys()) == 1:
+            vec_instr.left = f'v{list(left_blend.keys())[0]}'
+
+        if len(right_blend.keys()) > 1:
+            blend_line = ', '.join([f'v{v}@{"".join(map(str, m))}' for v, m in right_blend.items()])
+            print(f't{temp} = blend({blend_line})')
+            vec_instr.right = f't{temp}'
+            temp += 1
+        elif len(right_blend.keys()) == 1:
+            vec_instr.right = f'v{list(right_blend.keys())[0]}'
+
+        # print(vec_instr.dest, dict(left_blend), dict(right_blend))
+        dest_val = vec_instr.dest
+        vec_instr.dest = f'v{i}'
+        print(f'{vec_instr}')
+        # print(f'For instruction {vec_instr.dest}: {left_blends}, {right_blends}')
 
     end = time()
 

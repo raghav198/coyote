@@ -64,6 +64,10 @@ class Atom:
 
         return str(self.val)
 
+    def __eq__(self, other) -> bool:
+        """This function is dedicated to Vani, in loving memory RIP"""
+        return self.reg == other.reg and self.val == other.val
+
 
 class Instr:
     def __init__(self, dest: int, lhs: Atom, rhs: Atom, op: str):
