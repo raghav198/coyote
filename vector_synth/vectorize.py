@@ -16,6 +16,9 @@ class VecInstr:
     def __repr__(self):
         return f'{self.dest} = {self.left} {self.op} {self.right}'
 
+    def copy(self):
+        return VecInstr(self.dest[:], self.left[:], self.right[:], self.op)
+
 
 def dependency_graph(program: List[Instr]) -> List[List[int]]:
     def lookup(reg: int) -> List[int]:
