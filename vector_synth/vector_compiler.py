@@ -235,24 +235,41 @@ if __name__ == '__main__':
 
     print('=' * 30)
     print('SHIFTS:')
+    shift_dict = {}
     for stage_dict in interstage_dicts[1:]:
         for key,val in stage_dict.items():
             for i in val:
                 if instr_lanes[key] > instr_lanes[i]:
                     print("%"+str(i)+" >> "+str(instr_lanes[key] - instr_lanes[i]))
-                    for vector in vector_program:
+                    shift_dict[i] = instr_lanes[key] - instr_lanes[i]
+                    '''for vector in vector_program:
                         if(i in [dest.val for dest in vector.dest]):
-                            #print(i, vector.dest)
-                            shift_list.append(shuffle(vector.dest, instr_lanes[key] - instr_lanes[i]))
+                            print(i, vector.dest)
+                            shift_list.append(shuffle(vector.dest, instr_lanes[key] - instr_lanes[i]))'''
                 elif instr_lanes[key] < instr_lanes[i]:
                     print("%"+str(i)+" << "+str(instr_lanes[i] - instr_lanes[key]))
-                    for vector in vector_program:
+                    shift_dict[i] = instr_lanes[key] - instr_lanes[i]
+                    '''for vector in vector_program:
                         if(i in [dest.val for dest in vector.dest]):
-                            #print(i, vector.dest)
-                            shift_list.append(shuffle(vector.dest, instr_lanes[key] - instr_lanes[i]))
+                            print(i, vector.dest)
+                            shift_list.append(shuffle(vector.dest, instr_lanes[key] - instr_lanes[i]))'''
 
-        
-    #print(shift_list)
+    print('=' * 30)
+    print('SHIFT DICT:')        
+    print(shift_dict)
+    vec_prog = []
+    for vector in vector_program:
+        vec_prog.append(vector)
+        for key, shift in shift_dict.items():
+            if key in [dest.val for dest in vector.dest] and shift < 0:
+                vec_prog.append(VecInstr(shuffle(vector.dest, shift), vector.dest, -shift, '<<'))
+            elif key in [dest.val for dest in vector.dest] and shift > 0:
+                vec_prog.append(VecInstr(shuffle(vector.dest, shift), vector.dest, shift, '>>'))
+
+
+    print('=' * 30)
+    print('SHIFTED VECTOR PROGRAM:')        
+    print('\n'.join(map(str, vec_prog)))
 
     print('=' * 30)
     print('FINAL VECTOR PROGRAM:')
