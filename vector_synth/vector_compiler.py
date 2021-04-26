@@ -139,7 +139,26 @@ if __name__ == '__main__':
             total_schedule[i.dest.val] = s + len(vector_program)
         vector_program += build_vector_program(stage, instr_lanes, sched)
 
+    #SHUFFLE
+    print('=' * 30)
+    print('SHIFTS:')
+    shift_dict = {}
+    for stage_dict in interstage_dicts[1:]:
+        for key,val in stage_dict.items():
+            for i in val:
+                if instr_lanes[key] > instr_lanes[i]:
+                    print("%"+str(i)+" >> "+str(instr_lanes[key] - instr_lanes[i]))
+                    shift_dict[i] = instr_lanes[key] - instr_lanes[i]
+                elif instr_lanes[key] < instr_lanes[i]:
+                    print("%"+str(i)+" << "+str(instr_lanes[i] - instr_lanes[key]))
+                    shift_dict[i] = instr_lanes[key] - instr_lanes[i]
+
+
+
     temp = 0
+    temp_shift = 0
+    shift_key = {}
+    vec_prog= []
     for i, vec_instr in enumerate(vector_program):
 
         # left_blends = set()
@@ -148,6 +167,24 @@ if __name__ == '__main__':
         # left_lanes = [0] * max_warp
         # right_lanes = [0] * max_warp
 
+        for key, shift in shift_dict.items():
+            if key in [dest.val for dest in vec_instr.dest] and shift < 0:
+                print(f's{temp_shift} =  {vec_instr.dest} <<  {-shift}')
+                shift_key[key] = f's{temp_shift}'
+                temp_shift += 1
+
+            elif key in [dest.val for dest in vec_instr.dest] and shift > 0:
+                print(f's{temp_shift} =  {vec_instr.dest} >> {shift}')
+                shift_key[key] = f's{temp_shift}'
+                temp_shift += 1
+
+
+        for key,val in shift_key.items():
+            if key in [left.val for left in vec_instr.left]:
+                vec_instr.left = shift_key[key]
+            elif key in [right.val for right in vec_instr.right]:
+                vec_instr.right = shift_key[key]
+      
         left_blend = defaultdict(lambda: [0] * max_warp)
         right_blend = defaultdict(lambda: [0] * max_warp)
 
@@ -179,12 +216,14 @@ if __name__ == '__main__':
             temp += 1
         elif len(right_blend.keys()) == 1:
             vec_instr.right = f'v{list(right_blend.keys())[0]}'
+                      
 
         # print(vec_instr.dest, dict(left_blend), dict(right_blend))
         dest_val = vec_instr.dest
         vec_instr.dest = f'v{i}'
         print(f'{vec_instr}')
-        # print(f'For instruction {vec_instr.dest}: {left_blends}, {right_blends}')
+        vec_prog.append(vec_instr)
+
 
     end = time()
 
@@ -194,124 +233,11 @@ if __name__ == '__main__':
     print(intrastage_dicts)
 
 
-    '''# print(f'Synthesized vector program in {int(1000 * (end - start))} ms')
-    # print(f'Reduced {len(code)} scalar instructions to approx {vector_cost_estimate}')
-
-    lanes = []
-    #Minimize shuffles with z3
-    opt = z3.Solver()
-    _lane =  z3.IntVector('lane', len(code))
-    _arr =  z3.IntVector('arr', len(code))
-    for l in range(0,len(code)):
-        opt.add(_lane[l] >= 0)
-
-    #Set up the || chain
-    for stage_dict in interstage_dicts:
-        for key in stage_dict.keys():
-            opt.add(z3.And([_lane[key] != _lane[key1] for key1 in stage_dict.keys() if key!=key1] ))
-    for stage_dict in interstage_dicts[1:]:
-        for key,val in stage_dict.items():
-	        opt.add(z3.Or([_lane[key] == _lane[i] for i in val]))
-  
-    opt.check()
-    model = opt.model()
-    print('=' * 30)
-    print('LANE ASSIGNMENT:')
-    print(model)
-    lanes = [model[l].as_long() for l in _lane]
-
-    for i in range(0,len(lanes)):
-        print(i, lanes[i])
-    #if more than one value is produced in same vector
-    length = 1
-    for k in range(0,len(code)):
-    #Set up the || chain
-        for stage_dict in stage_dicts:
-	        for key,val in stage_dict.items():
-		        for i in range(0,length):
-			        opt.add(z3.Or([_lane[key] == _lane[j] + arr[i] for j in val]))
-        if(opt.check() == z3.sat):
-            print(opt.model())
-            break
-        else:
-            print("jsccn")
-            length += 1
-  
-  
-    shift_list = []   
-    def shuffle(vector, howMuch):
-	    shift_list = collections.deque(vector)
-	    shift_list.rotate(howMuch)
-	    return (list(shift_list))
-
-    print('=' * 30)
-    print('SHIFTS:')
-    for stage_dict in interstage_dicts[1:]:
-        for key,val in stage_dict.items():
-            for i in val:
-                if lanes[key] > lanes[i]:
-                    print("%"+str(i)+" >> "+str(lanes[key] - lanes[i]))
-                    for vector in final_vector_code:
-                        if(i in [dest.val for dest in vector.dest]):
-                            print(i, vector.dest)
-                            shift_list.append(shuffle(vector.dest, lanes[key] - lanes[i]))
-                elif lanes[key] < lanes[i]:
-                    print("%"+str(i)+" << "+str(lanes[i] - lanes[key]))
-                    for vector in final_vector_code:
-                        if(i in [dest.val for dest in vector.dest]):
-                            print(i, vector.dest)
-                            shift_list.append(shuffle(vector.dest, lanes[key] - lanes[i]))
-    print('\nSHIFTED VECTORS:')
-    print(shift_list)'''
-
-    shift_list = []   
-    def shuffle(vector, howMuch):
-	    shift_list = collections.deque(vector)
-	    shift_list.rotate(howMuch)
-	    return (list(shift_list))
-
-    print('=' * 30)
-    print('SHIFTS:')
-    shift_dict = {}
-    for stage_dict in interstage_dicts[1:]:
-        for key,val in stage_dict.items():
-            for i in val:
-                if instr_lanes[key] > instr_lanes[i]:
-                    print("%"+str(i)+" >> "+str(instr_lanes[key] - instr_lanes[i]))
-                    shift_dict[i] = instr_lanes[key] - instr_lanes[i]
-                    '''for vector in vector_program:
-                        if(i in [dest.val for dest in vector.dest]):
-                            print(i, vector.dest)
-                            shift_list.append(shuffle(vector.dest, instr_lanes[key] - instr_lanes[i]))'''
-                elif instr_lanes[key] < instr_lanes[i]:
-                    print("%"+str(i)+" << "+str(instr_lanes[i] - instr_lanes[key]))
-                    shift_dict[i] = instr_lanes[key] - instr_lanes[i]
-                    '''for vector in vector_program:
-                        if(i in [dest.val for dest in vector.dest]):
-                            print(i, vector.dest)
-                            shift_list.append(shuffle(vector.dest, instr_lanes[key] - instr_lanes[i]))'''
-
-    print('=' * 30)
-    print('SHIFT DICT:')        
-    print(shift_dict)
-    vec_prog = []
-    for vector in vector_program:
-        vec_prog.append(vector)
-        for key, shift in shift_dict.items():
-            if key in [dest.val for dest in vector.dest] and shift < 0:
-                vec_prog.append(VecInstr(shuffle(vector.dest, shift), vector.dest, -shift, '<<'))
-            elif key in [dest.val for dest in vector.dest] and shift > 0:
-                vec_prog.append(VecInstr(shuffle(vector.dest, shift), vector.dest, shift, '>>'))
-
-
-    print('=' * 30)
-    print('SHIFTED VECTOR PROGRAM:')        
-    print('\n'.join(map(str, vec_prog)))
-
     print('=' * 30)
     print('FINAL VECTOR PROGRAM:')
     print('\n'.join(map(str, vector_program)))
     print('=' * 30)
+
 
     print(f'Synthesized vector program in {int(1000 * (end - start))} ms')
     # print(f'Reduced {len(code)} scalar instructions to approx {vector_cost_estimate}')
