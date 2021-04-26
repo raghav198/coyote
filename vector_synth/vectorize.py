@@ -147,29 +147,3 @@ def build_vector_program_automatic(program: List[Instr], warp: int) -> List[VecI
         vectorized_code.append(VecInstr(dest, lhs, rhs, types[i]))
 
     return vectorized_code
-
-
-def build_vector_program(program: List[Instr], lanes: List[int], schedule: List[int]) -> List[VecInstr]:
-    print('Building stage:')
-    print('\n'.join(map(str, program)))
-    vectorized_code = []
-    warp = max(lanes) + 1
-
-    # schedule  :: inst -> slot, inv_schedule :: slot -> [inst]
-    inv_schedule = [[i for i in range(len(schedule)) if schedule[i] == slot]
-                    for slot in set(schedule)]
-
-    for instrs in inv_schedule:
-        dest = [-1 for _ in range(warp)]
-        lhs = [Atom(BLANK_SYMBOL) for _ in range(warp)]
-        rhs = [Atom(BLANK_SYMBOL) for _ in range(warp)]
-
-        for i in instrs:
-            lane_num = lanes[program[i].dest.val]
-            dest[lane_num] = program[i].dest.val
-            lhs[lane_num] = program[i].lhs
-            rhs[lane_num] = program[i].rhs
-
-        vectorized_code.append(VecInstr(dest, lhs, rhs, program[i].op))
-
-    return vectorized_code
