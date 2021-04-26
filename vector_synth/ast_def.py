@@ -1,11 +1,11 @@
-from typing import Dict, List, Literal, Union
+from typing import Dict, List, Union, Any
 from random import choice, random, seed
 from string import ascii_lowercase
 
 Expression = Union['Var', 'Op']
 
-T_op = Union[Literal['+'], Literal['*']]
-
+#T_op = Union[Literal['+'], Literal['*']]
+T_op = Any
 BLANK_SYMBOL = '_'
 
 
