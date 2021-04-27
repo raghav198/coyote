@@ -8,7 +8,7 @@ from vectorize import VecInstr
 from collections import defaultdict
 
 
-seed(5)
+seed(3)
 
 
 def lookup_code(program: List[Instr], tag: int, modulus: List[int]) -> List[Instr]:
@@ -108,7 +108,7 @@ def divide_stages(code, bkset_calc):
 
 if __name__ == '__main__':
     # Generate a random expression for testing
-    expr = fuzzer(0.9)
+    expr = fuzzer(0.85)
     print(expr)
 
     # Compile to a scalar program
@@ -146,12 +146,17 @@ if __name__ == '__main__':
     for stage_dict in interstage_dicts[1:]:
         for key, val in stage_dict.items():
             for i in val:
-                if instr_lanes[key] > instr_lanes[i]:
-                    print("%"+str(i)+" >> "+str(instr_lanes[key] - instr_lanes[i]))
-                    shift_dict[i] = instr_lanes[key] - instr_lanes[i]
-                elif instr_lanes[key] < instr_lanes[i]:
-                    print("%"+str(i)+" << "+str(instr_lanes[i] - instr_lanes[key]))
-                    shift_dict[i] = instr_lanes[key] - instr_lanes[i]
+                shift_amt = (instr_lanes[key] - instr_lanes[i]) % max_warp
+                if shift_amt == 0:
+                    continue
+                # if instr_lanes[key] > instr_lanes[i]:
+                #     print("%"+str(i)+" >> "+str(instr_lanes[key] - instr_lanes[i]))
+                #     shift_dict[i] = instr_lanes[key] - instr_lanes[i]
+                # elif instr_lanes[key] < instr_lanes[i]:
+                #     print("%"+str(i)+" << "+str(instr_lanes[i] - instr_lanes[key]))
+                #     shift_dict[i] = instr_lanes[key] - instr_lanes[i]
+                print(f'%{i} >> {shift_amt}')
+                shift_dict[i] = shift_amt
 
     temp = 0
     temp_shift = 0
@@ -166,11 +171,15 @@ if __name__ == '__main__':
     for i, vec_instr in enumerate(vector_program):
 
         keys_to_shift = []
-
+        shifts_used = []
         for key, shift in shift_dict.items():
             if key in [dest.val for dest in vec_instr.dest]:
+                if shift in shifts_used:
+                    continue
+                shifts_used.append(shift)
                 keys_to_shift.append(key)
                 shift_key[key] = f's{temp_shift}'
+                temp_shift += 1
 
         left_blend = defaultdict(lambda: [0] * max_warp)
         right_blend = defaultdict(lambda: [0] * max_warp)
@@ -233,10 +242,9 @@ if __name__ == '__main__':
         for key in keys_to_shift:
             shift = shift_dict[key]
             if shift < 0:
-                print(f's{temp_shift} =  {vec_instr.dest} <<  {-shift}')
+                print(f'{shift_key[key]} =  {vec_instr.dest} <<  {-shift}')
             elif shift > 0:
-                print(f's{temp_shift} =  {vec_instr.dest} >> {shift}')
-            temp_shift += 1
+                print(f'{shift_key[key]} =  {vec_instr.dest} >> {shift}')
 
         vec_prog.append(vec_instr)
 
