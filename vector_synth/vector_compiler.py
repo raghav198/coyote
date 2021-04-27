@@ -139,12 +139,12 @@ if __name__ == '__main__':
             total_schedule[i.dest.val] = s + len(vector_program)
         vector_program += build_vector_program(stage, instr_lanes, sched)
 
-    #SHUFFLE
+    # SHUFFLE
     print('=' * 30)
     print('SHIFTS:')
     shift_dict = {}
     for stage_dict in interstage_dicts[1:]:
-        for key,val in stage_dict.items():
+        for key, val in stage_dict.items():
             for i in val:
                 if instr_lanes[key] > instr_lanes[i]:
                     print("%"+str(i)+" >> "+str(instr_lanes[key] - instr_lanes[i]))
@@ -153,77 +153,92 @@ if __name__ == '__main__':
                     print("%"+str(i)+" << "+str(instr_lanes[i] - instr_lanes[key]))
                     shift_dict[i] = instr_lanes[key] - instr_lanes[i]
 
-
-
     temp = 0
     temp_shift = 0
     shift_key = {}
-    vec_prog= []
+    vec_prog = []
+
+    print('=' * 30)
+    print('FINAL VECTOR PROGRAM:')
+    print('\n'.join(map(str, vector_program)))
+    print('=' * 30)
+
     for i, vec_instr in enumerate(vector_program):
 
-        # left_blends = set()
-        # right_blends = set()
-
-        # left_lanes = [0] * max_warp
-        # right_lanes = [0] * max_warp
+        keys_to_shift = []
 
         for key, shift in shift_dict.items():
-            if key in [dest.val for dest in vec_instr.dest] and shift < 0:
-                print(f's{temp_shift} =  {vec_instr.dest} <<  {-shift}')
+            if key in [dest.val for dest in vec_instr.dest]:
+                keys_to_shift.append(key)
                 shift_key[key] = f's{temp_shift}'
-                temp_shift += 1
 
-            elif key in [dest.val for dest in vec_instr.dest] and shift > 0:
-                print(f's{temp_shift} =  {vec_instr.dest} >> {shift}')
-                shift_key[key] = f's{temp_shift}'
-                temp_shift += 1
-
-
-        for key,val in shift_key.items():
-            if key in [left.val for left in vec_instr.left]:
-                vec_instr.left = shift_key[key]
-            elif key in [right.val for right in vec_instr.right]:
-                vec_instr.right = shift_key[key]
-      
         left_blend = defaultdict(lambda: [0] * max_warp)
         right_blend = defaultdict(lambda: [0] * max_warp)
 
-        for symbol in vec_instr.left:
+        left_constants = [0] * len(vec_instr.left)
+        for j, symbol in enumerate(vec_instr.left):
             if symbol != Atom(BLANK_SYMBOL) and symbol.reg:
+                if symbol.val in shift_key:
+                    src_vec = shift_key[symbol.val]
+                else:
+                    src_vec = f'v{total_schedule[symbol.val]}'
 
-                left_blend[total_schedule[symbol.val]][instr_lanes[symbol.val]] = 1
+                left_blend[src_vec][j] = 1
+            elif symbol != Atom(BLANK_SYMBOL):
+                left_constants[j] = symbol.val
 
-                # left_blends |= {total_schedule[symbol.val]}
-                # left_lanes[instr_lanes[symbol.val]] = 1
-        for symbol in vec_instr.right:
+        right_constants = [0] * len(vec_instr.right)
+        for j, symbol in enumerate(vec_instr.right):
             if symbol != Atom(BLANK_SYMBOL) and symbol.reg:
-                # right_blends |= {total_schedule[symbol.val]}
-                # right_lanes[instr_lanes[symbol.val]] = 1
-                right_blend[total_schedule[symbol.val]][instr_lanes[symbol.val]] = 1
+                if symbol.val in shift_key:
+                    src_vec = shift_key[symbol.val]
+                else:
+                    src_vec = f'v{total_schedule[symbol.val]}'
+
+                right_blend[src_vec][j] = 1
+            elif symbol != Atom(BLANK_SYMBOL):
+                right_constants[j] = symbol.val
+
+        if any(x != 0 for x in left_constants):
+            print(f't{temp} = [{", ".join(map(str, left_constants))}]')
+            left_blend[f't{temp}'] = [int(x != 0) for x in left_constants]
+            temp += 1
+
+        if any(x != 0 for x in right_constants):
+            print(f't{temp} = [{", ".join(map(str, right_constants))}]')
+            right_blend[f't{temp}'] = [int(x != 0) for x in right_constants]
+            temp += 1
 
         if len(left_blend.keys()) > 1:
-            blend_line = ', '.join([f'v{v}@{"".join(map(str, m))}' for v, m in left_blend.items()])
+            blend_line = ', '.join([f'{v}@{"".join(map(str, m))}' for v, m in left_blend.items()])
             print(f't{temp} = blend({blend_line})')
             vec_instr.left = f't{temp}'
             temp += 1
         elif len(left_blend.keys()) == 1:
-            vec_instr.left = f'v{list(left_blend.keys())[0]}'
+            vec_instr.left = f'{list(left_blend.keys())[0]}'
 
         if len(right_blend.keys()) > 1:
-            blend_line = ', '.join([f'v{v}@{"".join(map(str, m))}' for v, m in right_blend.items()])
+            blend_line = ', '.join([f'{v}@{"".join(map(str, m))}' for v, m in right_blend.items()])
             print(f't{temp} = blend({blend_line})')
             vec_instr.right = f't{temp}'
             temp += 1
         elif len(right_blend.keys()) == 1:
-            vec_instr.right = f'v{list(right_blend.keys())[0]}'
-                      
+            vec_instr.right = f'{list(right_blend.keys())[0]}'
 
         # print(vec_instr.dest, dict(left_blend), dict(right_blend))
         dest_val = vec_instr.dest
         vec_instr.dest = f'v{i}'
         print(f'{vec_instr}')
-        vec_prog.append(vec_instr)
 
+        for key in keys_to_shift:
+            shift = shift_dict[key]
+            if shift < 0:
+                print(f's{temp_shift} =  {vec_instr.dest} <<  {-shift}')
+            elif shift > 0:
+                print(f's{temp_shift} =  {vec_instr.dest} >> {shift}')
+            temp_shift += 1
+
+        vec_prog.append(vec_instr)
 
     end = time()
 
@@ -232,13 +247,5 @@ if __name__ == '__main__':
     print(interstage_dicts)
     print(intrastage_dicts)
 
-
-    print('=' * 30)
-    print('FINAL VECTOR PROGRAM:')
-    print('\n'.join(map(str, vector_program)))
-    print('=' * 30)
-
-
     print(f'Synthesized vector program in {int(1000 * (end - start))} ms')
     # print(f'Reduced {len(code)} scalar instructions to approx {vector_cost_estimate}')
-
