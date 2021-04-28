@@ -81,6 +81,13 @@ def divide_stages(code, bkset_calc):
 
         # Scalar program for this stage
         stage_code = sum([lookup_code(code, bk, quotients) for bk in bkset], [])
+        print('-' * 30)
+        print(bkset)
+        print(quotients)
+        print(stage_code)
+        print('-' * 30)
+        """ TODO: This shows that %20 and %21 are both being added to the breakset,
+        despite dependency %21 <-- %20 """
         program_stages.append(stage_code)
 
         quotients += bkset
