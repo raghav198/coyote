@@ -1,4 +1,4 @@
-from ast_def import Var, Compiler, Op, fuzzer, Instr
+from ast_def import Expression, Var, Compiler, Op, fuzzer, Instr
 from typing import Dict, List, Tuple
 from similarity_heuristic import similarity, cache
 from max_clique import BreaksetCalculator
@@ -30,7 +30,10 @@ def traverse(base, cur, trace, on, connections):
         return
 
     if on:
-        connections.remove((base, cur))
+        # remove by tag, not by value
+        index = [(n1.tag, n2.tag) for n1, n2 in connections].index((base.tag, cur.tag))
+        connections.pop(index)
+
     if on and trace[0] == 0:
         traverse(
             base, cur.lhs, trace[1:], True, connections)
@@ -57,9 +60,6 @@ def prune_deps(node, exp, conns, trace=[]):
 
 
 def build_graph(exp, tag_lookup):
-    # comp = Compiler(tag_lookup)
-    # comp.compile(exp)
-
     similarity(exp, exp, tag_lookup)
     pairs = fully_connected(exp)
     prune_deps(exp, exp, pairs)
@@ -69,6 +69,7 @@ def build_graph(exp, tag_lookup):
         connections.append((n1.tag, n2.tag))
         weights.append(cache.cache[n1.tag, n2.tag].pairs)
 
+    print(f'Connections: {connections}')
     return connections, weights
 
 
