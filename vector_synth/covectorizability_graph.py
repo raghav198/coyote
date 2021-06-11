@@ -1,9 +1,7 @@
 from ast_def import Expression, Var, Compiler, Op, fuzzer, Instr, plus, times
 from typing import Dict, List, Tuple
-from similarity_heuristic import similarity, cache
-from max_clique import BreaksetCalculator
-from z3 import unsat
-
+# from similarity_heuristic import similarity, cache
+from recursive_similarity import similarity, cache
 
 # exp = plus(times(Var('a'), Var('b')), times(
 #     plus(Var('c'), Var('d')), plus(Var('x'), Var('y'))))
@@ -59,123 +57,80 @@ def prune_deps(node, exp, conns, trace=[]):
     prune_deps(node.rhs, exp, conns, trace + [1])
 
 
-def build_graph(exp, tag_lookup):
-    similarity(exp, exp, tag_lookup)
+def build_graph(exp):
+    similarity(exp, exp)
     pairs = fully_connected(exp)
     prune_deps(exp, exp, pairs)
     connections = []
     weights = []
     for n1, n2 in pairs:
         connections.append((n1.tag, n2.tag))
-        weights.append(cache.cache[n1.tag, n2.tag].pairs)
+        weights.append(cache.cache[n1.tag, n2.tag].matches)
 
-    # print(f'Connections: {connections}')
-    # print(f'Weights: {weights}')
     return connections, weights
 
 
-def get_breakset(exp, tag_lookup) -> Tuple[List[int], int]:
-    # tag_lookup: Dict[int, Op] = dict()
-    # comp = Compiler(tag_lookup)
-    # comp.compile(exp)
-    cache.clear()
-    similarity(exp, exp, tag_lookup)
-    pairs = fully_connected(exp)
-    prune_deps(exp, exp, pairs)
-    connections = []
-    weights = []
-    for n1, n2 in pairs:
-        connections.append((n1.tag, n2.tag))
-        weights.append(
-            len(cache.cache[n1.tag, n2.tag].pairs))
 
-    calc = BreaksetCalculator(connections, weights)
-    breakset_idx, savings = calc.solve()
-    breakset: List[Op] = []
-    for i in breakset_idx:
-        breakset.append(tag_lookup[i])
+# if __name__ == '__main__':
 
-    return breakset_idx, savings
-    # return breakset, savings
+#     VECTOR_PROGRAM = []
 
+#     exp = fuzzer(0.9)
 
-def code_lookup(code: List[Instr], tag: int, mod: List[int]):
-    if tag in mod:
-        return []
+#     breakset_idx = []
+#     mod_list = []
+#     while True:
+#         print(exp)
 
-    lookup = []
+#         tag_lookup: Dict[int, Op] = dict()
 
-    if code[tag].lhs.reg:
-        lookup.extend(code_lookup(
-            code, code[tag].lhs.val, mod))
-    if code[tag].rhs.reg:
-        lookup.extend(code_lookup(
-            code, code[tag].rhs.val, mod))
+#         modded_exp = modOut(exp, mod_list)
 
-    lookup.append(code[tag])
-    return lookup
+#         graph = build_graph(modded_exp, tag_lookup)
 
+#         calc = BreaksetCalculator(*graph)
+#         # breakset_idx: List[int] = []
 
-if __name__ == '__main__':
+#         mod_list, (breakset_idx,
+#                    savings) = breakset_idx, calc.solve()
+#         breakset = []
+#         for i in breakset_idx:
+#             breakset.append(tag_lookup[i])
 
-    VECTOR_PROGRAM = []
+#         # breakset, savings = get_breakset(exp)
+#         comp = Compiler({})
+#         print(f'Saving {savings} instructions')
+#         print('-' * 30)
+#         comp.compile(exp)
+#         for b in breakset:
+#             print(b)
+#             # comp.compile(b)
+#         print('-' * 30)
 
-    exp = fuzzer(0.9)
+#         # code = comp.code
+#         # code = sum([comp.code_lookup[b.tag]
+#         #             for b in breakset], [])
 
-    breakset_idx = []
-    mod_list = []
-    while True:
-        print(exp)
+#         code = sum(
+#             [code_lookup(comp.code, b.tag, mod_list) for b in breakset], [])
 
-        tag_lookup: Dict[int, Op] = dict()
+#         print('\n'.join(map(str, code)))
+#         print('-' * 30)
 
-        modded_exp = modOut(exp, mod_list)
+#         def convert(instr: Instr) -> TAC:
+#             return TAC(instr.dest.val, Atom(instr.lhs.val),
+#                        Atom(instr.rhs.val), instr.op)
 
-        graph = build_graph(modded_exp, tag_lookup)
+#         program = list(map(convert, code))
 
-        calc = BreaksetCalculator(*graph)
-        # breakset_idx: List[int] = []
+#         for i in range(len(program)):
+#             print(f'Trying {i}...')
+#             schedule = get_vector_schedule(
+#                 program, len(breakset), i)
+#             if schedule != unsat:
+#                 break
 
-        mod_list, (breakset_idx,
-                   savings) = breakset_idx, calc.solve()
-        breakset = []
-        for i in breakset_idx:
-            breakset.append(tag_lookup[i])
+#         VECTOR_PROGRAM += build_vectorized_code(
+#             program,  *schedule, len(breakset))
 
-        # breakset, savings = get_breakset(exp)
-        comp = Compiler({})
-        print(f'Saving {savings} instructions')
-        print('-' * 30)
-        comp.compile(exp)
-        for b in breakset:
-            print(b)
-            # comp.compile(b)
-        print('-' * 30)
-
-        # code = comp.code
-        # code = sum([comp.code_lookup[b.tag]
-        #             for b in breakset], [])
-
-        code = sum(
-            [code_lookup(comp.code, b.tag, mod_list) for b in breakset], [])
-
-        print('\n'.join(map(str, code)))
-        print('-' * 30)
-
-        def convert(instr: Instr) -> TAC:
-            return TAC(instr.dest.val, Atom(instr.lhs.val),
-                       Atom(instr.rhs.val), instr.op)
-
-        program = list(map(convert, code))
-
-        for i in range(len(program)):
-            print(f'Trying {i}...')
-            schedule = get_vector_schedule(
-                program, len(breakset), i)
-            if schedule != unsat:
-                break
-
-        VECTOR_PROGRAM += build_vectorized_code(
-            program,  *schedule, len(breakset))
-
-        print('\n'.join(map(str, VECTOR_PROGRAM)))
+#         print('\n'.join(map(str, VECTOR_PROGRAM)))

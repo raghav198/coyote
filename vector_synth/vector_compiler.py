@@ -1,17 +1,14 @@
-from time import time
-
-from pyrfc3339 import generate
-from covectorizability_graph import build_graph, BreaksetCalculator
+from covectorizability_graph import build_graph
+from max_clique import BreaksetCalculator
 from ast_def import *
 from typing import Dict
-from vectorize import synthesize_schedule
+from vectorize import synthesize_schedule, VecInstr
 from build_code import place_lanes, build_vector_program
-from vectorize import VecInstr
 from sys import stderr
 from collections import defaultdict
 
 
-seed(3)
+
 
 
 def lookup_code(program: List[Instr], tag: int, modulus: List[int]) -> List[Instr]:
@@ -125,7 +122,7 @@ def vector_compile(expr):
     comp.compile(expr)
 
     # split the scalar program into stages
-    bkset_calc = BreaksetCalculator(*build_graph(expr, tag_lookup))
+    bkset_calc = BreaksetCalculator(*build_graph(expr))
     program_stages, interstage_deps, intrastage_deps, warp_size = divide_stages(
         comp, bkset_calc, expr.tag)
 
@@ -240,167 +237,10 @@ def vector_compile(expr):
 
 
 if __name__ == '__main__':
-    # expr = times(times(times('d', 'b'), plus('g', times('w', 'p'))),
-    #              times(times('e', 'x'), plus(plus(plus('h', 'n'), 'q'), 'o')))
-    expr = fuzzer(0.9)
-    print(expr)
+    seed(3)
+    expr = times(times(times('d', 'b'), plus('g', times('w', 'p'))),
+                 times(times('e', 'x'), plus(plus(plus('h', 'n'), 'q'), 'o')))
+    expr = fuzzer(0.85)
+    # print(expr)
     code = vector_compile(expr)
     print('\n'.join(code))
-    raise SystemExit()
-
-# if __name__ == '__main__':
-    # Generate a random expression for testing
-    # expr = fuzzer(0.85)
-
-    # expr = times(times(times('d', 'b'), plus('g', times('w', 'p'))),
-    #              times(times('e', 'x'), plus(plus(plus('h', 'n'), 'q'), 'o')))
-
-    # print(expr)
-
-    # # Compile to a scalar program
-    # tag_lookup: Dict[int, Op] = {}
-    # comp = Compiler(tag_lookup)
-    # comp.compile(expr)
-    # code = comp.code
-
-    # print('=' * 30)
-    # print('ORIGINAL SCALAR PROGRAM:')
-    # print('\n'.join(map(str, code)))
-    # print('=' * 30)
-
-    # start = time()
-
-    # bkset_calc = BreaksetCalculator(*build_graph(expr, tag_lookup))
-
-    # program_stages, interstage_dicts, intrastage_dicts, max_warp = divide_stages(
-    #     comp, bkset_calc, expr.tag)
-
-    # instr_lanes = place_lanes(interstage_dicts, intrastage_dicts)
-
-    # vector_program: List[VecInstr] = []
-    # total_schedule = [0] * len(code)
-
-    # for stage in program_stages:
-    #     sched = synthesize_schedule(stage, max_warp)
-    #     for s, i in zip(sched, stage):
-    #         total_schedule[i.dest.val] = s + len(vector_program)
-    #     vector_program += build_vector_program(stage, instr_lanes, sched)
-
-    # # SHUFFLE
-    # print('=' * 30)
-    # print('SHIFTS:')
-    # shift_dict = {}
-    # for stage_dict in interstage_dicts[1:]:
-    #     for key, val in stage_dict.items():
-    #         for i in val:
-    #             shift_amt = (instr_lanes[key] - instr_lanes[i]) % max_warp
-    #             if shift_amt == 0:
-    #                 continue
-    #             # if instr_lanes[key] > instr_lanes[i]:
-    #             #     print("%"+str(i)+" >> "+str(instr_lanes[key] - instr_lanes[i]))
-    #             #     shift_dict[i] = instr_lanes[key] - instr_lanes[i]
-    #             # elif instr_lanes[key] < instr_lanes[i]:
-    #             #     print("%"+str(i)+" << "+str(instr_lanes[i] - instr_lanes[key]))
-    #             #     shift_dict[i] = instr_lanes[key] - instr_lanes[i]
-    #             print(f'%{i} >> {shift_amt}')
-    #             shift_dict[i] = shift_amt
-
-    # temp = 0
-    # temp_shift = 0
-    # shift_key = {}
-    # vec_prog = []
-
-    # print('=' * 30)
-    # print('FINAL VECTOR PROGRAM:')
-    # print('\n'.join(map(str, vector_program)))
-    # print('=' * 30)
-
-    # for i, vec_instr in enumerate(vector_program):
-
-    #     keys_to_shift = []
-    #     shifts_used = []
-    #     for key, shift in shift_dict.items():
-    #         if key in [dest.val for dest in vec_instr.dest]:
-    #             if shift in shifts_used:
-    #                 continue
-    #             shifts_used.append(shift)
-    #             keys_to_shift.append(key)
-    #             shift_key[key] = f's{temp_shift}'
-    #             temp_shift += 1
-
-    #     left_blend = defaultdict(lambda: [0] * max_warp)
-    #     right_blend = defaultdict(lambda: [0] * max_warp)
-
-    #     left_constants = [0] * len(vec_instr.left)
-    #     for j, symbol in enumerate(vec_instr.left):
-    #         if symbol != Atom(BLANK_SYMBOL) and symbol.reg:
-    #             if symbol.val in shift_key:
-    #                 src_vec = shift_key[symbol.val]
-    #             else:
-    #                 src_vec = f'v{total_schedule[symbol.val]}'
-
-    #             left_blend[src_vec][j] = 1
-    #         elif symbol != Atom(BLANK_SYMBOL):
-    #             left_constants[j] = symbol.val
-
-    #     right_constants = [0] * len(vec_instr.right)
-    #     for j, symbol in enumerate(vec_instr.right):
-    #         if symbol != Atom(BLANK_SYMBOL) and symbol.reg:
-    #             if symbol.val in shift_key:
-    #                 src_vec = shift_key[symbol.val]
-    #             else:
-    #                 src_vec = f'v{total_schedule[symbol.val]}'
-
-    #             right_blend[src_vec][j] = 1
-    #         elif symbol != Atom(BLANK_SYMBOL):
-    #             right_constants[j] = symbol.val
-
-    #     if any(x != 0 for x in left_constants):
-    #         print(f't{temp} = [{", ".join(map(str, left_constants))}]')
-    #         left_blend[f't{temp}'] = [int(x != 0) for x in left_constants]
-    #         temp += 1
-
-    #     if any(x != 0 for x in right_constants):
-    #         print(f't{temp} = [{", ".join(map(str, right_constants))}]')
-    #         right_blend[f't{temp}'] = [int(x != 0) for x in right_constants]
-    #         temp += 1
-
-    #     if len(left_blend.keys()) > 1:
-    #         blend_line = ', '.join([f'{v}@{"".join(map(str, m))}' for v, m in left_blend.items()])
-    #         print(f't{temp} = blend({blend_line})')
-    #         vec_instr.left = f't{temp}'
-    #         temp += 1
-    #     elif len(left_blend.keys()) == 1:
-    #         vec_instr.left = f'{list(left_blend.keys())[0]}'
-
-    #     if len(right_blend.keys()) > 1:
-    #         blend_line = ', '.join([f'{v}@{"".join(map(str, m))}' for v, m in right_blend.items()])
-    #         print(f't{temp} = blend({blend_line})')
-    #         vec_instr.right = f't{temp}'
-    #         temp += 1
-    #     elif len(right_blend.keys()) == 1:
-    #         vec_instr.right = f'{list(right_blend.keys())[0]}'
-
-    #     # print(vec_instr.dest, dict(left_blend), dict(right_blend))
-    #     dest_val = vec_instr.dest
-    #     vec_instr.dest = f'v{i}'
-    #     print(f'{vec_instr}')
-
-    #     for key in keys_to_shift:
-    #         shift = shift_dict[key]
-    #         if shift < 0:
-    #             print(f'{shift_key[key]} =  {vec_instr.dest} <<  {-shift}')
-    #         elif shift > 0:
-    #             print(f'{shift_key[key]} =  {vec_instr.dest} >> {shift}')
-
-    #     vec_prog.append(vec_instr)
-
-    # end = time()
-
-    # print('=' * 30)
-    # print('STAGE DICTIONARIES:')
-    # print(interstage_dicts)
-    # print(intrastage_dicts)
-
-    # print(f'Synthesized vector program in {int(1000 * (end - start))} ms')
-    # # print(f'Reduced {len(code)} scalar instructions to approx {vector_cost_estimate}')
