@@ -4,7 +4,7 @@ from string import ascii_lowercase
 
 Expression = Union['Var', 'Op']
 
-#T_op = Union[Literal['+'], Literal['*']]
+# T_op = Union[Literal['+'], Literal['*']]
 T_op = Any
 BLANK_SYMBOL = '_'
 
@@ -44,10 +44,20 @@ class Op:
 
 
 def plus(a, b):
+    if type(a) is str:
+        a = Var(a)
+    if type(b) is str:
+        b = Var(b)
+
     return Op('+', a, b)
 
 
 def times(a, b):
+    if type(a) is str:
+        a = Var(a)
+    if type(b) is str:
+        b = Var(b)
+
     return Op('*', a, b)
 
 
@@ -86,6 +96,7 @@ class Instr:
 class Compiler:
     def __init__(self, tag_lookup: Dict[int, Op]):
         self.code: List[Instr] = []
+        self.expr = None
         self.target = -1
         self.tag_lookup = tag_lookup
         self.code_lookup: Dict[int, List[Instr]] = {}

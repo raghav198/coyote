@@ -1,4 +1,4 @@
-from ast_def import Expression, Var, Compiler, Op, fuzzer, Instr
+from ast_def import Expression, Var, Compiler, Op, fuzzer, Instr, plus, times
 from typing import Dict, List, Tuple
 from similarity_heuristic import similarity, cache
 from max_clique import BreaksetCalculator
@@ -69,7 +69,8 @@ def build_graph(exp, tag_lookup):
         connections.append((n1.tag, n2.tag))
         weights.append(cache.cache[n1.tag, n2.tag].pairs)
 
-    print(f'Connections: {connections}')
+    # print(f'Connections: {connections}')
+    # print(f'Weights: {weights}')
     return connections, weights
 
 
@@ -120,6 +121,7 @@ if __name__ == '__main__':
     VECTOR_PROGRAM = []
 
     exp = fuzzer(0.9)
+
     breakset_idx = []
     mod_list = []
     while True:

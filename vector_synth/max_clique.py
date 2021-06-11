@@ -1,6 +1,7 @@
 from typing import List, Tuple
 import z3
 from sys import stderr
+from random import random
 
 
 class BreaksetCalculator:
@@ -33,6 +34,8 @@ class BreaksetCalculator:
             a, b = self.connections[con]
             self.clique_weights[con] = z3.If(z3.And(
                 self.in_clique[a] == 1, self.in_clique[b] == 1), len(self.weights[con]), 0)
+            # self.clique_weights[con] = z3.If(z3.And(
+            #     self.in_clique[a] == 1, self.in_clique[b] == 1), 1, 0)
 
     def disallow(self, tags):
         weights = []
@@ -46,7 +49,7 @@ class BreaksetCalculator:
                 self.opt.add(self.in_clique[tag] == 0)
             except IndexError:
                 print(
-                    f'Warning: attempting to disallow a nonexistent tag {tag} (if this is the last stage, its probably fine)')
+                    f'Warning: attempting to disallow a nonexistent tag {tag} (if this is the last stage, its probably fine)', file=stderr)
 
         self.update_connections()
 

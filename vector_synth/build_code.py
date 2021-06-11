@@ -1,3 +1,4 @@
+from sys import stderr
 import z3
 from typing import Dict, Set, List
 from ast_def import *
@@ -42,8 +43,8 @@ def place_lanes(interstage: Dict[int, Set[int]], intrastage: Dict[int, List[int]
 def build_vector_program(program: List[Instr],
                          lanes: List[int],
                          schedule: List[int]) -> List[VecInstr]:
-    print('Building stage:')
-    print('\n'.join(map(str, program)))
+    print('Building stage:', file=stderr)
+    print('\n'.join(map(str, program)), file=stderr)
     vectorized_code = []
     warp = max(lanes) + 1
 
