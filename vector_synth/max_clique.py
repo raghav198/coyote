@@ -1,14 +1,28 @@
 from typing import List, Tuple
 import z3
 from sys import stderr
-from random import random
+import numpy as np
 
 
 class BreaksetCalculator:
-    def __init__(self, connections: List[Tuple[int]], weights: List[List[Tuple[int]]], timeout=10):
+    def __init__(self, num_nodes, connections: List[Tuple[int]], matches: List[List[Tuple[int]]], match_scores: List[List[int]], timeout=10):
         self.connections = connections
-        self.weights = weights
-        self.num_nodes = max(sum(connections, ())) + 1
+        self.matches = []
+
+        for match in matches:
+            if not len(match):
+                self.matches.append((np.array([]), np.array([])))
+                continue
+
+            left, right = zip(*match)
+            
+            self.matches.append((np.array(left), np.array(right)))
+
+        self.weights = matches
+
+        self.match_scores = list(map(np.array, match_scores))
+        self.num_nodes = num_nodes
+    
         self.opt = z3.Solver()
 
         self.opt.set('timeout', timeout * 1000)
@@ -29,20 +43,30 @@ class BreaksetCalculator:
 
         self.update_connections()
 
+    def get_weight(self, con):
+        # return len(self.weights[con])
+        return int(self.match_scores[con].sum())
+
     def update_connections(self):
         for con in range(len(self.connections)):
             a, b = self.connections[con]
             self.clique_weights[con] = z3.If(z3.And(
-                self.in_clique[a] == 1, self.in_clique[b] == 1), len(self.weights[con]), 0)
-            # self.clique_weights[con] = z3.If(z3.And(
-            #     self.in_clique[a] == 1, self.in_clique[b] == 1), 1, 0)
+                self.in_clique[a] == 1, self.in_clique[b] == 1), self.get_weight(con), 0)
+        
+        # no empty cliques allowed!
+        self.opt.add(z3.Sum(self.in_clique) > 0)
 
     def disallow(self, tags):
-        weights = []
-        for weight in self.weights:
-            weights.append(list(filter(lambda p: p[0] not in tags and p[1] not in tags, weight)))
+        # weights = []
+        # for weight in self.weights:
+        #     weights.append(list(filter(lambda p: p[0] not in tags and p[1] not in tags, weight)))
 
-        self.weights = weights
+        for (left_match, right_match), scores in zip(self.matches, self.match_scores):
+            exclude = np.logical_or(np.isin(left_match, tags), np.isin(right_match, tags))
+            scores[exclude] = 0
+            
+
+        # self.weights = weights
 
         for tag in tags:
             try:

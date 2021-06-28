@@ -9,13 +9,13 @@ from recursive_similarity import similarity, cache
 # print(exp)
 
 
-def fully_connected(exp):
+def fully_connected(exprs):
     def get_all_nodes(exp):
         if isinstance(exp, Var):
             return []
         return get_all_nodes(exp.lhs) + get_all_nodes(exp.rhs) + [exp]
 
-    all_nodes = get_all_nodes(exp)
+    all_nodes = sum((get_all_nodes(exp) for exp in exprs), [])
     connections = []
     for i in range(len(all_nodes)):
         for j in range(i + 1, len(all_nodes)):
@@ -57,17 +57,24 @@ def prune_deps(node, exp, conns, trace=[]):
     prune_deps(node.rhs, exp, conns, trace + [1])
 
 
-def build_graph(exp):
-    similarity(exp, exp)
-    pairs = fully_connected(exp)
-    prune_deps(exp, exp, pairs)
+def build_graph(exprs):
+    
+    for exp1 in exprs:
+        for exp2 in exprs:
+            similarity(exp1, exp2)
+    pairs = fully_connected(exprs)
+    for exp in exprs:
+        prune_deps(exp, exp, pairs)
     connections = []
     weights = []
+    scores = []
+
     for n1, n2 in pairs:
         connections.append((n1.tag, n2.tag))
         weights.append(cache.cache[n1.tag, n2.tag].matches)
+        scores.append(cache.cache[n1.tag, n2.tag].scores)
 
-    return connections, weights
+    return connections, weights, scores
 
 
 

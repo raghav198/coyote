@@ -96,19 +96,22 @@ class Instr:
 class Compiler:
     def __init__(self, tag_lookup: Dict[int, Op]):
         self.code: List[Instr] = []
-        self.expr = None
+        self.exprs = []
         self.target = -1
         self.tag_lookup = tag_lookup
         self.code_lookup: Dict[int, List[Instr]] = {}
 
-    def compile(self, e: Expression) -> Atom:
+    def compile(self, e: Expression, top=True) -> Atom:
         if isinstance(e, Var):
             return Atom(e.name)
 
         assert isinstance(e, Op)
 
-        lhs = self.compile(e.lhs)
-        rhs = self.compile(e.rhs)
+        if top:
+            self.exprs.append(e)
+
+        lhs = self.compile(e.lhs, top=False)
+        rhs = self.compile(e.rhs, top=False)
 
         self.target += 1
         e.tag = self.target
