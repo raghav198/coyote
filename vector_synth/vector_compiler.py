@@ -54,7 +54,7 @@ def quotient_relative_expression(expr: Expression, modulus: List[int]) -> Expres
               quotient_relative_expression(expr.rhs, modulus))
 
 
-def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, root_tag: int):
+def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator):
     quotients = []
     unused_outputs = set()
 
@@ -68,15 +68,14 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, root_tag: int)
     max_warp = -1
 
     # Get an optimal set of breakpoints for this stage
-    final_stage = False
-    while not final_stage:
+
+    while True:
         bkset, _ = bkset_calc.solve()  # get_breakset(expr, tag_lookup)
         if len(bkset) > max_warp:
             max_warp = len(bkset)
 
         if len(bkset) == 0:
-            final_stage = True
-            bkset = [root_tag]
+            break
         bkset_calc.disallow(bkset)
         for b in bkset:
             bkset_calc.disallow(
@@ -89,8 +88,6 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, root_tag: int)
         print(quotients, file=stderr)
         print(stage_code, file=stderr)
         print('-' * 30, file=stderr)
-        """ TODO: This shows that %20 and %21 are both being added to the breakset,
-        despite dependency %21 <-- %20 """
         program_stages.append(stage_code)
 
         quotients += bkset
@@ -116,18 +113,18 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, root_tag: int)
     return program_stages, interstage_dicts, intrastage_dicts, max_warp
 
 
-def vector_compile(expr):
-    tag_lookup: Dict[int, Op] = {}
-    comp = Compiler(tag_lookup)
-    comp.compile(expr)
+def vector_compile(comp: Compiler):
+    # tag_lookup: Dict[int, Op] = {}
+    # comp = Compiler(tag_lookup)
+    # comp.compile(expr)
 
     # split the scalar program into stages
-    bkset_calc = BreaksetCalculator(*build_graph(expr))
+    bkset_calc = BreaksetCalculator(comp.target + 1, *build_graph(comp.exprs))
     program_stages, interstage_deps, intrastage_deps, warp_size = divide_stages(
-        comp, bkset_calc, expr.tag)
+        comp, bkset_calc)
 
     # optimal lane placement based on interstage and intrastage dependences
-    lanes = place_lanes(interstage_deps, intrastage_deps)
+    lanes = place_lanes(interstage_deps, intrastage_deps, warp_size)
 
     # build vector schedule
     vector_program: List[VecInstr] = []
@@ -192,7 +189,8 @@ def vector_compile(expr):
                     src_vec = shifted_names[symbol.val]
                 else:
                     src_vec = f'__v{schedule[symbol.val]}'
-
+                # print(instr)
+                # print(right_blend, src_vec, j)
                 right_blend[src_vec][j] = 1
             elif symbol != Atom(BLANK_SYMBOL):
                 right_constants[j] = symbol.val
@@ -236,11 +234,48 @@ def vector_compile(expr):
     return generated_code
 
 
+def code_stats(code: List[str]):
+    adds = mults = 0
+    for line in code:
+        mults += line.count("*") + line.count(">>")
+        adds += line.count(",") * line.count("blend") + line.count("+")
+
+    return adds, mults
+
+
 if __name__ == '__main__':
-    seed(3)
-    expr = times(times(times('d', 'b'), plus('g', times('w', 'p'))),
-                 times(times('e', 'x'), plus(plus(plus('h', 'n'), 'q'), 'o')))
-    expr = fuzzer(0.85)
+    # seed(3)
+    # e = times(times(times('d', 'b'), plus('g', times('w', 'p'))),
+    #              times(times('e', 'x'), plus(plus(plus('h', 'n'), 'q'), 'o')))
+    # e = fuzzer(0.9)
     # print(expr)
-    code = vector_compile(expr)
-    print('\n'.join(code))
+
+    # comp = Compiler({})
+    # comp.compile(e)
+
+    # e1 = times('a', plus('b', 'c'))
+    # e2 = times('d', plus('e', 'f'))
+
+    # comp = Compiler({})
+    # comp.compile(e1)
+    # comp.compile(e)
+    # print('\n'.join(map(str, comp.code)))
+    # code = vector_compile(comp)
+    # print('\n'.join(code))
+
+    import sys
+    seed(33)
+
+    exprs = [fuzzer(0.8) for i in range(2)]
+    comp = Compiler({})
+    for expr in exprs:
+        comp.compile(expr)
+
+    scalar_code = list(map(str, comp.code))
+    # print('\n'.join(map(str, comp.code)))
+    vector_code = vector_compile(comp)
+    # print('\n'.join(code))
+
+    print(f'Scalar code stats: {code_stats(scalar_code)}')
+    print(f'Vector code stats: {code_stats(vector_code)}')
+    

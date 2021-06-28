@@ -5,15 +5,15 @@ from ast_def import *
 from vectorize import VecInstr
 
 
-def place_lanes(interstage: Dict[int, Set[int]], intrastage: Dict[int, List[int]]):
+def place_lanes(interstage: Dict[int, Set[int]], intrastage: Dict[int, List[int]], max_warp: int):
 
     opt = z3.Solver()
 
-    num_instr = max(interstage[-1].keys()) + 1
+    num_instr = max(sum((list(stage.keys()) for stage in interstage), [])) + 1
     _lane = z3.IntVector('lane', num_instr)
-    _arr = z3.IntVector('arr', num_instr)
-    for instr in range(0, num_instr):
+    for instr in range(num_instr):
         opt.add(_lane[instr] >= 0)
+        opt.add(_lane[instr] < max_warp)
 
     # Set up the || chain
     for stage_dict in interstage:
