@@ -1,9 +1,12 @@
+from collections import defaultdict
 from typing import Tuple
 
 from ast_def import *
 import z3
 from sys import stderr
 from time import time
+
+# z3.set_option('parallel.enable', True)
 
 
 class VecInstr:
@@ -92,30 +95,61 @@ def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int):
         elif i in mults:
             opt.add(_types[_schedule[i]] == itype.times)
 
+    print(f'Trying to synthesize {max_len} instructions...', file=stderr, end=''); stderr.flush()
     start = time()
     res = opt.check()
     end = time()
+    print(f'({int(1000 * (end - start))} ms)', file=stderr)
     if res == z3.unsat:
         return res
 
-    print(f'Synthesized schedule in {int(1000 * (end - start))}ms', file=stderr)
     model = opt.model()
 
     schedule = [model[s].as_long() for s in _schedule]
-    lanes = [model[lane].as_long() for lane in _lanes]
-    types: List[T_op] = [('+' if model[_types][t] == itype.plus else '*') for t in range(num_instr)]
+    # lanes = [model[lane].as_long() for lane in _lanes]
+    # types: List[T_op] = [('+' if model[_types][t] == itype.plus else '*') for t in range(num_instr)]
 
-    return schedule, lanes, types
+    return schedule
 
 
 def synthesize_schedule(program: List[Instr], warp: int) -> List[int]:
-    for max_len in range(len(program) + 1):
+    print(f'Calculating height...', file=stderr, end=''); stderr.flush()
+    heights: Dict[int, int] = defaultdict(lambda: -1)
+    for instr in program:
+        left_height = heights[instr.lhs.val]
+        right_height = heights[instr.rhs.val]
+        heights[instr.dest.val] = max(left_height, right_height) + 1
+
+    max_height = max(heights.values())
+    print(f'({max_height})', file=stderr)
+    start = time()
+    for max_len in range(max_height, len(program) + 1):
         result = synthesize_schedule_bounded(program, warp, max_len)
         if result == z3.unsat:
             continue
+        end = time()
+        print(f'Synthesis took {int(1000 * (end - start))}ms')
 
-        schedule, *_ = result
-        return schedule
+        return result
+
+
+def synthesize_schedule_backwards(program: List[Instr], warp: int) -> List[int]:
+    print(f'Calculating height...', file=stderr, end=''); stderr.flush()
+    heights: Dict[int, int] = defaultdict(lambda: -1)
+    for instr in program:
+        left_height = heights[instr.lhs.val]
+        right_height = heights[instr.rhs.val]
+        heights[instr.dest.val] = max(left_height, right_height) + 1
+
+    max_height = max(heights.values())
+    print(f'({max_height})', file=stderr)
+    best_so_far = None
+    for max_len in range(len(program) + 1, max_height, -1):
+        result = synthesize_schedule_bounded(program, warp, max_len)
+        if result == z3.unsat:
+            break
+        best_so_far = result
+    return best_so_far
 
 
 def build_vector_program_automatic(program: List[Instr], warp: int) -> List[VecInstr]:

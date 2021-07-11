@@ -1,5 +1,7 @@
+from sys import stdout
 from ast_def import Expression, Var
 from typing import Dict, List, Tuple
+from progressbar import ProgressBar
 
 MATCH_MUL = 1
 MATCH_ADD = 1
@@ -14,6 +16,7 @@ class SimilarityCache:
                 return f(a, b)
             if (a.tag, b.tag) not in self.cache:
                 self.cache[a.tag, b.tag] = self.cache[b.tag, a.tag] = f(a, b)
+
             return self.cache[a.tag, b.tag]
 
         return cached_sim

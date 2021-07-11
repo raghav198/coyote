@@ -5,7 +5,10 @@ import numpy as np
 
 
 class BreaksetCalculator:
-    def __init__(self, num_nodes, connections: List[Tuple[int]], matches: List[List[Tuple[int]]], match_scores: List[List[int]], timeout=10):
+    def __init__(self, num_nodes, connections: List[Tuple[int]], matches: List[List[Tuple[int]]], match_scores: List[List[int]], rotate_penalty=1, timeout=10):
+
+        self.rotate_penalty = rotate_penalty
+
         self.connections = connections
         self.matches = []
 
@@ -45,7 +48,7 @@ class BreaksetCalculator:
 
     def get_weight(self, con):
         # return len(self.weights[con])
-        return int(self.match_scores[con].sum())
+        return int(self.match_scores[con].sum()) - self.rotate_penalty
 
     def update_connections(self):
         for con in range(len(self.connections)):

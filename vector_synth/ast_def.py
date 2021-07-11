@@ -13,7 +13,7 @@ class Var:
     def __init__(self, name: str):
         self.name = name
         self.tag = name
-        self.subtags = []
+        self.subtags: List[Union[int, str]] = []
 
     def __str__(self) -> str:
         return self.name
@@ -31,7 +31,7 @@ class Op:
         self.lhs = lhs
         self.rhs = rhs
         self.tag: int = -1
-        self.subtags: List[int] = []
+        self.subtags: List[Union[int, str]] = []
 
     def __str__(self) -> str:
         return f'({str(self.lhs)} {self.op} {str(self.rhs)})'
@@ -61,13 +61,16 @@ def times(a, b):
     return Op('*', a, b)
 
 
+def is_reg(atom):
+    return isinstance(atom.val, int)
+
 class Atom:
     def __init__(self, x: Union[int, str]):
         self.val = x
         self.reg = isinstance(x, int)
 
     def __repr__(self) -> str:
-        if self.reg and self.val >= 0:
+        if isinstance(self.val, int) and self.val >= 0:
             return f'%{self.val}'
         elif self.reg:
             return BLANK_SYMBOL
@@ -96,7 +99,7 @@ class Instr:
 class Compiler:
     def __init__(self, tag_lookup: Dict[int, Op]):
         self.code: List[Instr] = []
-        self.exprs = []
+        self.exprs: List[Expression] = []
         self.target = -1
         self.tag_lookup = tag_lookup
         self.code_lookup: Dict[int, List[Instr]] = {}
@@ -109,7 +112,6 @@ class Compiler:
 
         if top:
             self.exprs.append(e)
-
         lhs = self.compile(e.lhs, top=False)
         rhs = self.compile(e.rhs, top=False)
 
@@ -122,9 +124,11 @@ class Compiler:
 
         self.code_lookup[e.tag] = []
         if e.lhs.tag in self.code_lookup:
+            assert isinstance(e.lhs.tag, int) # mypy
             self.code_lookup[e.tag].extend(
                 self.code_lookup[e.lhs.tag])
         if e.rhs.tag in self.code_lookup:
+            assert isinstance(e.rhs.tag, int) # mypy
             self.code_lookup[e.tag].extend(
                 self.code_lookup[e.rhs.tag])
         self.code_lookup[e.tag].append(self.code[-1])

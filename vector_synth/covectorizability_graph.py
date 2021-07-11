@@ -1,5 +1,7 @@
-from ast_def import Expression, Var, Compiler, Op, fuzzer, Instr, plus, times
-from typing import Dict, List, Tuple
+from sys import stderr
+from time import time
+from ast_def import Expression, Var
+from typing import List
 # from similarity_heuristic import similarity, cache
 from recursive_similarity import similarity, cache
 
@@ -52,19 +54,26 @@ def traverse(base, cur, trace, on, connections):
 def prune_deps(node, exp, conns, trace=[]):
     if isinstance(node, Var):
         return
+
     traverse(node, exp, trace, True, conns)
+    
     prune_deps(node.lhs, exp, conns, trace + [0])
     prune_deps(node.rhs, exp, conns, trace + [1])
 
 
-def build_graph(exprs):
-    
+def build_graph(exprs: List[Expression]):
+    print('Calculating similarities...', file=stderr)
     for exp1 in exprs:
         for exp2 in exprs:
             similarity(exp1, exp2)
+
+    print('Pruning graph...', file=stderr)
     pairs = fully_connected(exprs)
     for exp in exprs:
+        start = time()
         prune_deps(exp, exp, pairs)
+        print(f'Pruning this took {time() - start} seconds')
+
     connections = []
     weights = []
     scores = []

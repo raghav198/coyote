@@ -2,10 +2,11 @@ from covectorizability_graph import build_graph
 from max_clique import BreaksetCalculator
 from ast_def import *
 from typing import Dict
-from vectorize import synthesize_schedule, VecInstr
-from build_code import place_lanes, build_vector_program
+from vectorize import synthesize_schedule, VecInstr, synthesize_schedule_bounded, synthesize_schedule_backwards
+from build_code import place_output_lanes, build_vector_program, propagate_lane_assigments, place_lanes
 from sys import stderr
 from collections import defaultdict
+from recursive_similarity import MATCH_MUL
 
 
 
@@ -28,9 +29,9 @@ def lookup_code(program: List[Instr], tag: int, modulus: List[int]) -> List[Inst
 
     lookup = []
     if program[tag].lhs.reg:
-        lookup.extend(lookup_code(program, program[tag].lhs.val, modulus))
+        lookup.extend(lookup_code(program, int(program[tag].lhs.val), modulus))
     if program[tag].rhs.reg:
-        lookup.extend(lookup_code(program, program[tag].rhs.val, modulus))
+        lookup.extend(lookup_code(program, int(program[tag].rhs.val), modulus))
     lookup.append(program[tag])
 
     return lookup
@@ -119,12 +120,14 @@ def vector_compile(comp: Compiler):
     # comp.compile(expr)
 
     # split the scalar program into stages
-    bkset_calc = BreaksetCalculator(comp.target + 1, *build_graph(comp.exprs))
+    bkset_calc = BreaksetCalculator(comp.target + 1, *build_graph(comp.exprs), rotate_penalty=MATCH_MUL)
     program_stages, interstage_deps, intrastage_deps, warp_size = divide_stages(
         comp, bkset_calc)
 
     # optimal lane placement based on interstage and intrastage dependences
-    lanes = place_lanes(interstage_deps, intrastage_deps, warp_size)
+    output_placement = place_output_lanes(interstage_deps, warp_size)
+    lanes = propagate_lane_assigments(output_placement, intrastage_deps)
+    # lanes = place_lanes(interstage_deps, intrastage_deps, warp_size)
 
     # build vector schedule
     vector_program: List[VecInstr] = []
@@ -167,12 +170,13 @@ def vector_compile(comp: Compiler):
         left_blend = defaultdict(lambda: [0] * warp_size)
         right_blend = defaultdict(lambda: [0] * warp_size)
         # where to blend in constants
-        left_constants = [0] * len(instr.left)
-        right_constants = [0] * len(instr.right)
+        left_constants: List[Union[int, str]] = [0] * len(instr.left)
+        right_constants: List[Union[int, str]] = [0] * len(instr.right)
 
         # collect all the sources to be blended for left operand
         for j, symbol in enumerate(instr.left):
             if symbol != Atom(BLANK_SYMBOL) and symbol.reg:
+                assert isinstance(symbol.val, int)
                 if symbol.val in shifted_names:
                     src_vec = shifted_names[symbol.val]
                 else:
@@ -185,6 +189,7 @@ def vector_compile(comp: Compiler):
         # collect all the sources to be blended for right operand
         for j, symbol in enumerate(instr.right):
             if symbol != Atom(BLANK_SYMBOL) and symbol.reg:
+                assert isinstance(symbol.val, int)
                 if symbol.val in shifted_names:
                     src_vec = shifted_names[symbol.val]
                 else:
@@ -274,7 +279,7 @@ if __name__ == '__main__':
     scalar_code = list(map(str, comp.code))
     # print('\n'.join(map(str, comp.code)))
     vector_code = vector_compile(comp)
-    # print('\n'.join(code))
+    print('\n'.join(vector_code))
 
     print(f'Scalar code stats: {code_stats(scalar_code)}')
     print(f'Vector code stats: {code_stats(vector_code)}')
