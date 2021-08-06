@@ -1,0 +1,1126 @@
+Current best: 58
+Current best: 60
+Current best: 66
+Current best: 85
+Current best: 88
+Current best: 94
+Current best: 95
+Current best: 96
+Current best: 97
+Current best: 99
+Current best: 103
+Current best: 106
+Current best: 111
+Breakset has 15 nodes
+------------------------------
+[3, 4, 9, 12, 14, 17, 19, 26, 28, 33, 35, 37, 38, 46, 47]
+[]
+[Instr(%0, u, l, +), Instr(%1, s, s, *), Instr(%2, %0, %1, +), Instr(%3, w, %2, *), Instr(%4, b, j, +), Instr(%9, o, r, *), Instr(%11, w, q, +), Instr(%12, %11, y, *), Instr(%14, q, s, +), Instr(%15, c, u, +), Instr(%16, %15, s, +), Instr(%17, %16, m, +), Instr(%19, l, i, +), Instr(%22, x, e, *), Instr(%23, h, %22, *), Instr(%24, %23, k, +), Instr(%25, m, %24, +), Instr(%26, %25, f, +), Instr(%27, r, z, *), Instr(%28, %27, p, +), Instr(%30, p, k, *), Instr(%31, l, %30, *), Instr(%32, %31, q, +), Instr(%33, a, %32, +), Instr(%35, f, z, *), Instr(%36, o, a, +), Instr(%37, %36, l, *), Instr(%38, a, m, +), Instr(%45, e, r, +), Instr(%46, d, %45, *), Instr(%47, f, f, +)]
+------------------------------
+Current best: 0
+Current best: 2
+Current best: 3
+Current best: 6
+Current best: 7
+Current best: 11
+Current best: 12
+Breakset has 5 nodes
+------------------------------
+[13, 20, 34, 44, 49]
+[3, 4, 9, 12, 14, 17, 19, 26, 28, 33, 35, 37, 38, 46, 47]
+[Instr(%5, %3, %4, +), Instr(%6, %5, c, +), Instr(%7, z, %6, +), Instr(%8, %7, v, +), Instr(%10, %8, %9, *), Instr(%13, %10, %12, *), Instr(%18, %14, %17, *), Instr(%20, %18, %19, *), Instr(%29, %28, c, +), Instr(%34, %29, %33, *), Instr(%39, %37, %38, *), Instr(%40, %39, q, *), Instr(%41, s, %40, *), Instr(%42, %35, %41, +), Instr(%43, s, %42, *), Instr(%44, %43, d, +), Instr(%48, %46, %47, +), Instr(%49, x, %48, +)]
+------------------------------
+Current best: 0
+Breakset has 1 nodes
+------------------------------
+[21]
+[3, 4, 9, 12, 14, 17, 19, 26, 28, 33, 35, 37, 38, 46, 47, 13, 20, 34, 44, 49]
+[Instr(%21, %13, %20, +)]
+------------------------------
+Breakset has 0 nodes
+Synthesized schedule in 664ms
+Building stage:
+%0 = u + l
+%1 = s * s
+%2 = %0 + %1
+%3 = w * %2
+%4 = b + j
+%9 = o * r
+%11 = w + q
+%12 = %11 * y
+%14 = q + s
+%15 = c + u
+%16 = %15 + s
+%17 = %16 + m
+%19 = l + i
+%22 = x * e
+%23 = h * %22
+%24 = %23 + k
+%25 = m + %24
+%26 = %25 + f
+%27 = r * z
+%28 = %27 + p
+%30 = p * k
+%31 = l * %30
+%32 = %31 + q
+%33 = a + %32
+%35 = f * z
+%36 = o + a
+%37 = %36 * l
+%38 = a + m
+%45 = e + r
+%46 = d * %45
+%47 = f + f
+Synthesized schedule in 56ms
+Building stage:
+%5 = %3 + %4
+%6 = %5 + c
+%7 = z + %6
+%8 = %7 + v
+%10 = %8 * %9
+%13 = %10 * %12
+%18 = %14 * %17
+%20 = %18 * %19
+%29 = %28 + c
+%34 = %29 * %33
+%39 = %37 * %38
+%40 = %39 * q
+%41 = s * %40
+%42 = %35 + %41
+%43 = s * %42
+%44 = %43 + d
+%48 = %46 + %47
+%49 = x + %48
+Synthesized schedule in 6ms
+Building stage:
+%21 = %13 + %20
+Current best: 49
+Current best: 91
+Current best: 98
+Current best: 135
+Current best: 136
+Current best: 140
+Current best: 147
+Current best: 158
+Breakset has 17 nodes
+------------------------------
+[0, 5, 11, 19, 25, 26, 28, 30, 33, 38, 45, 46, 47, 50, 54, 55, 61]
+[]
+[Instr(%0, c, b, *), Instr(%1, t, m, +), Instr(%2, j, a, *), Instr(%3, t, w, *), Instr(%4, %2, %3, +), Instr(%5, %1, %4, *), Instr(%7, f, o, +), Instr(%8, l, e, +), Instr(%9, %7, %8, +), Instr(%10, b, %9, *), Instr(%11, i, %10, +), Instr(%13, q, n, *), Instr(%14, u, k, +), Instr(%15, %14, r, *), Instr(%16, e, %15, *), Instr(%17, %13, %16, +), Instr(%18, h, %17, *), Instr(%19, %18, n, +), Instr(%20, a, y, *), Instr(%21, %20, v, +), Instr(%22, r, w, +), Instr(%23, %21, %22, *), Instr(%24, %23, f, *), Instr(%25, %24, l, +), Instr(%26, r, f, +), Instr(%28, v, e, *), Instr(%30, b, n, +), Instr(%31, x, e, *), Instr(%32, %31, q, *), Instr(%33, e, %32, *), Instr(%37, v, a, *), Instr(%38, k, %37, *), Instr(%41, r, k, *), Instr(%42, d, m, *), Instr(%43, %41, %42, *), Instr(%44, %43, r, +), Instr(%45, e, %44, *), Instr(%46, n, h, *), Instr(%47, n, p, +), Instr(%50, d, r, +), Instr(%54, n, o, *), Instr(%55, g, f, *), Instr(%57, n, y, *), Instr(%58, f, a, +), Instr(%59, %57, %58, *), Instr(%60, m, %59, *), Instr(%61, %60, w, *)]
+------------------------------
+Current best: 0
+Current best: 1
+Current best: 3
+Current best: 6
+Current best: 8
+Current best: 10
+Current best: 11
+Breakset has 5 nodes
+------------------------------
+[12, 29, 40, 51, 62]
+[0, 5, 11, 19, 25, 26, 28, 30, 33, 38, 45, 46, 47, 50, 54, 55, 61]
+[Instr(%6, %0, %5, +), Instr(%12, %6, %11, +), Instr(%27, %25, %26, *), Instr(%29, %27, %28, *), Instr(%34, %30, %33, *), Instr(%35, %34, p, *), Instr(%36, %35, u, +), Instr(%39, %36, %38, +), Instr(%40, e, %39, *), Instr(%48, t, %47, +), Instr(%49, %46, %48, +), Instr(%51, %49, %50, *), Instr(%56, %54, %55, *), Instr(%62, %56, %61, +)]
+------------------------------
+Current best: 0
+Breakset has 1 nodes
+------------------------------
+[63]
+[0, 5, 11, 19, 25, 26, 28, 30, 33, 38, 45, 46, 47, 50, 54, 55, 61, 12, 29, 40, 51, 62]
+[Instr(%52, %45, %51, +), Instr(%53, j, %52, *), Instr(%63, %53, %62, +)]
+------------------------------
+Breakset has 0 nodes
+Synthesized schedule in 3598ms
+Building stage:
+%0 = c * b
+%1 = t + m
+%2 = j * a
+%3 = t * w
+%4 = %2 + %3
+%5 = %1 * %4
+%7 = f + o
+%8 = l + e
+%9 = %7 + %8
+%10 = b * %9
+%11 = i + %10
+%13 = q * n
+%14 = u + k
+%15 = %14 * r
+%16 = e * %15
+%17 = %13 + %16
+%18 = h * %17
+%19 = %18 + n
+%20 = a * y
+%21 = %20 + v
+%22 = r + w
+%23 = %21 * %22
+%24 = %23 * f
+%25 = %24 + l
+%26 = r + f
+%28 = v * e
+%30 = b + n
+%31 = x * e
+%32 = %31 * q
+%33 = e * %32
+%37 = v * a
+%38 = k * %37
+%41 = r * k
+%42 = d * m
+%43 = %41 * %42
+%44 = %43 + r
+%45 = e * %44
+%46 = n * h
+%47 = n + p
+%50 = d + r
+%54 = n * o
+%55 = g * f
+%57 = n * y
+%58 = f + a
+%59 = %57 * %58
+%60 = m * %59
+%61 = %60 * w
+Synthesized schedule in 25ms
+Building stage:
+%6 = %0 + %5
+%12 = %6 + %11
+%27 = %25 * %26
+%29 = %27 * %28
+%34 = %30 * %33
+%35 = %34 * p
+%36 = %35 + u
+%39 = %36 + %38
+%40 = e * %39
+%48 = t + %47
+%49 = %46 + %48
+%51 = %49 * %50
+%56 = %54 * %55
+%62 = %56 + %61
+Synthesized schedule in 6ms
+Building stage:
+%52 = %45 + %51
+%53 = j * %52
+%63 = %53 + %62
+Current best: 22
+Current best: 36
+Current best: 42
+Current best: 50
+Current best: 59
+Current best: 61
+Current best: 62
+Breakset has 11 nodes
+------------------------------
+[4, 5, 6, 9, 12, 14, 16, 23, 26, 29, 30]
+[]
+[Instr(%0, z, s, *), Instr(%1, %0, b, *), Instr(%2, %1, x, +), Instr(%3, %2, b, +), Instr(%4, %3, u, *), Instr(%5, d, y, *), Instr(%6, x, b, +), Instr(%9, o, z, +), Instr(%11, u, o, +), Instr(%12, %11, j, *), Instr(%13, c, a, +), Instr(%14, %13, j, +), Instr(%16, q, v, +), Instr(%22, o, i, +), Instr(%23, %22, e, *), Instr(%24, w, d, *), Instr(%25, x, %24, +), Instr(%26, %25, x, *), Instr(%28, a, r, +), Instr(%29, r, %28, *), Instr(%30, n, v, +)]
+------------------------------
+Current best: 0
+Current best: 1
+Current best: 2
+Breakset has 3 nodes
+------------------------------
+[10, 20, 27]
+[4, 5, 6, 9, 12, 14, 16, 23, 26, 29, 30]
+[Instr(%7, %5, %6, *), Instr(%8, %4, %7, *), Instr(%10, %8, %9, *), Instr(%15, %14, a, +), Instr(%17, %15, %16, *), Instr(%18, %17, o, +), Instr(%19, %12, %18, +), Instr(%20, y, %19, *), Instr(%27, %23, %26, +)]
+------------------------------
+Current best: 0
+Breakset has 1 nodes
+------------------------------
+[21]
+[4, 5, 6, 9, 12, 14, 16, 23, 26, 29, 30, 10, 20, 27]
+[Instr(%21, %20, c, +)]
+------------------------------
+Breakset has 0 nodes
+Synthesized schedule in 114ms
+Building stage:
+%0 = z * s
+%1 = %0 * b
+%2 = %1 + x
+%3 = %2 + b
+%4 = %3 * u
+%5 = d * y
+%6 = x + b
+%9 = o + z
+%11 = u + o
+%12 = %11 * j
+%13 = c + a
+%14 = %13 + j
+%16 = q + v
+%22 = o + i
+%23 = %22 * e
+%24 = w * d
+%25 = x + %24
+%26 = %25 * x
+%28 = a + r
+%29 = r * %28
+%30 = n + v
+Synthesized schedule in 11ms
+Building stage:
+%7 = %5 * %6
+%8 = %4 * %7
+%10 = %8 * %9
+%15 = %14 + a
+%17 = %15 * %16
+%18 = %17 + o
+%19 = %12 + %18
+%20 = y * %19
+%27 = %23 + %26
+Synthesized schedule in 6ms
+Building stage:
+%21 = %20 + c
+Current best: 59
+Current best: 68
+Current best: 80
+Current best: 85
+Current best: 90
+Current best: 91
+Current best: 118
+Current best: 126
+Current best: 129
+Current best: 131
+Current best: 141
+Breakset has 18 nodes
+------------------------------
+[0, 2, 8, 11, 16, 18, 21, 23, 26, 27, 32, 34, 35, 38, 39, 42, 43, 44]
+[]
+[Instr(%0, z, g, *), Instr(%1, u, s, *), Instr(%2, %1, x, +), Instr(%6, l, s, +), Instr(%7, y, %6, +), Instr(%8, %7, c, +), Instr(%9, q, j, +), Instr(%10, %9, d, *), Instr(%11, v, %10, +), Instr(%14, v, s, *), Instr(%15, %14, h, *), Instr(%16, %15, y, +), Instr(%17, k, r, *), Instr(%18, y, %17, +), Instr(%21, x, o, *), Instr(%22, q, p, +), Instr(%23, %22, h, *), Instr(%26, h, a, *), Instr(%27, g, s, *), Instr(%28, v, v, *), Instr(%29, p, %28, +), Instr(%30, j, %29, *), Instr(%31, b, %30, *), Instr(%32, x, %31, *), Instr(%34, r, l, +), Instr(%35, o, h, *), Instr(%38, n, x, +), Instr(%39, t, a, +), Instr(%41, h, l, *), Instr(%42, %41, p, +), Instr(%43, d, g, *), Instr(%44, g, s, +)]
+------------------------------
+Current best: 0
+Current best: 1
+Current best: 3
+Current best: 5
+Current best: 7
+Current best: 8
+Current best: 9
+Current best: 12
+Current best: 13
+Current best: 14
+Current best: 16
+Current best: 17
+Current best: 19
+Breakset has 7 nodes
+------------------------------
+[4, 12, 25, 33, 37, 40, 46]
+[0, 2, 8, 11, 16, 18, 21, 23, 26, 27, 32, 34, 35, 38, 39, 42, 43, 44]
+[Instr(%3, g, %2, *), Instr(%4, b, %3, +), Instr(%12, %8, %11, *), Instr(%19, %16, %18, *), Instr(%20, o, %19, *), Instr(%24, %21, %23, *), Instr(%25, %20, %24, +), Instr(%33, %27, %32, +), Instr(%36, %34, %35, +), Instr(%37, d, %36, *), Instr(%40, %38, %39, +), Instr(%45, %43, %44, +), Instr(%46, %42, %45, +)]
+------------------------------
+Current best: 0
+Current best: 1
+Breakset has 2 nodes
+------------------------------
+[13, 50]
+[0, 2, 8, 11, 16, 18, 21, 23, 26, 27, 32, 34, 35, 38, 39, 42, 43, 44, 4, 12, 25, 33, 37, 40, 46]
+[Instr(%5, %0, %4, *), Instr(%13, %5, %12, +), Instr(%47, x, %46, +), Instr(%48, %40, %47, +), Instr(%49, %48, g, *), Instr(%50, %49, h, +)]
+------------------------------
+Current best: 0
+Breakset has 1 nodes
+------------------------------
+[51]
+[0, 2, 8, 11, 16, 18, 21, 23, 26, 27, 32, 34, 35, 38, 39, 42, 43, 44, 4, 12, 25, 33, 37, 40, 46, 13, 50]
+[Instr(%51, %37, %50, *)]
+------------------------------
+Breakset has 0 nodes
+Synthesized schedule in 1618ms
+Building stage:
+%0 = z * g
+%1 = u * s
+%2 = %1 + x
+%6 = l + s
+%7 = y + %6
+%8 = %7 + c
+%9 = q + j
+%10 = %9 * d
+%11 = v + %10
+%14 = v * s
+%15 = %14 * h
+%16 = %15 + y
+%17 = k * r
+%18 = y + %17
+%21 = x * o
+%22 = q + p
+%23 = %22 * h
+%26 = h * a
+%27 = g * s
+%28 = v * v
+%29 = p + %28
+%30 = j * %29
+%31 = b * %30
+%32 = x * %31
+%34 = r + l
+%35 = o * h
+%38 = n + x
+%39 = t + a
+%41 = h * l
+%42 = %41 + p
+%43 = d * g
+%44 = g + s
+Synthesized schedule in 37ms
+Building stage:
+%3 = g * %2
+%4 = b + %3
+%12 = %8 * %11
+%19 = %16 * %18
+%20 = o * %19
+%24 = %21 * %23
+%25 = %20 + %24
+%33 = %27 + %32
+%36 = %34 + %35
+%37 = d * %36
+%40 = %38 + %39
+%45 = %43 + %44
+%46 = %42 + %45
+Synthesized schedule in 8ms
+Building stage:
+%5 = %0 * %4
+%13 = %5 + %12
+%47 = x + %46
+%48 = %40 + %47
+%49 = %48 * g
+%50 = %49 + h
+Synthesized schedule in 8ms
+Building stage:
+%51 = %37 * %50
+Current best: 101
+Current best: 107
+Current best: 226
+Current best: 232
+Breakset has 16 nodes
+------------------------------
+[5, 8, 13, 15, 20, 22, 24, 30, 32, 37, 41, 43, 47, 54, 61, 72]
+[]
+[Instr(%0, x, t, *), Instr(%1, z, %0, +), Instr(%2, i, h, *), Instr(%3, e, %2, +), Instr(%4, %1, %3, +), Instr(%5, %4, r, +), Instr(%6, q, w, *), Instr(%7, c, e, *), Instr(%8, %6, %7, +), Instr(%9, j, f, *), Instr(%10, a, a, +), Instr(%11, %10, z, *), Instr(%12, %9, %11, *), Instr(%13, d, %12, +), Instr(%14, j, b, +), Instr(%15, %14, h, *), Instr(%19, t, d, *), Instr(%20, %19, u, +), Instr(%21, v, k, +), Instr(%22, %21, j, +), Instr(%23, m, k, +), Instr(%24, c, %23, +), Instr(%26, x, s, *), Instr(%27, y, a, *), Instr(%28, %26, %27, +), Instr(%29, n, %28, *), Instr(%30, u, %29, *), Instr(%31, l, p, *), Instr(%32, v, %31, *), Instr(%36, u, j, +), Instr(%37, %36, y, +), Instr(%38, l, b, +), Instr(%39, w, h, *), Instr(%40, w, %39, *), Instr(%41, %38, %40, +), Instr(%42, q, y, *), Instr(%43, s, %42, +), Instr(%45, o, s, +), Instr(%46, %45, j, +), Instr(%47, g, %46, +), Instr(%52, c, c, +), Instr(%53, s, %52, *), Instr(%54, s, %53, +), Instr(%57, q, g, +), Instr(%58, e, %57, *), Instr(%59, %58, x, *), Instr(%60, g, %59, +), Instr(%61, %60, u, +), Instr(%62, m, w, *), Instr(%63, e, %62, *), Instr(%64, e, r, +), Instr(%65, h, w, +), Instr(%66, v, %65, *), Instr(%67, %66, k, *), Instr(%68, %67, r, +), Instr(%69, %68, x, *), Instr(%70, %69, t, *), Instr(%71, %64, %70, +), Instr(%72, %63, %71, +)]
+------------------------------
+Current best: 0
+Current best: 1
+Current best: 2
+Current best: 3
+Current best: 5
+Current best: 6
+Current best: 8
+Current best: 10
+Breakset has 5 nodes
+------------------------------
+[17, 35, 51, 56, 73]
+[5, 8, 13, 15, 20, 22, 24, 30, 32, 37, 41, 43, 47, 54, 61, 72]
+[Instr(%16, %13, %15, +), Instr(%17, %8, %16, *), Instr(%25, %22, %24, *), Instr(%33, %30, %32, +), Instr(%34, %25, %33, +), Instr(%35, %20, %34, +), Instr(%44, %43, z, *), Instr(%48, i, %47, +), Instr(%49, %44, %48, +), Instr(%50, %41, %49, *), Instr(%51, %37, %50, +), Instr(%55, m, %54, +), Instr(%56, f, %55, *), Instr(%73, %61, %72, +)]
+------------------------------
+Current best: 0
+Breakset has 1 nodes
+------------------------------
+[18]
+[5, 8, 13, 15, 20, 22, 24, 30, 32, 37, 41, 43, 47, 54, 61, 72, 17, 35, 51, 56, 73]
+[Instr(%18, %5, %17, *)]
+------------------------------
+Breakset has 0 nodes
+Synthesized schedule in 36580ms
+Building stage:
+%0 = x * t
+%1 = z + %0
+%2 = i * h
+%3 = e + %2
+%4 = %1 + %3
+%5 = %4 + r
+%6 = q * w
+%7 = c * e
+%8 = %6 + %7
+%9 = j * f
+%10 = a + a
+%11 = %10 * z
+%12 = %9 * %11
+%13 = d + %12
+%14 = j + b
+%15 = %14 * h
+%19 = t * d
+%20 = %19 + u
+%21 = v + k
+%22 = %21 + j
+%23 = m + k
+%24 = c + %23
+%26 = x * s
+%27 = y * a
+%28 = %26 + %27
+%29 = n * %28
+%30 = u * %29
+%31 = l * p
+%32 = v * %31
+%36 = u + j
+%37 = %36 + y
+%38 = l + b
+%39 = w * h
+%40 = w * %39
+%41 = %38 + %40
+%42 = q * y
+%43 = s + %42
+%45 = o + s
+%46 = %45 + j
+%47 = g + %46
+%52 = c + c
+%53 = s * %52
+%54 = s + %53
+%57 = q + g
+%58 = e * %57
+%59 = %58 * x
+%60 = g + %59
+%61 = %60 + u
+%62 = m * w
+%63 = e * %62
+%64 = e + r
+%65 = h + w
+%66 = v * %65
+%67 = %66 * k
+%68 = %67 + r
+%69 = %68 * x
+%70 = %69 * t
+%71 = %64 + %70
+%72 = %63 + %71
+Synthesized schedule in 28ms
+Building stage:
+%16 = %13 + %15
+%17 = %8 * %16
+%25 = %22 * %24
+%33 = %30 + %32
+%34 = %25 + %33
+%35 = %20 + %34
+%44 = %43 * z
+%48 = i + %47
+%49 = %44 + %48
+%50 = %41 * %49
+%51 = %37 + %50
+%55 = m + %54
+%56 = f * %55
+%73 = %61 + %72
+Synthesized schedule in 6ms
+Building stage:
+%18 = %5 * %17
+Current best: 51
+Current best: 54
+Current best: 61
+Current best: 92
+Current best: 96
+Current best: 99
+Current best: 122
+Current best: 124
+Current best: 129
+Current best: 131
+Current best: 133
+Current best: 140
+Breakset has 14 nodes
+------------------------------
+[0, 1, 3, 8, 12, 17, 25, 33, 37, 41, 45, 49, 52, 56]
+[]
+[Instr(%0, r, q, +), Instr(%1, t, h, +), Instr(%3, h, r, +), Instr(%6, b, z, +), Instr(%7, q, %6, *), Instr(%8, g, %7, +), Instr(%10, j, a, +), Instr(%11, %10, f, +), Instr(%12, %11, e, +), Instr(%17, q, e, *), Instr(%19, i, z, +), Instr(%20, n, %19, +), Instr(%21, a, b, +), Instr(%22, %20, %21, *), Instr(%23, m, l, *), Instr(%24, %23, g, *), Instr(%25, %22, %24, +), Instr(%27, p, w, *), Instr(%28, r, g, *), Instr(%29, u, %28, *), Instr(%30, %27, %29, +), Instr(%31, %30, s, *), Instr(%32, k, g, +), Instr(%33, %31, %32, +), Instr(%35, t, c, *), Instr(%36, %35, g, *), Instr(%37, %36, x, *), Instr(%39, s, k, *), Instr(%40, a, o, *), Instr(%41, %39, %40, +), Instr(%42, c, b, *), Instr(%43, %42, b, *), Instr(%44, %43, y, +), Instr(%45, %44, y, *), Instr(%46, j, e, +), Instr(%47, e, %46, *), Instr(%48, %47, d, +), Instr(%49, o, %48, +), Instr(%51, w, b, *), Instr(%52, d, %51, +), Instr(%53, d, u, *), Instr(%54, %53, x, *), Instr(%55, s, %54, *), Instr(%56, %55, c, +)]
+------------------------------
+Current best: 0
+Current best: 1
+Current best: 3
+Current best: 4
+Current best: 5
+Breakset has 4 nodes
+------------------------------
+[16, 34, 50, 57]
+[0, 1, 3, 8, 12, 17, 25, 33, 37, 41, 45, 49, 52, 56]
+[Instr(%2, g, %1, +), Instr(%4, %2, %3, *), Instr(%5, %0, %4, *), Instr(%9, %5, %8, +), Instr(%13, n, %12, +), Instr(%14, %9, %13, *), Instr(%15, n, %14, *), Instr(%16, %15, q, *), Instr(%18, z, %17, *), Instr(%26, %18, %25, *), Instr(%34, %26, %33, +), Instr(%50, %45, %49, *), Instr(%57, %52, %56, +)]
+------------------------------
+Current best: 0
+Breakset has 1 nodes
+------------------------------
+[38]
+[0, 1, 3, 8, 12, 17, 25, 33, 37, 41, 45, 49, 52, 56, 16, 34, 50, 57]
+[Instr(%38, %34, %37, +)]
+------------------------------
+Breakset has 0 nodes
+Synthesized schedule in 6169ms
+Building stage:
+%0 = r + q
+%1 = t + h
+%3 = h + r
+%6 = b + z
+%7 = q * %6
+%8 = g + %7
+%10 = j + a
+%11 = %10 + f
+%12 = %11 + e
+%17 = q * e
+%19 = i + z
+%20 = n + %19
+%21 = a + b
+%22 = %20 * %21
+%23 = m * l
+%24 = %23 * g
+%25 = %22 + %24
+%27 = p * w
+%28 = r * g
+%29 = u * %28
+%30 = %27 + %29
+%31 = %30 * s
+%32 = k + g
+%33 = %31 + %32
+%35 = t * c
+%36 = %35 * g
+%37 = %36 * x
+%39 = s * k
+%40 = a * o
+%41 = %39 + %40
+%42 = c * b
+%43 = %42 * b
+%44 = %43 + y
+%45 = %44 * y
+%46 = j + e
+%47 = e * %46
+%48 = %47 + d
+%49 = o + %48
+%51 = w * b
+%52 = d + %51
+%53 = d * u
+%54 = %53 * x
+%55 = s * %54
+%56 = %55 + c
+Synthesized schedule in 16ms
+Building stage:
+%2 = g + %1
+%4 = %2 * %3
+%5 = %0 * %4
+%9 = %5 + %8
+%13 = n + %12
+%14 = %9 * %13
+%15 = n * %14
+%16 = %15 * q
+%18 = z * %17
+%26 = %18 * %25
+%34 = %26 + %33
+%50 = %45 * %49
+%57 = %52 + %56
+Synthesized schedule in 6ms
+Building stage:
+%38 = %34 + %37
+Current best: 27
+Current best: 38
+Current best: 42
+Current best: 50
+Current best: 54
+Current best: 55
+Current best: 59
+Current best: 79
+Current best: 80
+Current best: 84
+Current best: 85
+Current best: 88
+Breakset has 12 nodes
+------------------------------
+[0, 5, 7, 10, 12, 16, 18, 21, 23, 30, 32, 33]
+[]
+[Instr(%0, o, a, *), Instr(%1, o, t, +), Instr(%2, j, c, *), Instr(%3, d, %2, +), Instr(%4, %1, %3, *), Instr(%5, %4, f, +), Instr(%6, k, v, *), Instr(%7, k, %6, *), Instr(%9, w, s, +), Instr(%10, g, %9, +), Instr(%12, y, p, *), Instr(%14, x, p, +), Instr(%15, %14, w, *), Instr(%16, a, %15, +), Instr(%17, n, n, *), Instr(%18, j, %17, *), Instr(%19, d, z, +), Instr(%20, v, k, *), Instr(%21, %19, %20, *), Instr(%22, s, d, +), Instr(%23, a, %22, *), Instr(%27, a, m, +), Instr(%28, i, %27, *), Instr(%29, r, %28, *), Instr(%30, l, %29, +), Instr(%31, d, b, *), Instr(%32, %31, w, +), Instr(%33, f, p, *)]
+------------------------------
+Current best: 0
+Current best: 2
+Current best: 4
+Breakset has 3 nodes
+------------------------------
+[8, 26, 35]
+[0, 5, 7, 10, 12, 16, 18, 21, 23, 30, 32, 33]
+[Instr(%8, %7, s, *), Instr(%24, %21, %23, +), Instr(%25, %18, %24, *), Instr(%26, %16, %25, *), Instr(%34, %32, %33, +), Instr(%35, %30, %34, *)]
+------------------------------
+Current best: 0
+Breakset has 1 nodes
+------------------------------
+[11]
+[0, 5, 7, 10, 12, 16, 18, 21, 23, 30, 32, 33, 8, 26, 35]
+[Instr(%11, %8, %10, +)]
+------------------------------
+Current best: 0
+Breakset has 1 nodes
+------------------------------
+[13]
+[0, 5, 7, 10, 12, 16, 18, 21, 23, 30, 32, 33, 8, 26, 35, 11]
+[Instr(%13, %11, %12, +)]
+------------------------------
+Breakset has 0 nodes
+Synthesized schedule in 373ms
+Building stage:
+%0 = o * a
+%1 = o + t
+%2 = j * c
+%3 = d + %2
+%4 = %1 * %3
+%5 = %4 + f
+%6 = k * v
+%7 = k * %6
+%9 = w + s
+%10 = g + %9
+%12 = y * p
+%14 = x + p
+%15 = %14 * w
+%16 = a + %15
+%17 = n * n
+%18 = j * %17
+%19 = d + z
+%20 = v * k
+%21 = %19 * %20
+%22 = s + d
+%23 = a * %22
+%27 = a + m
+%28 = i * %27
+%29 = r * %28
+%30 = l + %29
+%31 = d * b
+%32 = %31 + w
+%33 = f * p
+Synthesized schedule in 8ms
+Building stage:
+%8 = %7 * s
+%24 = %21 + %23
+%25 = %18 * %24
+%26 = %16 * %25
+%34 = %32 + %33
+%35 = %30 * %34
+Synthesized schedule in 6ms
+Building stage:
+%11 = %8 + %10
+Synthesized schedule in 5ms
+Building stage:
+%13 = %11 + %12
+Current best: 65
+Current best: 113
+Current best: 118
+Current best: 137
+Current best: 147
+Current best: 153
+Current best: 155
+Current best: 162
+Current best: 165
+Breakset has 17 nodes
+------------------------------
+[0, 2, 7, 9, 14, 16, 20, 27, 30, 36, 40, 41, 48, 52, 54, 56, 57]
+[]
+[Instr(%0, z, s, *), Instr(%2, n, t, *), Instr(%3, v, r, *), Instr(%4, h, %3, *), Instr(%5, %4, o, *), Instr(%6, %5, q, *), Instr(%7, s, %6, +), Instr(%9, d, m, *), Instr(%14, m, s, +), Instr(%15, x, a, *), Instr(%16, %15, z, +), Instr(%19, k, m, *), Instr(%20, %19, i, +), Instr(%21, s, q, *), Instr(%22, v, f, +), Instr(%23, %22, u, *), Instr(%24, x, %23, *), Instr(%25, %21, %24, +), Instr(%26, v, w, *), Instr(%27, %25, %26, *), Instr(%29, m, s, *), Instr(%30, %29, s, *), Instr(%33, k, h, +), Instr(%34, b, f, *), Instr(%35, s, %34, *), Instr(%36, %33, %35, *), Instr(%37, y, d, +), Instr(%38, %37, d, *), Instr(%39, f, o, *), Instr(%40, %38, %39, +), Instr(%41, m, q, +), Instr(%45, j, x, +), Instr(%46, %45, w, +), Instr(%47, %46, c, *), Instr(%48, %47, c, *), Instr(%49, b, j, +), Instr(%50, k, %49, +), Instr(%51, g, %50, *), Instr(%52, v, %51, *), Instr(%54, m, f, *), Instr(%55, n, g, +), Instr(%56, f, %55, *), Instr(%57, p, f, *)]
+------------------------------
+Current best: 2
+Current best: 5
+Current best: 8
+Current best: 9
+Current best: 11
+Breakset has 6 nodes
+------------------------------
+[13, 17, 28, 31, 44, 59]
+[0, 2, 7, 9, 14, 16, 20, 27, 30, 36, 40, 41, 48, 52, 54, 56, 57]
+[Instr(%1, %0, s, *), Instr(%8, %2, %7, +), Instr(%10, %8, %9, +), Instr(%11, t, %10, +), Instr(%12, %1, %11, *), Instr(%13, %12, s, +), Instr(%17, %14, %16, *), Instr(%28, %20, %27, +), Instr(%31, %30, e, +), Instr(%42, %41, r, +), Instr(%43, %40, %42, *), Instr(%44, %36, %43, +), Instr(%58, %56, %57, +), Instr(%59, %54, %58, +)]
+------------------------------
+Current best: 0
+Current best: 1
+Current best: 3
+Breakset has 3 nodes
+------------------------------
+[18, 32, 60]
+[0, 2, 7, 9, 14, 16, 20, 27, 30, 36, 40, 41, 48, 52, 54, 56, 57, 13, 17, 28, 31, 44, 59]
+[Instr(%18, %13, %17, +), Instr(%32, %28, %31, +), Instr(%53, %52, b, *), Instr(%60, %53, %59, +)]
+------------------------------
+Breakset has 0 nodes
+Synthesized schedule in 8996ms
+Building stage:
+%0 = z * s
+%2 = n * t
+%3 = v * r
+%4 = h * %3
+%5 = %4 * o
+%6 = %5 * q
+%7 = s + %6
+%9 = d * m
+%14 = m + s
+%15 = x * a
+%16 = %15 + z
+%19 = k * m
+%20 = %19 + i
+%21 = s * q
+%22 = v + f
+%23 = %22 * u
+%24 = x * %23
+%25 = %21 + %24
+%26 = v * w
+%27 = %25 * %26
+%29 = m * s
+%30 = %29 * s
+%33 = k + h
+%34 = b * f
+%35 = s * %34
+%36 = %33 * %35
+%37 = y + d
+%38 = %37 * d
+%39 = f * o
+%40 = %38 + %39
+%41 = m + q
+%45 = j + x
+%46 = %45 + w
+%47 = %46 * c
+%48 = %47 * c
+%49 = b + j
+%50 = k + %49
+%51 = g * %50
+%52 = v * %51
+%54 = m * f
+%55 = n + g
+%56 = f * %55
+%57 = p * f
+Synthesized schedule in 26ms
+Building stage:
+%1 = %0 * s
+%8 = %2 + %7
+%10 = %8 + %9
+%11 = t + %10
+%12 = %1 * %11
+%13 = %12 + s
+%17 = %14 * %16
+%28 = %20 + %27
+%31 = %30 + e
+%42 = %41 + r
+%43 = %40 * %42
+%44 = %36 + %43
+%58 = %56 + %57
+%59 = %54 + %58
+Synthesized schedule in 8ms
+Building stage:
+%18 = %13 + %17
+%32 = %28 + %31
+%53 = %52 * b
+%60 = %53 + %59
+Current best: 64
+Current best: 68
+Current best: 72
+Current best: 105
+Current best: 106
+Current best: 120
+Current best: 122
+Breakset has 14 nodes
+------------------------------
+[3, 9, 11, 16, 24, 29, 30, 32, 41, 43, 45, 48, 49, 50]
+[]
+[Instr(%0, u, f, +), Instr(%1, %0, q, +), Instr(%2, %1, j, +), Instr(%3, g, %2, +), Instr(%6, n, t, +), Instr(%7, g, %6, *), Instr(%8, d, y, +), Instr(%9, %7, %8, +), Instr(%11, k, p, *), Instr(%12, r, o, +), Instr(%13, j, w, +), Instr(%14, %13, r, *), Instr(%15, %12, %14, +), Instr(%16, v, %15, +), Instr(%21, n, z, *), Instr(%22, k, %21, *), Instr(%23, d, u, +), Instr(%24, %22, %23, +), Instr(%25, d, w, *), Instr(%26, o, c, *), Instr(%27, %25, %26, +), Instr(%28, x, i, *), Instr(%29, %27, %28, +), Instr(%30, s, f, +), Instr(%32, d, a, *), Instr(%35, o, n, *), Instr(%36, x, %35, +), Instr(%37, h, a, +), Instr(%38, %37, m, *), Instr(%39, %36, %38, +), Instr(%40, %39, c, +), Instr(%41, y, %40, +), Instr(%42, e, v, +), Instr(%43, f, %42, *), Instr(%44, f, x, *), Instr(%45, m, %44, +), Instr(%48, m, l, +), Instr(%49, z, l, +), Instr(%50, j, o, +)]
+------------------------------
+Current best: 0
+Current best: 1
+Current best: 3
+Current best: 4
+Current best: 5
+Current best: 6
+Current best: 9
+Current best: 12
+Current best: 13
+Breakset has 6 nodes
+------------------------------
+[5, 10, 19, 34, 47, 53]
+[3, 9, 11, 16, 24, 29, 30, 32, 41, 43, 45, 48, 49, 50]
+[Instr(%4, %3, j, +), Instr(%5, f, %4, +), Instr(%10, v, %9, *), Instr(%17, %11, %16, +), Instr(%18, m, %17, *), Instr(%19, %18, v, +), Instr(%31, %29, %30, +), Instr(%33, %31, %32, +), Instr(%34, %24, %33, *), Instr(%46, %43, %45, +), Instr(%47, %41, %46, *), Instr(%51, %49, %50, +), Instr(%52, %48, %51, +), Instr(%53, %52, y, *)]
+------------------------------
+Current best: 0
+Breakset has 1 nodes
+------------------------------
+[20]
+[3, 9, 11, 16, 24, 29, 30, 32, 41, 43, 45, 48, 49, 50, 5, 10, 19, 34, 47, 53]
+[Instr(%20, %10, %19, *)]
+------------------------------
+Breakset has 0 nodes
+Synthesized schedule in 4042ms
+Building stage:
+%0 = u + f
+%1 = %0 + q
+%2 = %1 + j
+%3 = g + %2
+%6 = n + t
+%7 = g * %6
+%8 = d + y
+%9 = %7 + %8
+%11 = k * p
+%12 = r + o
+%13 = j + w
+%14 = %13 * r
+%15 = %12 + %14
+%16 = v + %15
+%21 = n * z
+%22 = k * %21
+%23 = d + u
+%24 = %22 + %23
+%25 = d * w
+%26 = o * c
+%27 = %25 + %26
+%28 = x * i
+%29 = %27 + %28
+%30 = s + f
+%32 = d * a
+%35 = o * n
+%36 = x + %35
+%37 = h + a
+%38 = %37 * m
+%39 = %36 + %38
+%40 = %39 + c
+%41 = y + %40
+%42 = e + v
+%43 = f * %42
+%44 = f * x
+%45 = m + %44
+%48 = m + l
+%49 = z + l
+%50 = j + o
+Synthesized schedule in 25ms
+Building stage:
+%4 = %3 + j
+%5 = f + %4
+%10 = v * %9
+%17 = %11 + %16
+%18 = m * %17
+%19 = %18 + v
+%31 = %29 + %30
+%33 = %31 + %32
+%34 = %24 * %33
+%46 = %43 + %45
+%47 = %41 * %46
+%51 = %49 + %50
+%52 = %48 + %51
+%53 = %52 * y
+Synthesized schedule in 6ms
+Building stage:
+%20 = %10 * %19
+Current best: 61
+Current best: 74
+Current best: 93
+Current best: 113
+Current best: 116
+Current best: 118
+Current best: 127
+Current best: 145
+Breakset has 14 nodes
+------------------------------
+[2, 4, 7, 15, 18, 23, 27, 32, 36, 42, 48, 49, 53, 56]
+[]
+[Instr(%0, k, t, *), Instr(%1, t, c, +), Instr(%2, %0, %1, *), Instr(%3, h, z, *), Instr(%4, n, %3, +), Instr(%5, e, p, +), Instr(%6, %5, b, *), Instr(%7, v, %6, *), Instr(%10, e, c, +), Instr(%11, l, x, +), Instr(%12, %10, %11, +), Instr(%13, %12, t, *), Instr(%14, %13, t, *), Instr(%15, s, %14, *), Instr(%18, v, t, +), Instr(%19, q, t, +), Instr(%20, %19, u, +), Instr(%21, %20, b, +), Instr(%22, j, %21, *), Instr(%23, %22, d, +), Instr(%25, e, t, *), Instr(%26, e, %25, +), Instr(%27, q, %26, *), Instr(%31, t, m, +), Instr(%32, z, %31, *), Instr(%35, o, l, *), Instr(%36, %35, m, *), Instr(%41, f, b, *), Instr(%42, %41, p, +), Instr(%44, t, n, +), Instr(%45, %44, t, *), Instr(%46, %45, v, +), Instr(%47, x, f, *), Instr(%48, %46, %47, +), Instr(%49, q, y, *), Instr(%51, u, t, +), Instr(%52, u, %51, *), Instr(%53, x, %52, +), Instr(%54, q, a, +), Instr(%55, x, %54, +), Instr(%56, o, %55, *)]
+------------------------------
+Current best: 0
+Current best: 1
+Current best: 3
+Current best: 4
+Current best: 5
+Current best: 8
+Breakset has 6 nodes
+------------------------------
+[16, 30, 33, 37, 50, 57]
+[2, 4, 7, 15, 18, 23, 27, 32, 36, 42, 48, 49, 53, 56]
+[Instr(%8, %4, %7, *), Instr(%9, m, %8, *), Instr(%16, %9, %15, *), Instr(%24, %18, %23, *), Instr(%28, f, %27, *), Instr(%29, %24, %28, *), Instr(%30, %29, n, +), Instr(%33, s, %32, +), Instr(%37, %36, m, +), Instr(%50, %48, %49, *), Instr(%57, %56, n, +)]
+------------------------------
+Current best: 0
+Current best: 1
+Current best: 3
+Breakset has 3 nodes
+------------------------------
+[34, 38, 58]
+[2, 4, 7, 15, 18, 23, 27, 32, 36, 42, 48, 49, 53, 56, 16, 30, 33, 37, 50, 57]
+[Instr(%34, %30, %33, +), Instr(%38, v, %37, +), Instr(%58, %53, %57, +)]
+------------------------------
+Current best: 0
+Breakset has 1 nodes
+------------------------------
+[17]
+[2, 4, 7, 15, 18, 23, 27, 32, 36, 42, 48, 49, 53, 56, 16, 30, 33, 37, 50, 57, 34, 38, 58]
+[Instr(%17, %2, %16, *)]
+------------------------------
+Current best: 0
+Breakset has 1 nodes
+------------------------------
+[39]
+[2, 4, 7, 15, 18, 23, 27, 32, 36, 42, 48, 49, 53, 56, 16, 30, 33, 37, 50, 57, 34, 38, 58, 17]
+[Instr(%39, %38, m, +)]
+------------------------------
+Current best: 0
+Breakset has 1 nodes
+------------------------------
+[40]
+[2, 4, 7, 15, 18, 23, 27, 32, 36, 42, 48, 49, 53, 56, 16, 30, 33, 37, 50, 57, 34, 38, 58, 17, 39]
+[Instr(%40, x, %39, *)]
+------------------------------
+Current best: 0
+Breakset has 1 nodes
+------------------------------
+[43]
+[2, 4, 7, 15, 18, 23, 27, 32, 36, 42, 48, 49, 53, 56, 16, 30, 33, 37, 50, 57, 34, 38, 58, 17, 39, 40]
+[Instr(%43, %40, %42, +)]
+------------------------------
+Breakset has 0 nodes
+Synthesized schedule in 3143ms
+Building stage:
+%0 = k * t
+%1 = t + c
+%2 = %0 * %1
+%3 = h * z
+%4 = n + %3
+%5 = e + p
+%6 = %5 * b
+%7 = v * %6
+%10 = e + c
+%11 = l + x
+%12 = %10 + %11
+%13 = %12 * t
+%14 = %13 * t
+%15 = s * %14
+%18 = v + t
+%19 = q + t
+%20 = %19 + u
+%21 = %20 + b
+%22 = j * %21
+%23 = %22 + d
+%25 = e * t
+%26 = e + %25
+%27 = q * %26
+%31 = t + m
+%32 = z * %31
+%35 = o * l
+%36 = %35 * m
+%41 = f * b
+%42 = %41 + p
+%44 = t + n
+%45 = %44 * t
+%46 = %45 + v
+%47 = x * f
+%48 = %46 + %47
+%49 = q * y
+%51 = u + t
+%52 = u * %51
+%53 = x + %52
+%54 = q + a
+%55 = x + %54
+%56 = o * %55
+Synthesized schedule in 17ms
+Building stage:
+%8 = %4 * %7
+%9 = m * %8
+%16 = %9 * %15
+%24 = %18 * %23
+%28 = f * %27
+%29 = %24 * %28
+%30 = %29 + n
+%33 = s + %32
+%37 = %36 + m
+%50 = %48 * %49
+%57 = %56 + n
+Synthesized schedule in 6ms
+Building stage:
+%34 = %30 + %33
+%38 = v + %37
+%58 = %53 + %57
+Synthesized schedule in 5ms
+Building stage:
+%17 = %2 * %16
+Synthesized schedule in 5ms
+Building stage:
+%39 = %38 + m
+Synthesized schedule in 5ms
+Building stage:
+%40 = x * %39
+Synthesized schedule in 6ms
+Building stage:
+%43 = %40 + %42
+Traceback (most recent call last):
+  File "vector_compiler.py", line 273, in <module>
+    vector_code = vector_compile(comp)
+  File "vector_compiler.py", line 193, in vector_compile
+    right_blend[src_vec][j] = 1
+IndexError: list assignment index out of range
+Current best: 56
+Current best: 66
+Current best: 76
+Current best: 86
+Current best: 89
+Current best: 91
+Current best: 92
+Current best: 113
+Current best: 116
+Current best: 126
+Current best: 130
+Current best: 133
+Current best: 139
+Breakset has 14 nodes
+------------------------------
+[2, 7, 14, 18, 21, 23, 27, 28, 32, 37, 44, 49, 52, 55]
+[]
+[Instr(%0, l, q, *), Instr(%1, %0, x, *), Instr(%2, %1, r, *), Instr(%3, x, r, *), Instr(%4, r, s, *), Instr(%5, %3, %4, *), Instr(%6, l, k, *), Instr(%7, %5, %6, +), Instr(%9, j, s, *), Instr(%10, p, %9, +), Instr(%11, %10, j, +), Instr(%12, %11, m, +), Instr(%13, l, %12, +), Instr(%14, l, %13, +), Instr(%15, e, m, +), Instr(%16, q, m, +), Instr(%17, %16, z, +), Instr(%18, %15, %17, *), Instr(%21, u, h, *), Instr(%22, z, r, +), Instr(%23, g, %22, *), Instr(%26, p, n, *), Instr(%27, j, %26, *), Instr(%28, m, i, +), Instr(%31, t, x, *), Instr(%32, o, %31, *), Instr(%33, a, z, +), Instr(%34, q, %33, +), Instr(%35, l, a, *), Instr(%36, %34, %35, +), Instr(%37, f, %36, *), Instr(%39, l, e, *), Instr(%40, %39, c, *), Instr(%41, %40, h, *), Instr(%42, d, %41, +), Instr(%43, w, %42, +), Instr(%44, x, %43, *), Instr(%46, g, s, +), Instr(%47, r, %46, *), Instr(%48, %47, a, *), Instr(%49, w, %48, *), Instr(%50, l, c, +), Instr(%51, p, k, *), Instr(%52, %50, %51, +), Instr(%54, q, e, *), Instr(%55, y, %54, +)]
+------------------------------
+Current best: 1
+Current best: 3
+Current best: 5
+Current best: 7
+Current best: 10
+Current best: 11
+Breakset has 6 nodes
+------------------------------
+[8, 20, 24, 29, 45, 57]
+[2, 7, 14, 18, 21, 23, 27, 28, 32, 37, 44, 49, 52, 55]
+[Instr(%8, %7, p, *), Instr(%19, u, %18, *), Instr(%20, %14, %19, *), Instr(%24, %21, %23, +), Instr(%29, %27, %28, +), Instr(%38, %32, %37, +), Instr(%45, %38, %44, *), Instr(%53, e, %52, *), Instr(%56, %53, %55, +), Instr(%57, %49, %56, *)]
+------------------------------
+Current best: 0
+Current best: 1
+Breakset has 2 nodes
+------------------------------
+[30, 58]
+[2, 7, 14, 18, 21, 23, 27, 28, 32, 37, 44, 49, 52, 55, 8, 20, 24, 29, 45, 57]
+[Instr(%25, %20, %24, *), Instr(%30, %25, %29, *), Instr(%58, k, %57, *)]
+------------------------------
+Breakset has 0 nodes
+Synthesized schedule in 9289ms
+Building stage:
+%0 = l * q
+%1 = %0 * x
+%2 = %1 * r
+%3 = x * r
+%4 = r * s
+%5 = %3 * %4
+%6 = l * k
+%7 = %5 + %6
+%9 = j * s
+%10 = p + %9
+%11 = %10 + j
+%12 = %11 + m
+%13 = l + %12
+%14 = l + %13
+%15 = e + m
+%16 = q + m
+%17 = %16 + z
+%18 = %15 * %17
+%21 = u * h
+%22 = z + r
+%23 = g * %22
+%26 = p * n
+%27 = j * %26
+%28 = m + i
+%31 = t * x
+%32 = o * %31
+%33 = a + z
+%34 = q + %33
+%35 = l * a
+%36 = %34 + %35
+%37 = f * %36
+%39 = l * e
+%40 = %39 * c
+%41 = %40 * h
+%42 = d + %41
+%43 = w + %42
+%44 = x * %43
+%46 = g + s
+%47 = r * %46
+%48 = %47 * a
+%49 = w * %48
+%50 = l + c
+%51 = p * k
+%52 = %50 + %51
+%54 = q * e
+%55 = y + %54
+Synthesized schedule in 16ms
+Building stage:
+%8 = %7 * p
+%19 = u * %18
+%20 = %14 * %19
+%24 = %21 + %23
+%29 = %27 + %28
+%38 = %32 + %37
+%45 = %38 * %44
+%53 = e * %52
+%56 = %53 + %55
+%57 = %49 * %56
+Synthesized schedule in 6ms
+Building stage:
+%25 = %20 * %24
+%30 = %25 * %29
+%58 = k * %57

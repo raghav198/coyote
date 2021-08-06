@@ -18,14 +18,14 @@ class BreaksetCalculator:
                 continue
 
             left, right = zip(*match)
-            
+
             self.matches.append((np.array(left), np.array(right)))
 
         self.weights = matches
 
         self.match_scores = list(map(np.array, match_scores))
         self.num_nodes = num_nodes
-    
+
         self.opt = z3.Solver()
 
         self.opt.set('timeout', timeout * 1000)
@@ -55,7 +55,7 @@ class BreaksetCalculator:
             a, b = self.connections[con]
             self.clique_weights[con] = z3.If(z3.And(
                 self.in_clique[a] == 1, self.in_clique[b] == 1), self.get_weight(con), 0)
-        
+
         # no empty cliques allowed!
         self.opt.add(z3.Sum(self.in_clique) > 0)
 
@@ -65,9 +65,9 @@ class BreaksetCalculator:
         #     weights.append(list(filter(lambda p: p[0] not in tags and p[1] not in tags, weight)))
 
         for (left_match, right_match), scores in zip(self.matches, self.match_scores):
-            exclude = np.logical_or(np.isin(left_match, tags), np.isin(right_match, tags))
+            exclude = np.logical_or(
+                np.isin(left_match, tags), np.isin(right_match, tags))
             scores[exclude] = 0
-            
 
         # self.weights = weights
 
@@ -94,7 +94,7 @@ class BreaksetCalculator:
                     if model.eval(self.in_clique[node] == 1):
                         clique.append(node)
                 value = model.eval(
-                    z3.Sum(self.clique_weights))
+                    z3.Sum(self.clique_weights)) if len(self.clique_weights) else 0
                 print(f'Current best: {value}', file=stderr)
                 self.opt.add(
                     z3.Sum(self.clique_weights) > value)

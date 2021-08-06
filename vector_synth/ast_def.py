@@ -107,6 +107,10 @@ class Compiler:
     def compile(self, e: Expression, top=True) -> Atom:
         if isinstance(e, Var):
             return Atom(e.name)
+            self.target += 1
+            self.code.append(Instr(self.target, Atom(e.name), Atom(e.name), '~'))
+            self.tag_lookup[self.target] = e
+            return Atom(self.target)
 
         assert isinstance(e, Op)
 

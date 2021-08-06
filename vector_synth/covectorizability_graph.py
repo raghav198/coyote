@@ -31,7 +31,8 @@ def traverse(base, cur, trace, on, connections):
 
     if on:
         # remove by tag, not by value
-        index = [(n1.tag, n2.tag) for n1, n2 in connections].index((base.tag, cur.tag))
+        index = [(n1.tag, n2.tag)
+                 for n1, n2 in connections].index((base.tag, cur.tag))
         connections.pop(index)
 
     if on and trace[0] == 0:
@@ -56,7 +57,7 @@ def prune_deps(node, exp, conns, trace=[]):
         return
 
     traverse(node, exp, trace, True, conns)
-    
+
     prune_deps(node.lhs, exp, conns, trace + [0])
     prune_deps(node.rhs, exp, conns, trace + [1])
 
@@ -72,7 +73,7 @@ def build_graph(exprs: List[Expression]):
     for exp in exprs:
         start = time()
         prune_deps(exp, exp, pairs)
-        print(f'Pruning this took {time() - start} seconds')
+        print(f'Pruning this took {time() - start} seconds', file=stderr)
 
     connections = []
     weights = []
@@ -84,7 +85,6 @@ def build_graph(exprs: List[Expression]):
         scores.append(cache.cache[n1.tag, n2.tag].scores)
 
     return connections, weights, scores
-
 
 
 # if __name__ == '__main__':

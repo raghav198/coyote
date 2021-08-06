@@ -9,9 +9,6 @@ from collections import defaultdict
 from recursive_similarity import MATCH_MUL
 
 
-
-
-
 def lookup_code(program: List[Instr], tag: int, modulus: List[int]) -> List[Instr]:
     """Find a subset of a scalar program thats used to compute a particular value relative to
     another set of values.
@@ -77,13 +74,15 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator):
 
         if len(bkset) == 0:
             break
+
         bkset_calc.disallow(bkset)
         for b in bkset:
             bkset_calc.disallow(
                 list(filter(lambda t: isinstance(t, int), comp.tag_lookup[b].subtags)))
 
         # Scalar program for this stage
-        stage_code = sum([lookup_code(comp.code, bk, quotients) for bk in bkset], [])
+        stage_code = sum([lookup_code(comp.code, bk, quotients)
+                         for bk in bkset], [])
         print('-' * 30, file=stderr)
         print(bkset, file=stderr)
         print(quotients, file=stderr)
@@ -120,7 +119,8 @@ def vector_compile(comp: Compiler):
     # comp.compile(expr)
 
     # split the scalar program into stages
-    bkset_calc = BreaksetCalculator(comp.target + 1, *build_graph(comp.exprs), rotate_penalty=MATCH_MUL)
+    bkset_calc = BreaksetCalculator(
+        comp.target + 1, *build_graph(comp.exprs), rotate_penalty=0)
     program_stages, interstage_deps, intrastage_deps, warp_size = divide_stages(
         comp, bkset_calc)
 
@@ -138,9 +138,13 @@ def vector_compile(comp: Compiler):
             schedule[i.dest.val] = s + len(vector_program)
         vector_program += build_vector_program(stage, lanes, stage_sched)
 
+    return prepare_all(vector_program, interstage_deps, lanes, schedule, warp_size)
+
+
+def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, set]], lanes: List[int], schedule: List[int], warp_size: int):
     # compute all the rotation/blending
     shifts = {}
-    for stage_deps in interstage_deps[1:]:  # first stage doesn't have any inputs
+    for stage_deps in interstage_deps:
         for out, inputs in stage_deps.items():
             for inp in inputs:
                 shift_amt = (lanes[out] - lanes[inp]) % warp_size
@@ -201,17 +205,22 @@ def vector_compile(comp: Compiler):
                 right_constants[j] = symbol.val
 
         if any(x != 0 for x in left_constants):
-            generated_code.append(f'__t{temp_num} = [{", ".join(map(str, left_constants))}]')
-            left_blend[f'__t{temp_num}'] = [int(x != 0) for x in left_constants]
+            generated_code.append(
+                f'__t{temp_num} = [{", ".join(map(str, left_constants))}]')
+            left_blend[f'__t{temp_num}'] = [
+                int(x != 0) for x in left_constants]
             temp_num += 1
 
         if any(x != 0 for x in right_constants):
-            generated_code.append(f'__t{temp_num} = [{", ".join(map(str, right_constants))}]')
-            right_blend[f'__t{temp_num}'] = [int(x != 0) for x in right_constants]
+            generated_code.append(
+                f'__t{temp_num} = [{", ".join(map(str, right_constants))}]')
+            right_blend[f'__t{temp_num}'] = [
+                int(x != 0) for x in right_constants]
             temp_num += 1
 
         if len(left_blend.keys()) > 1:
-            blend_line = ', '.join([f'{v}@{"".join(map(str, m))}' for v, m in left_blend.items()])
+            blend_line = ', '.join(
+                [f'{v}@{"".join(map(str, m))}' for v, m in left_blend.items()])
             generated_code.append(f'__t{temp_num} = blend({blend_line})')
             instr.left = f'__t{temp_num}'
             temp_num += 1
@@ -219,7 +228,8 @@ def vector_compile(comp: Compiler):
             instr.left = f'{list(left_blend.keys())[0]}'
 
         if len(right_blend.keys()) > 1:
-            blend_line = ', '.join([f'{v}@{"".join(map(str, m))}' for v, m in right_blend.items()])
+            blend_line = ', '.join(
+                [f'{v}@{"".join(map(str, m))}' for v, m in right_blend.items()])
             generated_code.append(f'__t{temp_num} = blend({blend_line})')
             instr.right = f'__t{temp_num}'
             temp_num += 1
@@ -232,9 +242,11 @@ def vector_compile(comp: Compiler):
         for key in keys_to_shift:
             shift = shifts[key]
             if shift < 0:
-                generated_code.append(f'{shifted_names[key]} = {instr.dest} << {-shift}')
+                generated_code.append(
+                    f'{shifted_names[key]} = {instr.dest} << {-shift}')
             elif shift > 0:
-                generated_code.append(f'{shifted_names[key]} = {instr.dest} >> {shift}')
+                generated_code.append(
+                    f'{shifted_names[key]} = {instr.dest} >> {shift}')
 
     return generated_code
 
@@ -283,4 +295,3 @@ if __name__ == '__main__':
 
     print(f'Scalar code stats: {code_stats(scalar_code)}')
     print(f'Vector code stats: {code_stats(vector_code)}')
-    
