@@ -1,7 +1,6 @@
 from sys import stdout
 from ast_def import Expression, Var
 from typing import Dict, List, Tuple
-from progressbar import ProgressBar
 
 MATCH_MUL = 1
 MATCH_ADD = 1
