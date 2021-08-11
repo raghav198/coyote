@@ -7,8 +7,7 @@ from build_code import place_output_lanes, build_vector_program, propagate_lane_
 from sys import stderr
 from collections import defaultdict
 from recursive_similarity import MATCH_MUL
-
-
+import random
 
 
 
@@ -247,6 +246,36 @@ def code_stats(code: List[str]):
 
     return adds, mults
 
+def treeGenerator(maxDepth) -> Expression:
+    global seed
+    random.seed(seed);
+    localString = "";
+    if (maxDepth > 0):
+        randomNum = random.randrange(0,3);
+        seed+=1;
+        print("randomNum", randomNum)
+        if (randomNum == 0):
+            localString+=str(random.randrange(0,1024));
+            seed+=1;
+            print("localString", localString);
+            return Var(localString);
+        else:
+            lhs = treeGenerator(maxDepth-1);
+            print("lhs", lhs)
+            rhs = treeGenerator(maxDepth-1);
+            print("rhs", rhs)
+            
+            if (randomNum == 1):
+                print(plus(lhs,rhs))
+                return(plus(lhs,rhs))
+            elif (randomNum == 2):
+                print(times(lhs,rhs))
+                return(times(lhs,rhs))
+    else:
+        endNode = str(random.randrange(0,1024));
+        seed+=1;
+        return Var(endNode);
+
 
 if __name__ == '__main__':
     # seed(3)
@@ -268,10 +297,9 @@ if __name__ == '__main__':
     # code = vector_compile(comp)
     # print('\n'.join(code))
 
-    import sys
-    seed(33)
+    seed = 33
 
-    exprs = [fuzzer(0.8) for i in range(2)]
+    exprs = [treeGenerator(3) for i in range(2)]
     comp = Compiler({})
     for expr in exprs:
         comp.compile(expr)
