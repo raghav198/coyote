@@ -7,6 +7,7 @@ from build_code import place_output_lanes, build_vector_program, propagate_lane_
 from sys import stderr
 from collections import defaultdict
 from recursive_similarity import MATCH_MUL
+from numberTreeGenerator import treeGenerator
 
 
 def lookup_code(program: List[Instr], tag: int, modulus: List[int]) -> List[Instr]:
@@ -281,9 +282,10 @@ if __name__ == '__main__':
     # print('\n'.join(code))
 
     import sys
-    seed(33)
+    seed = 33;
+    Expression = Union['Var', 'Op'];
 
-    exprs = [fuzzer(0.8) for i in range(2)]
+    exprs = [treeGenerator(3) for i in range(1)]
     comp = Compiler({})
     for expr in exprs:
         comp.compile(expr)
