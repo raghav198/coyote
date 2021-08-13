@@ -41,5 +41,3 @@ def treeGenerator(maxDepth) -> Expression:
         endNode = str(rand.randrange(0,1024));
         seed+=1;
         return Var(endNode);
-
-treeGenerator(2)
