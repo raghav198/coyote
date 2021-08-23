@@ -62,18 +62,18 @@ def prune_deps(node, exp, conns, trace=[]):
     prune_deps(node.rhs, exp, conns, trace + [1])
 
 
-def build_graph(exprs: List[Expression]):
-    print('Calculating similarities...', file=stderr)
+def build_graph(exprs: List[Expression], log=stderr):
+    print('Calculating similarities...', file=log)
     for exp1 in exprs:
         for exp2 in exprs:
             similarity(exp1, exp2)
 
-    print('Pruning graph...', file=stderr)
+    print('Pruning graph...', file=log)
     pairs = fully_connected(exprs)
     for exp in exprs:
         start = time()
         prune_deps(exp, exp, pairs)
-        print(f'Pruning this took {time() - start} seconds', file=stderr)
+        print(f'Pruning this took {time() - start} seconds', file=log)
 
     connections = []
     weights = []

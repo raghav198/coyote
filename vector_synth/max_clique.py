@@ -5,9 +5,10 @@ import numpy as np
 
 
 class BreaksetCalculator:
-    def __init__(self, num_nodes, connections: List[Tuple[int]], matches: List[List[Tuple[int]]], match_scores: List[List[int]], rotate_penalty=1, timeout=10):
+    def __init__(self, num_nodes, connections: List[Tuple[int]], matches: List[List[Tuple[int]]], match_scores: List[List[int]], rotate_penalty=1, timeout=10, log=stderr):
 
         self.rotate_penalty = rotate_penalty
+        self.log = log
 
         self.connections = connections
         self.matches = []
@@ -76,7 +77,7 @@ class BreaksetCalculator:
                 self.opt.add(self.in_clique[tag] == 0)
             except IndexError:
                 print(
-                    f'Warning: attempting to disallow a nonexistent tag {tag} (if this is the last stage, its probably fine)', file=stderr)
+                    f'Warning: attempting to disallow a nonexistent tag {tag} (if this is the last stage, its probably fine)', file=self.log)
 
         self.update_connections()
 
@@ -95,12 +96,12 @@ class BreaksetCalculator:
                         clique.append(node)
                 value = model.eval(
                     z3.Sum(self.clique_weights)) if len(self.clique_weights) else 0
-                print(f'Current best: {value}', file=stderr)
+                print(f'Current best: {value}', file=self.log)
                 self.opt.add(
                     z3.Sum(self.clique_weights) > value)
             else:
                 self.opt.pop()
-                print(f'Breakset has {len(clique)} nodes', file=stderr)
+                print(f'Breakset has {len(clique)} nodes', file=self.log)
                 return clique, value
 
 

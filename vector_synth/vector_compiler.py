@@ -2,7 +2,7 @@ from covectorizability_graph import build_graph
 from max_clique import BreaksetCalculator
 from ast_def import *
 from typing import Dict
-from vectorize import synthesize_schedule, VecInstr, synthesize_schedule_bounded, synthesize_schedule_backwards
+from vectorize import synthesize_schedule, VecInstr
 from build_code import place_output_lanes, build_vector_program, propagate_lane_assigments, place_lanes
 from sys import stderr
 from collections import defaultdict
@@ -53,7 +53,7 @@ def quotient_relative_expression(expr: Expression, modulus: List[int]) -> Expres
               quotient_relative_expression(expr.rhs, modulus))
 
 
-def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator):
+def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, log=stderr):
     quotients = []
     unused_outputs = set()
 
@@ -83,12 +83,12 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator):
 
         # Scalar program for this stage
         stage_code = sum([lookup_code(comp.code, bk, quotients)
-                         for bk in bkset], [])
-        print('-' * 30, file=stderr)
-        print(bkset, file=stderr)
-        print(quotients, file=stderr)
-        print(stage_code, file=stderr)
-        print('-' * 30, file=stderr)
+                          for bk in bkset], [])
+        print('-' * 30, file=log)
+        print(bkset, file=log)
+        print(quotients, file=log)
+        print(stage_code, file=log)
+        print('-' * 30, file=log)
         program_stages.append(stage_code)
 
         quotients += bkset
@@ -114,16 +114,16 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator):
     return program_stages, interstage_dicts, intrastage_dicts, max_warp
 
 
-def vector_compile(comp: Compiler):
+def vector_compile(comp: Compiler, log=stderr):
     # tag_lookup: Dict[int, Op] = {}
     # comp = Compiler(tag_lookup)
     # comp.compile(expr)
 
     # split the scalar program into stages
     bkset_calc = BreaksetCalculator(
-        comp.target + 1, *build_graph(comp.exprs), rotate_penalty=0)
+        comp.target + 1, *build_graph(comp.exprs, log=log), rotate_penalty=0, log=log)
     program_stages, interstage_deps, intrastage_deps, warp_size = divide_stages(
-        comp, bkset_calc)
+        comp, bkset_calc, log=log)
 
     # optimal lane placement based on interstage and intrastage dependences
     output_placement = place_output_lanes(interstage_deps, warp_size)
@@ -134,12 +134,12 @@ def vector_compile(comp: Compiler):
     vector_program: List[VecInstr] = []
     schedule = [0] * len(comp.code)
     for stage in program_stages:
-        stage_sched = synthesize_schedule(stage, warp_size)
+        stage_sched = synthesize_schedule(stage, warp_size, log=log)
         for s, i in zip(stage_sched, stage):
             schedule[i.dest.val] = s + len(vector_program)
-        vector_program += build_vector_program(stage, lanes, stage_sched)
+        vector_program += build_vector_program(stage, lanes, stage_sched, log=log)
 
-    return prepare_all(vector_program, interstage_deps, lanes, schedule, warp_size)
+    return prepare_all(vector_program, interstage_deps, lanes, schedule, warp_size), warp_size
 
 
 def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, set]], lanes: List[int], schedule: List[int], warp_size: int):
@@ -282,8 +282,8 @@ if __name__ == '__main__':
     # print('\n'.join(code))
 
     import sys
-    seed = 33;
-    Expression = Union['Var', 'Op'];
+    seed = 33
+    Expression = Union['Var', 'Op']
 
     exprs = [treeGenerator(3) for i in range(1)]
     comp = Compiler({})

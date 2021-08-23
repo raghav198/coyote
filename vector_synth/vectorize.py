@@ -52,7 +52,7 @@ def split_types(program: List[Instr]) -> Tuple[List[int], List[int]]:
     return add_instrs, mul_instrs
 
 
-def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int):
+def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int, log=stderr):
     dep_graph = dependency_graph(program)
     adds, mults = split_types(program)
 
@@ -95,11 +95,12 @@ def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int):
         elif i in mults:
             opt.add(_types[_schedule[i]] == itype.times)
 
-    print(f'Trying to synthesize {max_len} instructions...', file=stderr, end=''); stderr.flush()
+    print(f'Trying to synthesize {max_len} instructions...', file=log, end='')
+    log.flush()
     start = time()
     res = opt.check()
     end = time()
-    print(f'({int(1000 * (end - start))} ms)', file=stderr)
+    print(f'({int(1000 * (end - start))} ms)', file=log)
     if res == z3.unsat:
         return res
 
@@ -112,8 +113,9 @@ def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int):
     return schedule
 
 
-def synthesize_schedule(program: List[Instr], warp: int) -> List[int]:
-    print(f'Calculating height...', file=stderr, end=''); stderr.flush()
+def synthesize_schedule(program: List[Instr], warp: int, log=stderr) -> List[int]:
+    print(f'Calculating height...', file=log, end='')
+    log.flush()
     heights: Dict[int, int] = defaultdict(lambda: -1)
     for instr in program:
         left_height = heights[instr.lhs.val]
@@ -121,20 +123,21 @@ def synthesize_schedule(program: List[Instr], warp: int) -> List[int]:
         heights[instr.dest.val] = max(left_height, right_height) + 1
 
     max_height = max(heights.values())
-    print(f'({max_height})', file=stderr)
+    print(f'({max_height})', file=log)
     start = time()
     for max_len in range(max_height, len(program) + 1):
-        result = synthesize_schedule_bounded(program, warp, max_len)
+        result = synthesize_schedule_bounded(program, warp, max_len, log=log)
         if result == z3.unsat:
             continue
         end = time()
-        print(f'Synthesis took {int(1000 * (end - start))}ms')
+        print(f'Synthesis took {int(1000 * (end - start))}ms', file=log)
 
         return result
 
 
-def synthesize_schedule_backwards(program: List[Instr], warp: int) -> List[int]:
-    print(f'Calculating height...', file=stderr, end=''); stderr.flush()
+def synthesize_schedule_backwards(program: List[Instr], warp: int, log=stderr) -> List[int]:
+    print(f'Calculating height...', file=log, end='')
+    log.flush()
     heights: Dict[int, int] = defaultdict(lambda: -1)
     for instr in program:
         left_height = heights[instr.lhs.val]
@@ -142,25 +145,25 @@ def synthesize_schedule_backwards(program: List[Instr], warp: int) -> List[int]:
         heights[instr.dest.val] = max(left_height, right_height) + 1
 
     max_height = max(heights.values())
-    print(f'({max_height})', file=stderr)
+    print(f'({max_height})', file=log)
     best_so_far = None
     for max_len in range(len(program) + 1, max_height, -1):
-        result = synthesize_schedule_bounded(program, warp, max_len)
+        result = synthesize_schedule_bounded(program, warp, max_len, log=log)
         if result == z3.unsat:
             break
         best_so_far = result
     return best_so_far
 
 
-def build_vector_program_automatic(program: List[Instr], warp: int) -> List[VecInstr]:
+def build_vector_program_automatic(program: List[Instr], warp: int, log=stderr) -> List[VecInstr]:
 
     def __sweep_length():
         for max_len in range(len(program) + 1):
-            print(f'Trying length {max_len} program...', file=stderr)
-            result = synthesize_schedule_bounded(program, warp, max_len)
+            print(f'Trying length {max_len} program...', file=log)
+            result = synthesize_schedule_bounded(program, warp, max_len, log=log)
             if result == z3.unsat:
                 continue
-            print('Successful!', file=stderr)
+            print('Successful!', file=log)
             return result
 
     vectorized_code = []

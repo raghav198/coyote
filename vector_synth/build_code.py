@@ -31,7 +31,7 @@ def place_lanes(interstage: List[Dict[int, Set[int]]], intrastage: List[Dict[int
 
     for d1 in interstage:
         for output in d1:
-            instr_lanes[output] = lane_model[_lane[output]].as_long() # type: ignore
+            instr_lanes[output] = lane_model[_lane[output]].as_long()  # type: ignore
 
     for d2 in intrastage:
         for output, equiv_class in d2.items():
@@ -42,7 +42,6 @@ def place_lanes(interstage: List[Dict[int, Set[int]]], intrastage: List[Dict[int
 
 
 def place_output_lanes(dependencies: List[Dict[int, Set[int]]], max_warp: int) -> Dict[int, int]:
-    print(dependencies)
     """dependencies is a list of dictionaries that map an instruction tag (i.e. destination register) to the set of dependencies it consumes
     An invariant that must be maintained is that every element in a value must be a key from a previous dictionary in the list"""
 
@@ -56,13 +55,12 @@ def place_output_lanes(dependencies: List[Dict[int, Set[int]]], max_warp: int) -
         opt.add(_lane[i] < max_warp)
         opt.add(_lane[i] >= 0)
 
-    
     # map each output to the stage its produced on
     stage_lookup: Dict[int, int] = {}
     for i, stage in enumerate(dependencies):
         for output in stage:
             stage_lookup[output] = i
-    
+
     for stage in dependencies:
         # two outputs from the same stage cannot be on the same lane
         for o1, o2 in combinations(stage.keys(), 2):
@@ -71,7 +69,8 @@ def place_output_lanes(dependencies: List[Dict[int, Set[int]]], max_warp: int) -
         # at least one producer <!--from each stage--> must be on the same lane as its consumer
         for output in stage:
             if len(stage[output]):
-                opt.assert_and_track(z3.Or([_lane[output] == _lane[i] for i in stage[output]]), f'lane{output} in {stage[output]}')
+                opt.assert_and_track(z3.Or([_lane[output] == _lane[i]
+                                            for i in stage[output]]), f'lane{output} in {stage[output]}')
         """for output in stage:
             # sort the dependencies by which stage their produced on
             all_producers = sorted(list(stage[output]), key=stage_lookup.__getitem__)
@@ -80,21 +79,18 @@ def place_output_lanes(dependencies: List[Dict[int, Set[int]]], max_warp: int) -
                 stage_producers = list(stage_producers)
                 opt.assert_and_track(z3.Or([_lane[i] == _lane[output] for i in stage_producers]), f'lane{output} in {stage_producers}')"""
 
-
     # opt.check()
     if opt.check() == z3.unsat:
         print(opt.unsat_core())
         raise SystemExit()
     lane_model = opt.model()
     output_lane_assignment: Dict[int, int] = {}
-    
+
     for stage in dependencies:
         for output in stage:
-            output_lane_assignment[output] = lane_model[_lane[output]].as_long() # type: ignore
-
+            output_lane_assignment[output] = lane_model[_lane[output]].as_long()  # type: ignore
 
     return output_lane_assignment
-
 
 
 def propagate_lane_assigments(output_assignment: Dict[int, int], internal_deps: List[Dict[int, List[int]]]) -> List[int]:
@@ -111,12 +107,11 @@ def propagate_lane_assigments(output_assignment: Dict[int, int], internal_deps: 
     return instr_lanes
 
 
-
 def build_vector_program(program: List[Instr],
                          lanes: List[int],
-                         schedule: List[int]) -> List[VecInstr]:
-    print('Building stage:', file=stderr)
-    print('\n'.join(map(str, program)), file=stderr)
+                         schedule: List[int], log=stderr) -> List[VecInstr]:
+    print('Building stage:', file=log)
+    print('\n'.join(map(str, program)), file=log)
     vectorized_code = []
     warp = max(lanes) + 1
 
