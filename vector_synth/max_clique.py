@@ -11,6 +11,7 @@ class BreaksetCalculator:
         self.log = log
 
         self.connections = connections
+        print('connections: ', self.connections)
         self.matches = []
 
         for match in matches:

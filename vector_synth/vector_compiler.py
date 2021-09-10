@@ -68,8 +68,19 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, log=stderr):
 
     # Get an optimal set of breakpoints for this stage
 
+    input_groups = comp.input_groups[:]
+
     while True:
-        bkset, _ = bkset_calc.solve()  # get_breakset(expr, tag_lookup)
+        if len(input_groups) > 0:
+            cur_group = input_groups[0]
+            del input_groups[0]
+
+            bkset = []
+            for instr in comp.code:
+                if instr.op == '~' and instr.lhs.val in cur_group:
+                    bkset.append(instr.dest.val)
+        else:
+            bkset, _ = bkset_calc.solve()  # get_breakset(expr, tag_lookup)
         if len(bkset) > max_warp:
             max_warp = len(bkset)
 
@@ -99,9 +110,15 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, log=stderr):
         stage_dict: Dict[int, set] = {}
         intrastage_dict: Dict[int, list] = {}
 
+        # TODO: The problem currently is that interstage_deps doesn't propagate to including "load bkset" instructions, making the lane placement not line up correctly
+        # Figure out why!!
         for stage_output in bkset:
+            print(f'Dealing with stage output {stage_output}')
+            print(f'Outputs unused so far: {unused_outputs}')
+            print(f'All subtags: {comp.tag_lookup[stage_output].subtags}')
             equiv_class = set(
                 filter(lambda l: l in unused_outputs, comp.tag_lookup[stage_output].subtags))
+            print(f'Equivalence class of prior stage outputs being put in here: {equiv_class}')
             stage_dict[stage_output] = equiv_class
             unused_outputs -= equiv_class
 
@@ -121,11 +138,12 @@ def vector_compile(comp: Compiler, log=stderr):
 
     # split the scalar program into stages
     bkset_calc = BreaksetCalculator(
-        comp.target + 1, *build_graph(comp.exprs, log=log), rotate_penalty=0, log=log)
+        comp.target + 1, *build_graph(comp.exprs, log=log), rotate_penalty=MATCH_MUL, log=log)
     program_stages, interstage_deps, intrastage_deps, warp_size = divide_stages(
         comp, bkset_calc, log=log)
 
     # optimal lane placement based on interstage and intrastage dependences
+    print(interstage_deps, file=log)
     output_placement = place_output_lanes(interstage_deps, warp_size)
     lanes = propagate_lane_assigments(output_placement, intrastage_deps)
     # lanes = place_lanes(interstage_deps, intrastage_deps, warp_size)
@@ -134,11 +152,25 @@ def vector_compile(comp: Compiler, log=stderr):
     vector_program: List[VecInstr] = []
     schedule = [0] * len(comp.code)
     for stage in program_stages:
+        # stage_sched = synthesize_schedule_iterative_refine(stage)
         stage_sched = synthesize_schedule(stage, warp_size, log=log)
+        # stage_sched = synthesize_schedule(stage, warp_size, log=log)
         for s, i in zip(stage_sched, stage):
             schedule[i.dest.val] = s + len(vector_program)
         vector_program += build_vector_program(stage, lanes, stage_sched, log=log)
 
+    active_lanes = [[] for _ in range(max(schedule) + 1)]
+    for instr in comp.code:
+        active_lanes[schedule[instr.dest.val]].append(lanes[instr.dest.val])
+    # print(f'Active lanes: {active_lanes}')
+    inv_schedule = [[-1] * (max(lanes) + 1) for _ in range(max(schedule) + 1)]
+    for instr in comp.code:
+        inv_schedule[schedule[instr.dest.val]][lanes[instr.dest.val]] = instr.dest.val
+
+    print('\n'.join(map(str, comp.code)))
+
+    print(f'Overall schedule: {inv_schedule}')
+    print(f'Overall lanes: {lanes}')
     return prepare_all(vector_program, interstage_deps, lanes, schedule, warp_size), warp_size
 
 
@@ -161,15 +193,24 @@ def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, 
     for i, instr in enumerate(vector_program):
         keys_to_shift = []  # which keys need shifted
         shifts_used = []
+        named_shift_amts = {}  # maps each shift amount to the name of the s-vector that's been shifted by that much
         # queue up all the shifting we need to do for this instruction
         for key, shift in shifts.items():
+
             if key in [dest.val for dest in instr.dest]:
+                print(named_shift_amts)
                 if shift in shifts_used:
+                    shifted_names[key] = named_shift_amts[shift]
                     continue
                 shifts_used.append(shift)
                 keys_to_shift.append(key)
                 shifted_names[key] = f'__s{temp_shift}'
+                named_shift_amts[shift] = shifted_names[key]
                 temp_shift += 1
+
+        # TODO: The issue is multiple keys in the same instruction might be shifted by the same amount, but only one of them will be recorded as being stored in the new shifted vector register
+        # (in particular, both %10 and %18 are shifted over by 2 but since %10 gets shifted first, shifted_names[10] = '__s1' but there is no entry for shifted_names[18])
+        # TODO: A possible solution is to associate "shift_amt -> shifted_name" and "key -> shift_amt" and use a double lookup (when using a key, get the shift_amt and then the shifted_name)
 
         # bitvectors for blending regs from multiple sources
         left_blend = defaultdict(lambda: [0] * warp_size)
@@ -254,11 +295,13 @@ def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, 
 
 def code_stats(code: List[str]):
     adds = mults = 0
+    ptxt_mults = 0
     for line in code:
         mults += line.count("*") + line.count(">>")
         adds += line.count(",") * line.count("blend") + line.count("+")
+        ptxt_mults += line.count("@")
 
-    return adds, mults
+    return adds, mults, ptxt_mults
 
 
 if __name__ == '__main__':

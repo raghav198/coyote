@@ -1,4 +1,5 @@
 from collections import defaultdict
+from math import ceil
 from typing import Tuple
 
 from ast_def import *
@@ -25,15 +26,21 @@ class VecInstr:
 
 def dependency_graph(program: List[Instr]) -> List[List[int]]:
     def lookup(reg: int) -> List[int]:
-        return list(i for i in range(len(program)) if program[i].dest.val == reg)
-
+        # return next((i for i in range(len(program)) if program[i].dest.val == reg), -1)
+        return list((i for i in range(len(program)) if program[i].dest.val == reg))
     graph: List[List[int]] = []
     for line in program:
         deps = []
         if line.lhs.reg:
             deps.extend(lookup(line.lhs.val))
+        #     deps.append(lookup(line.lhs.val))
+        # else:
+        #     deps.append(-1)
         if line.rhs.reg:
             deps.extend(lookup(line.rhs.val))
+        #     deps.append(lookup(line.rhs.val))
+        # else:
+        #     deps.append(-1)
         graph.append(deps)
 
     return graph
@@ -52,9 +59,110 @@ def split_types(program: List[Instr]) -> Tuple[List[int], List[int]]:
     return add_instrs, mul_instrs
 
 
+class ScheduleSynthesizer:
+    def __init__(self, program, warp_size, log=stderr, timeout=60):
+        self.timeout = timeout
+        self.log = log
+
+        self.num_instr = len(program)
+
+        dep_graph = dependency_graph(program)
+
+        adds, mults = split_types(program)
+        ops = ['+' if i in adds else '*' for i in range(self.num_instr)]
+
+        self.opt = z3.Solver()
+        self.opt.set('timeout', timeout * 1000)
+
+        self._schedule = z3.IntVector('schedule', self.num_instr)
+        self._lanes = z3.IntVector('lanes', self.num_instr)
+
+        for i in range(self.num_instr):
+            self.opt.add(self._schedule[i] >= 0)
+            self.opt.add(self._lanes[i] >= 0)
+            self.opt.add(self._lanes[i] < warp_size)
+
+            for j in range(self.num_instr):
+                self.opt.add(z3.Implies(self._schedule[i] == self._schedule[j], ops[i] == ops[j]))
+                self.opt.add(z3.Implies(
+                    z3.And(self._schedule[i] == self._schedule[j], self._lanes[i] == self._lanes[j]), i == j))
+
+            for dep in dep_graph[i]:
+                self.opt.add(self._schedule[i] > self._schedule[dep])
+                self.opt.add(self._lanes[i] == self._lanes[dep])
+
+    def add_bound(self, bound):
+        print(f'Bounding by {bound}')
+        for i in range(self.num_instr):
+            self.opt.add(self._schedule[i] < bound)
+
+    def solve(self):
+        result = self.opt.check()
+        if result != z3.sat:
+            return z3.unsat
+
+        model = self.opt.model()
+        schedule = [model[s].as_long() for s in self._schedule]
+
+        print(f'Current solution: {schedule}')
+
+        return schedule
+
+
+def synthesize_schedule_bounded_consider_blends(program: List[Instr], max_len: int, log=stderr):
+    timeout = 60
+    num_instr = len(program)
+
+    dep_graph = dependency_graph(program)
+
+    adds, mults = split_types(program)
+    ops = ['+' if i in adds else '*' for i in range(num_instr)]
+
+    opt = z3.Solver()
+    opt.set('timeout', timeout * 1000)
+
+    _schedule = z3.IntVector('schedule', num_instr)
+
+    blend_penalty = z3.Sum([z3.If(z3.And(_schedule[i] == _schedule[j],
+                                         z3.Or(_schedule[dep_graph[i][0]] != _schedule[dep_graph[j][0]],
+                                               _schedule[dep_graph[i][1]] != _schedule[dep_graph[j][1]])), 1, 0)
+                            for i in range(num_instr) for j in range(num_instr)])
+
+    for i in range(num_instr):
+        opt.add(_schedule[i] >= 0)
+        if max_len >= 0:
+            opt.add(_schedule[i] + blend_penalty < max_len)
+
+        for j in range(num_instr):
+            opt.add(z3.Implies(_schedule[i] == _schedule[j], ops[i] == ops[j]))
+
+        for dep in dep_graph[i]:
+            if dep == -1:
+                continue
+            opt.add(_schedule[i] > _schedule[dep])
+
+    print(f'Trying to synthesize {max_len} instructions...', file=log, end='')
+    log.flush()
+    start = time()
+    res = opt.check()
+    end = time()
+    print(f'({int(1000 * (end - start))} ms)', file=log)
+    if res != z3.sat:
+        return z3.unsat
+
+    model = opt.model()
+
+    schedule = [model[s].as_long() for s in _schedule]
+
+    return schedule, model.eval(blend_penalty).as_long()
+
+
 def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int, log=stderr):
     dep_graph = dependency_graph(program)
     adds, mults = split_types(program)
+
+    print(program)
+    print(dep_graph)
 
     num_instr = len(program)
 
@@ -87,6 +195,8 @@ def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int, l
 
         # no shuffling
         for dep in dep_graph[i]:
+            if dep == -1:
+                continue
             opt.add(_lanes[i] == _lanes[dep])
             opt.add(_schedule[i] > _schedule[dep])
 
@@ -99,6 +209,7 @@ def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int, l
     log.flush()
     start = time()
     res = opt.check()
+    print(f'Answer: {res}')
     end = time()
     print(f'({int(1000 * (end - start))} ms)', file=log)
     if res == z3.unsat:
@@ -113,10 +224,82 @@ def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int, l
     return schedule
 
 
+def synthesize_schedule_iterative_refine(program: List[Instr], timeout=10, log=stderr) -> List[int]:
+    num_instr = len(program)
+    dep_graph = dependency_graph(program)
+
+    adds, _ = split_types(program)
+    ops = ['+' if i in adds else '*' for i in range(num_instr)]
+
+    # build the model
+    opt = z3.Solver()
+    opt.set('timeout', timeout * 1000)
+
+    _schedule = z3.IntVector('schedule', num_instr)
+    blend_penalty = z3.Sum([z3.If(z3.And(_schedule[i] == _schedule[j],
+                                         z3.Or(_schedule[dep_graph[i][0]] != _schedule[dep_graph[j][0]],
+                                               _schedule[dep_graph[i][1]] != _schedule[dep_graph[j][1]])), 1, 0)
+                            for i in range(num_instr) for j in range(num_instr)])
+
+    for i in range(num_instr):
+        opt.add(_schedule[i] >= 0)
+
+        for j in range(num_instr):
+            opt.add(z3.Implies(_schedule[i] == _schedule[j], ops[i] == ops[j]))
+
+        for dep in dep_graph[i]:
+            if dep == -1:
+                continue
+            opt.add(_schedule[i] > _schedule[dep])
+
+    opt.push()
+    print('Synthesizing a program', file=log)
+
+    while True:
+        result = opt.check()
+        if result == z3.sat:
+            model = opt.model()
+            schedule = [model[s].as_long() for s in _schedule]
+            # print(type(schedule), schedule)
+            # print(type(blend_penalty), blend_penalty)
+            total_cost = max(schedule) + model.eval(blend_penalty)
+            print(total_cost, type(total_cost))
+            print(f'Current cost: {total_cost}, attempting to refine...', file=log)
+
+            for i in range(num_instr):
+                opt.add(_schedule[i] + blend_penalty < total_cost)
+        else:
+            opt.pop()
+            print('Cannot refine further')
+            return schedule
+
+
+def synthesize_schedule_iterative_refine_saved_state(program: List[Instr], warp: int, log=stderr) -> List[int]:
+
+    synthesizer = ScheduleSynthesizer(program, warp, log, timeout=60)
+    best_sched = None
+    while True:
+        result = synthesizer.solve()
+        if result == z3.unsat:
+            if best_sched is None:
+                raise Exception('No schedule was ever found!')
+            return best_sched
+        best_sched, blend_penalty = result
+        synthesizer.add_bound(max(best_sched) + blend_penalty)
+
+    best_sched, blend_penalty = synthesize_schedule_bounded(program, -1, log=log)
+    while True:
+        result = synthesize_schedule_bounded(program, max(best_sched) + blend_penalty, log=log)
+        print(result)
+        if result == z3.unsat:
+            return best_sched
+        best_sched, blend_penalty = result
+
+
 def synthesize_schedule(program: List[Instr], warp: int, log=stderr) -> List[int]:
     print(f'Calculating height...', file=log, end='')
     log.flush()
-    heights: Dict[int, int] = defaultdict(lambda: -1)
+    heights: Dict[int, int] = defaultdict(lambda: 0)
     for instr in program:
         left_height = heights[instr.lhs.val]
         right_height = heights[instr.rhs.val]
@@ -125,14 +308,28 @@ def synthesize_schedule(program: List[Instr], warp: int, log=stderr) -> List[int
     max_height = max(heights.values())
     print(f'({max_height})', file=log)
     start = time()
-    for max_len in range(max_height, len(program) + 1):
-        result = synthesize_schedule_bounded(program, warp, max_len, log=log)
-        if result == z3.unsat:
-            continue
-        end = time()
-        print(f'Synthesis took {int(1000 * (end - start))}ms', file=log)
 
-        return result
+    synthesizer = ScheduleSynthesizer(program, warp, log=log)
+    synthesizer.add_bound(4 * max_height)
+    best_so_far = None
+    while True:
+        answer = synthesizer.solve()
+        if answer == z3.unsat:
+            if best_so_far is None:
+                raise Exception("No model was ever found!")
+            return best_so_far
+        best_so_far = answer
+        print(f'Found schedule of length {max(answer)}, trying to improve', file=log)
+        synthesizer.add_bound(max(answer))
+
+    # for max_len in range(max_height, len(program) + 1):
+    #     result = synthesize_schedule_bounded(program, warp, max_len, log=log)
+    #     if result == z3.unsat:
+    #         continue
+    #     end = time()
+    #     print(f'Synthesis took {int(1000 * (end - start))}ms', file=log)
+
+    #     return result
 
 
 def synthesize_schedule_backwards(program: List[Instr], warp: int, log=stderr) -> List[int]:
@@ -143,8 +340,9 @@ def synthesize_schedule_backwards(program: List[Instr], warp: int, log=stderr) -
         left_height = heights[instr.lhs.val]
         right_height = heights[instr.rhs.val]
         heights[instr.dest.val] = max(left_height, right_height) + 1
+        print(f'setting height of {instr.dest.val} to {left_height, right_height} -> {heights[instr.dest.val]}')
 
-    max_height = max(heights.values())
+    max_height = max(heights.values(), 1)
     print(f'({max_height})', file=log)
     best_so_far = None
     for max_len in range(len(program) + 1, max_height, -1):

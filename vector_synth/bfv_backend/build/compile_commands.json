@@ -1,0 +1,22 @@
+[
+{
+  "directory": "/home/malik/bicont-crypto/vector_synth/bfv_backend/build",
+  "command": "/bin/clang++-10   -isystem /home/malik/.local/include/SEAL-3.6  -g   -pthread -std=gnu++17 -o CMakeFiles/CoyoteBFVBackend.dir/main.cpp.o -c /home/malik/bicont-crypto/vector_synth/bfv_backend/main.cpp",
+  "file": "/home/malik/bicont-crypto/vector_synth/bfv_backend/main.cpp"
+},
+{
+  "directory": "/home/malik/bicont-crypto/vector_synth/bfv_backend/build",
+  "command": "/bin/clang++-10   -isystem /home/malik/.local/include/SEAL-3.6  -g   -pthread -std=gnu++17 -o CMakeFiles/CoyoteBFVBackend.dir/util.cpp.o -c /home/malik/bicont-crypto/vector_synth/bfv_backend/util.cpp",
+  "file": "/home/malik/bicont-crypto/vector_synth/bfv_backend/util.cpp"
+},
+{
+  "directory": "/home/malik/bicont-crypto/vector_synth/bfv_backend/build",
+  "command": "/bin/clang++-10   -isystem /home/malik/.local/include/SEAL-3.6  -g   -pthread -std=gnu++17 -o CMakeFiles/CoyoteBFVBackend.dir/small_test/scalar.cpp.o -c /home/malik/bicont-crypto/vector_synth/bfv_backend/small_test/scalar.cpp",
+  "file": "/home/malik/bicont-crypto/vector_synth/bfv_backend/small_test/scalar.cpp"
+},
+{
+  "directory": "/home/malik/bicont-crypto/vector_synth/bfv_backend/build",
+  "command": "/bin/clang++-10   -isystem /home/malik/.local/include/SEAL-3.6  -g   -pthread -std=gnu++17 -o CMakeFiles/CoyoteBFVBackend.dir/small_test/vector.cpp.o -c /home/malik/bicont-crypto/vector_synth/bfv_backend/small_test/vector.cpp",
+  "file": "/home/malik/bicont-crypto/vector_synth/bfv_backend/small_test/vector.cpp"
+}
+]

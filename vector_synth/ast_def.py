@@ -1,4 +1,4 @@
-from typing import Dict, List, Union, Any
+from typing import Dict, List, Set, Union, Any
 from random import choice, random, seed
 from string import ascii_lowercase
 
@@ -64,6 +64,7 @@ def times(a, b):
 def is_reg(atom):
     return isinstance(atom.val, int)
 
+
 class Atom:
     def __init__(self, x: Union[int, str]):
         self.val = x
@@ -97,19 +98,34 @@ class Instr:
 
 
 class Compiler:
-    def __init__(self, tag_lookup: Dict[int, Op]):
+    def __init__(self, tag_lookup: Dict[int, Op], input_groups: List[Set[str]] = []):
         self.code: List[Instr] = []
         self.exprs: List[Expression] = []
         self.target = -1
         self.tag_lookup = tag_lookup
         self.code_lookup: Dict[int, List[Instr]] = {}
 
+        self.loaded_regs: Dict[str, int] = {}
+        self.input_groups = input_groups
+
     def compile(self, e: Expression, top=True) -> Atom:
         if isinstance(e, Var):
-            return Atom(e.name)
+
+            if all(e.name not in group for group in self.input_groups):
+                return Atom(e.name)
+
+            # return Atom(e.name)
+
+            if e.name in self.loaded_regs:
+                return Atom(self.loaded_regs[e.name])
+
             self.target += 1
+            e.tag = self.target
             self.code.append(Instr(self.target, Atom(e.name), Atom(e.name), '~'))
             self.tag_lookup[self.target] = e
+
+            self.loaded_regs[e.name] = self.target
+
             return Atom(self.target)
 
         assert isinstance(e, Op)
@@ -128,11 +144,11 @@ class Compiler:
 
         self.code_lookup[e.tag] = []
         if e.lhs.tag in self.code_lookup:
-            assert isinstance(e.lhs.tag, int) # mypy
+            assert isinstance(e.lhs.tag, int)  # mypy
             self.code_lookup[e.tag].extend(
                 self.code_lookup[e.lhs.tag])
         if e.rhs.tag in self.code_lookup:
-            assert isinstance(e.rhs.tag, int) # mypy
+            assert isinstance(e.rhs.tag, int)  # mypy
             self.code_lookup[e.tag].extend(
                 self.code_lookup[e.rhs.tag])
         self.code_lookup[e.tag].append(self.code[-1])

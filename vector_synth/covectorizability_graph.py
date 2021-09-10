@@ -11,6 +11,10 @@ from recursive_similarity import similarity, cache
 # print(exp)
 
 
+def pair_tags(conns):
+    return [(n1.tag, n2.tag) for n1, n2 in conns]
+
+
 def fully_connected(exprs):
     def get_all_nodes(exp):
         if isinstance(exp, Var):
@@ -31,9 +35,14 @@ def traverse(base, cur, trace, on, connections):
 
     if on:
         # remove by tag, not by value
-        index = [(n1.tag, n2.tag)
-                 for n1, n2 in connections].index((base.tag, cur.tag))
-        connections.pop(index)
+
+        indices = [i for i, (n1, n2) in enumerate(connections) if (n1.tag, n2.tag) == (base.tag, cur.tag)]
+
+        # index = pair_tags(connections).index((base.tag, cur.tag))
+        # print([(n1.tag, n2.tag) for n1, n2, in connections].count((59, 60)))
+        # connections.pop(index)
+        for index in indices[::-1]:
+            connections.pop(index)
 
     if on and trace[0] == 0:
         traverse(
