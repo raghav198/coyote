@@ -1,3 +1,4 @@
+from manual_lane_placement import place_lanes_manually
 from covectorizability_graph import build_graph
 from max_clique import BreaksetCalculator
 from ast_def import *
@@ -110,17 +111,16 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, log=stderr):
         stage_dict: Dict[int, set] = {}
         intrastage_dict: Dict[int, list] = {}
 
-        # TODO: The problem currently is that interstage_deps doesn't propagate to including "load bkset" instructions, making the lane placement not line up correctly
-        # Figure out why!!
         for stage_output in bkset:
             print(f'Dealing with stage output {stage_output}')
             print(f'Outputs unused so far: {unused_outputs}')
             print(f'All subtags: {comp.tag_lookup[stage_output].subtags}')
-            equiv_class = set(
-                filter(lambda l: l in unused_outputs, comp.tag_lookup[stage_output].subtags))
+            equiv_class = set(instr.dest.val for instr in stage_code).intersection(unused_outputs)
+            # equiv_class = set(
+            #     filter(lambda l: l in unused_outputs, comp.tag_lookup[stage_output].subtags))
             print(f'Equivalence class of prior stage outputs being put in here: {equiv_class}')
             stage_dict[stage_output] = equiv_class
-            unused_outputs -= equiv_class
+            # unused_outputs -= equiv_class
 
             intrastage_dict[stage_output] = list(
                 filter(lambda l: l in intermediates, comp.tag_lookup[stage_output].subtags))
@@ -144,7 +144,10 @@ def vector_compile(comp: Compiler, log=stderr):
 
     # optimal lane placement based on interstage and intrastage dependences
     print(interstage_deps, file=log)
-    output_placement = place_output_lanes(interstage_deps, warp_size)
+    print(f'{len(interstage_deps)} stages')
+    # output_placement = place_output_lanes(interstage_deps, warp_size)
+    output_placement = place_lanes_manually(interstage_deps, warp_size)
+    print(f'Placed all stage outputs: {output_placement}')
     lanes = propagate_lane_assigments(output_placement, intrastage_deps)
     # lanes = place_lanes(interstage_deps, intrastage_deps, warp_size)
 
@@ -207,10 +210,6 @@ def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, 
                 shifted_names[key] = f'__s{temp_shift}'
                 named_shift_amts[shift] = shifted_names[key]
                 temp_shift += 1
-
-        # TODO: The issue is multiple keys in the same instruction might be shifted by the same amount, but only one of them will be recorded as being stored in the new shifted vector register
-        # (in particular, both %10 and %18 are shifted over by 2 but since %10 gets shifted first, shifted_names[10] = '__s1' but there is no entry for shifted_names[18])
-        # TODO: A possible solution is to associate "shift_amt -> shifted_name" and "key -> shift_amt" and use a double lookup (when using a key, get the shift_amt and then the shifted_name)
 
         # bitvectors for blending regs from multiple sources
         left_blend = defaultdict(lambda: [0] * warp_size)
