@@ -3,15 +3,26 @@ from ast_def import Compiler, fuzzer
 from random import seed
 from sys import argv
 from vector_compiler import vector_compile
+import os
+import shutil
 
 if __name__ == '__main__':
-
+    ### Change name to whatever you want the directory name to be
+    directory = "test"
+    ###
+    path = os.path.join("outputs/", directory)
+    shutil.rmtree(path)
+    os.mkdir(path)
+    argv.append(path + "/scal")
+    argv.append(path + "/vec")
     if len(argv) != 3:
         print(f'Usage: {argv[0]} [scalar_output] [vector_output]')
         raise SystemExit()
 
     scalar_file = argv[1]
     vector_file = argv[2]
+    print("Scalarfile", scalar_file)
+    print("Vectorfile", vector_file)
 
     # expr = get_2x2_determinant()
     # input_groups = [{
@@ -40,3 +51,20 @@ if __name__ == '__main__':
     open(vector_file, 'w').write(f'{width}\n' + '\n'.join(vector_code))
 
     print(f'Vector width = {width}')
+    #Run compile_to_bfv.py
+    os.system("python3 compile_to_bfv.py " + directory)
+    #Change CMakeLists.txt to point to new C++ files
+    CMake = open("bfv_backend/CMakeLists.txt", "r")
+    CMake_lines = CMake.readlines()
+    CMake.close()
+    CMake_lines[7] = "\t" + "\t" + "\t" + directory + "/scalar.cpp" + "\n"
+    CMake_lines[8] = "\t" + "\t" + "\t" + directory + "/vector.cpp" + "\n"
+    new_file_contents = "".join(CMake_lines)
+    CMake = open("bfv_backend/CMakeLists.txt", "w")
+    CMake.write(new_file_contents)
+    CMake.close()
+    #Build and run the CMake project
+    os.chdir("bfv_backend")
+    os.system("cmake --build build")
+    os.chdir("build")
+    os.system("make all")
