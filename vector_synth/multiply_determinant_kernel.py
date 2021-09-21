@@ -108,7 +108,8 @@ def manually_compile_with_input_sets(comp: Compiler, log=stderr):
 
 
 if __name__ == '__main__':
-    expr = get_3x3_determinant()
+    # expr = get_3x3_determinant()
+    expr = get_2x2_determinant()
     input_groups = [{
         'a:0,0', 'a:0,1', 'a:0,2',
         'a:1,0', 'a:1,1', 'a:1,2',
@@ -116,8 +117,9 @@ if __name__ == '__main__':
             'b:0,0', 'b:0,1', 'b:0,2',
             'b:1,0', 'b:1,1', 'b:1,2',
             'b:2,0', 'b:2,1', 'b:2,2'}]
-    c = Compiler({}, input_groups)
+    c = Compiler({}, input_groups, allow_duplicates=True)
     c.compile(expr)
+    print(c.load_register_groups)
     print('\n'.join(map(str, c.code)))
     vectorized, width = vector_compile(c, log=StringIO())
     print('\n'.join(vectorized))

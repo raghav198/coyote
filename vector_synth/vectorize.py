@@ -60,7 +60,7 @@ def split_types(program: List[Instr]) -> Tuple[List[int], List[int]]:
 
 
 class ScheduleSynthesizer:
-    def __init__(self, program, warp_size, log=stderr, timeout=60):
+    def __init__(self, program, warp_size, log=stderr, timeout=60, disallow_same_vec_same_dep=False):
         self.timeout = timeout
         self.log = log
 
@@ -86,6 +86,11 @@ class ScheduleSynthesizer:
                 self.opt.add(z3.Implies(self._schedule[i] == self._schedule[j], ops[i] == ops[j]))
                 self.opt.add(z3.Implies(
                     z3.And(self._schedule[i] == self._schedule[j], self._lanes[i] == self._lanes[j]), i == j))
+                
+                if i != j and disallow_same_vec_same_dep and len(set(dep_graph[i]).intersection(set(dep_graph[j]))) > 0:
+                    # instructions i and j share a dependency
+                    print(f'Disallowing {i} and {j}')
+                    self.opt.add(self._schedule[i] != self._schedule[j])
 
             for dep in dep_graph[i]:
                 self.opt.add(self._schedule[i] > self._schedule[dep])
@@ -310,7 +315,8 @@ def synthesize_schedule(program: List[Instr], warp: int, log=stderr) -> List[int
     start = time()
 
     synthesizer = ScheduleSynthesizer(program, warp, log=log)
-    synthesizer.add_bound(4 * max_height)
+    # synthesizer.add_bound(4 * max_height)
+    synthesizer.add_bound(len(program))
     best_so_far = None
     while True:
         answer = synthesizer.solve()
