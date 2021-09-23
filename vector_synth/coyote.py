@@ -56,15 +56,18 @@ if __name__ == '__main__':
     #Change CMakeLists.txt to point to new C++ files
     CMake = open("bfv_backend/CMakeLists.txt", "r")
     CMake_lines = CMake.readlines()
-    CMake.close()
-    CMake_lines[7] = "\t" + "\t" + "\t" + directory + "/scalar.cpp" + "\n"
-    CMake_lines[8] = "\t" + "\t" + "\t" + directory + "/vector.cpp" + "\n"
+    CMake.close() 
+    for i in range(len(CMake_lines)):
+        if ((CMake_lines[i].rstrip()).strip())[-10:] == "scalar.cpp":
+            CMake_lines[i] = "\t" + "\t" + "\t" + directory + "/scalar.cpp" + "\n"
+        elif ((CMake_lines[i].rstrip()).strip())[-10:] == "vector.cpp":
+            CMake_lines[i] = "\t" + "\t" + "\t" + directory + "/vector.cpp" + "\n"
     new_file_contents = "".join(CMake_lines)
     CMake = open("bfv_backend/CMakeLists.txt", "w")
     CMake.write(new_file_contents)
     CMake.close()
     #Build and run the CMake project
-    os.chdir("bfv_backend")
-    os.system("cmake --build build")
-    os.chdir("build")
-    os.system("make all")
+    # os.chdir("bfv_backend")
+    # os.system("cmake --build build")
+    # os.chdir("build")
+    # os.system("make all")
