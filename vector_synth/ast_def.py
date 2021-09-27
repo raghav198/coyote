@@ -42,6 +42,20 @@ class Op:
     def __eq__(self, o: object) -> bool:
         return isinstance(o, Op) and o.op == self.op and o.lhs == self.lhs and o.rhs == self.rhs
 
+class Tree:
+    def __init__(self, a):
+        if type(a) is str:
+            a = Var(a)
+        self.a = a
+    
+    def __add__(self, o)
+        return Op('+', self.a, o.a)
+    
+    def __mul__(self, o):
+        return Op('*', self.a, o.a)
+    
+    def __sub__(self, o):
+        return Op('-', self.a, o.a)
 
 def plus(a, b):
     if type(a) is str:
