@@ -34,6 +34,33 @@ if __name__ == '__main__':
     #         'b:2,0', 'b:2,1', 'b:2,2'}]
     # c = Compiler({}, input_groups)
 
+    def calc_determinant(matrix):
+        determinant = 0
+        indices = list(range(len(matrix)))
+        # For 2x2
+        if len(matrix) == 2 and len(matrix[0]) == 2:
+            val = matrix[0][0] * matrix[1][1] + -(matrix[1][0] * matrix[0][1])
+            return val
+        # Recursive path for larger matrices
+        for column in indices:
+            copy = copy_matrix(matrix)
+            copy = copy[1:]
+            height = len(copy)
+    
+            for i in range(height): 
+                copy[i] = copy[i][0:column] + copy[i][column+1:] 
+            if (column % 2 == 0):
+                sign = 1
+            else:
+                sign = -1
+
+            sub_det = determinant_recursive(copy)
+            total += sign * matrix[0][column] * sub_det 
+        return determinant
+
+    def calc_matrix_mult_det(matrix1, matrix2):
+        determinant = calc_determinant(matrix1) * calc_determinant(matrix2)
+
     seed(33)
     exprs = [fuzzer(0.7) for _ in range(4)]
     # exprs = [expr]

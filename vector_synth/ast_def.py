@@ -48,7 +48,7 @@ class Tree:
             a = Var(a)
         self.a = a
     
-    def __add__(self, o)
+    def __add__(self, o):
         return Op('+', self.a, o.a)
     
     def __mul__(self, o):
