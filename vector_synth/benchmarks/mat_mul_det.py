@@ -23,7 +23,7 @@ def calc_determinant(matrix):
         return determinant
 
 def matrix_multiply(matrix1, matrix2):
-        output_matrix = [[sum(a*b for a,b in zip(X_row,Y_col)) for Y_col in zip(*matrix2)] for X_row in matrix1]
+        output_matrix = [[sum(x*y for x,y in zip(mat1_row,mat2_col)) for mat2_col in zip(*matrix2)] for mat1_row in matrix1]
         return(output_matrix)
 
 def benchmark(matrix1, matrix2):
