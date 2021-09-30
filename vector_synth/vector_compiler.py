@@ -180,8 +180,8 @@ def vector_compile(comp: Compiler, log=stderr):
 
 
 
-    output_placement = place_lanes_piecewise(interstage_deps, warp_size)
-    # output_placement = place_lanes_manually(interstage_deps, warp_size)
+    # output_placement = place_lanes_piecewise(interstage_deps, warp_size)
+    output_placement = place_lanes_manually(interstage_deps, warp_size)
     print(output_placement)
     print(f'Placed all stage outputs: {output_placement}')
     lanes = propagate_lane_assigments(output_placement, intrastage_deps)

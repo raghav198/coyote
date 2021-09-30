@@ -1,5 +1,4 @@
 from collections import defaultdict
-from heapq import merge
 from itertools import combinations
 from typing import Dict, List, Set, Tuple
 import z3
@@ -41,7 +40,7 @@ def place_lanes_one_stage(dependencies: Dict[int, Set[int]], stage_outputs: List
         for k in stage_outputs[i].intersection(all_inputs):
             # it has to be one of the 'n' possible shifts (one of which is 0)
             opt.assert_and_track(z3.Or([lanes[k] == (lanes[consumers[k]] + q[j])
-                                        for j in range(n)]), f'lanes[{k}] == lanes[{consumers[k]}] + qj')
+                                        for j in range(n)]), f'lanes[{k}] == lanes[{consumers[k]}] + q{{0..{n}}}')
 
 
 def place_lanes_manually(dependencies: List[Dict[int, Set[int]]], max_warp: int, givens: Dict[int, int] = {}, offset=0):
