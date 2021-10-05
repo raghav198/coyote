@@ -5,8 +5,8 @@ include(CTest)
 enable_testing()
 
 add_executable(CoyoteBFVBackend main.cpp util.cpp
-            small_test/scalar.cpp
-            small_test/vector.cpp
+	     small_test/scalar.cpp
+	     small_test/vector.cpp
 )
 
 find_package(SEAL 3.6 REQUIRED)
