@@ -1,10 +1,16 @@
 from collections import defaultdict
+from email.policy import default
+import enum
+from inspect import BoundArguments
 from time import time
+
+from numpy import matrix
 from path_semiring import LangSemiring, Matrix, Path, adjacency_matrix_from_graph, is_zero
 from graph import Edge, Graph, Node, connect, edges_on_path
 from itertools import combinations
 from typing import Callable, Dict, FrozenSet, Iterator, List, Optional, Set, Tuple, TypeVar
 import z3
+from progressbar import ProgressBar
 
 
 Relation = FrozenSet[Node]
@@ -12,7 +18,7 @@ HyperGraph = Tuple[Set[Node], List[Relation[Node]]]
 Color = TypeVar('Color')
 
 
-def build_hypergraph_with_path_semiring(graph: Graph[Node], stages: List[List[Node]]) -> HyperGraph[Edge]:
+def build_hypergraph_with_path_semiring(graph: Graph[Node], stages: List[List[Node]], timeout=1000) -> HyperGraph[Edge]:
     node_stage: Dict[Node, int] = {}
     for i, stage in enumerate(stages):
         for node in stage:
@@ -26,11 +32,15 @@ def build_hypergraph_with_path_semiring(graph: Graph[Node], stages: List[List[No
     print('Built adjacency matrix')
     powers = [adj]
     cycles: Set[Path] = set()
+    start = time()
     while True:
-        start = time()
+        power_start = time()
         new_power = powers[-1] * adj
-        end = time()
-        print(f'Computed {len(powers)} so far ({end - start})')
+        power_end = time()
+        print(f'Computed {len(powers)} so far ({power_end - power_start})')
+        if 1000 * (power_end - start) > timeout - (power_end - power_start):
+            print(f'Timeout...')
+            break
         for j in range(len(nodes)):
             if len(powers) != 1 and new_power.vals[j][j] != LangSemiring.zero():
                 cycles.update(new_power.vals[j][j].vals) # type: ignore
@@ -44,11 +54,12 @@ def build_hypergraph_with_path_semiring(graph: Graph[Node], stages: List[List[No
     total = sum(powers, Matrix(adj.mat, len(nodes)))
     for stage in stages:
         for v1, v2 in combinations(stage, 2):
+            if v1 not in nodes or v2 not in nodes:
+                continue
             paths: Set[Path] = total.vals[nodes.index(v1)][nodes.index(v2)].vals
             hyperedges.update({frozenset(path.p) for path in paths})
 
     for cycle in cycles:
-        print('cycle', cycle)
         hyperedges.add(frozenset(cycle.p))
         
 
@@ -56,6 +67,7 @@ def build_hypergraph_with_path_semiring(graph: Graph[Node], stages: List[List[No
         for v2 in graph[v1]:
             edges.add(Edge(v1, v2))
 
+    print(f'Adding {len(hyperedges)} relations')
     return (edges, list(hyperedges))
 
 # def build_hypergraph(graph: Graph[Node], stages: List[List[Node]], start: Node) -> HyperGraph[Edge]:
@@ -105,21 +117,58 @@ def distance_computation_graph(n) -> Tuple[Graph[str], List[List[str]]]:
     stages = []
     stages.append([f'x{i + 1}' for i in range(n)])
     stages.append([f'y{i + 1}' for i in range(n)])
-    stages.append([f'z{i + 1}' for i in range((n * (n + 1)) // 2)])
+    stages.append([f'z{i + 1}' for i in range((n * n))])
 
     graph: Graph[str] = defaultdict(list)
 
     cur_z = 0
     for x_index in range(n):
-        for _ in range(n - x_index):
+        for _ in range(n):
             connect(graph, f'x{x_index + 1}', f'z{cur_z + 1}')
             cur_z += 1
 
     cur_z = 0
     for j in range(n):
-        for y_index in range(j, n):
+        for y_index in range(n):
             connect(graph, f'y{y_index + 1}', f'z{cur_z + 1}')
             cur_z += 1
+
+    return graph, stages
+
+
+def shuffled_distance_computation_graph(n, swap=False) -> Tuple[Graph[str], List[List[str]]]:
+    stages = []
+    stages.append(['x1', 'z2', 'y3', 'x4'])
+    stages.append(['y1', 'x2', 'z3', 'z4'])
+    stages.append(['z1', 'y2', 'x3', 'y4', 'z5', 'y6', 'x7', 'x8', 'x9', 'z10', 'z11', 'z12', 'y13', 'y14', 'x15', 'z16'])
+
+    graph: Graph[str] = defaultdict(list)
+    
+    
+    if swap:
+        z_index = 0
+        for _ in range(n):
+            for yi in range(n):
+                connect(graph, stages[1][yi], stages[2][z_index])
+                z_index += 1
+
+        z_index = 0
+        for xi in range(n):
+            for _ in range(n):
+                connect(graph, stages[0][xi], stages[2][z_index])
+                z_index += 1
+    else:
+        z_index = 0
+        for xi in range(n):
+            for _ in range(n):
+                connect(graph, stages[0][xi], stages[2][z_index])
+                z_index += 1
+
+        z_index = 0
+        for _ in range(n):
+            for yi in range(n):
+                connect(graph, stages[1][yi], stages[2][z_index])
+                z_index += 1
 
     return graph, stages
 
@@ -129,6 +178,7 @@ def matrix_multiply_graph(n) -> Tuple[Graph[str], List[List[str]]]:
     stages.append([f'a{i}#{j}' for i in range(n) for j in range(n)])
     stages.append([f'b{i}#{j}' for i in range(n) for j in range(n)])
     stages.append([f'c{i}#{j}' for i in range(n) for j in range(n)])
+    stages.append(['d'])
 
     graph: Graph[str] = defaultdict(list)
     for i in range(n):
@@ -136,21 +186,25 @@ def matrix_multiply_graph(n) -> Tuple[Graph[str], List[List[str]]]:
             for k in range(n):
                 connect(graph, f'c{i}#{j}', f'a{i}#{k}')
                 connect(graph, f'c{i}#{j}', f'b{k}#{j}')
-            # connect(graph, f'c{i}#{j}', f'd')
+            connect(graph, f'c{i}#{j}', f'd')
 
     return graph, stages
 
 def color_hypergraph(hypergraph: HyperGraph[Node], colors: Callable[[], Iterator[Color]]) -> Dict[Node, Color]:
+    bar = ProgressBar(maxval=len(hypergraph[0]))
     nodes, relations = hypergraph
     node_constraints: Dict[Node, List[int]] = defaultdict(list)
     for i, relation in enumerate(relations):
         for node in relation:
             node_constraints[node].append(i)
 
+
     node_coloring: Dict[Node, Color] = {} #defaultdict(lambda: next(colors()))
 
     def num_constraints(node: Node) -> int:
         colored_nodes = set(node_coloring.keys())
+        # open_constraints = filter(lambda idx: (not relations[idx].issubset(colored_nodes)), node_constraints[node])
+        # return sum((1.0 / len(relations[idx]) for idx in open_constraints)) # type: ignore
         return len(list(filter(lambda idx: (not relations[idx].issubset(colored_nodes)), node_constraints[node])))
 
     def next_node_to_color() -> Optional[Node]:
@@ -159,32 +213,52 @@ def color_hypergraph(hypergraph: HyperGraph[Node], colors: Callable[[], Iterator
         # print(f'Uncolored nodes: {uncolored_nodes}')
         if not len(uncolored_nodes): # no nodes left to color
             return None
-        best = max(uncolored_nodes, key=num_constraints)
+        # sorted_uncolored_nodes = sorted(uncolored_nodes, key=repr)
+        best = min(uncolored_nodes, key=lambda n: (num_constraints(n), repr(n)))
+        # print(num_constraints(best))
         # print(f'Returning {best}')
         return best
 
     def assign_color(node: Node) -> Color:
         # print(f'Trying to color {node}')
         colored_nodes = set(node_coloring.keys())
-        active_constraints = [relations[idx] for idx in node_constraints[node] if len(relations[idx] - colored_nodes) == 1]
-        # print(f'Active: {active_constraints}')
+        # all_constraints = [relations[idx] for idx in node_constraints[node]]
         disallowed_colors: Set[Color] = set()
-
+        # if any(len(constraint - colored_nodes) == 1 for constraint in all_constraints):
+        #     for constraint in all_constraints:
+        #         # print(f'Considering {constraint - {node}}...')
+        #         for n in constraint.intersection(colored_nodes):
+        #             disallowed_colors.add(node_coloring[n])
+        active_constraints = [relations[idx] for idx in node_constraints[node] if len(relations[idx] - colored_nodes) == 1]
+        colors_seen_so_far: Set[Color] = set()
         for constraint in active_constraints:
-            # print(f'Considering {constraint - {node}}...')
-            for n in constraint - {node}:
-                disallowed_colors.add(node_coloring[n])
+                # print(f'Considering {constraint - {node}}...')
+                # colors_in_this_constraint = set(node_coloring[n] for n in constraint - {node})
+                # disallowed_colors.update(colors_in_this_constraint.intersection(colors_seen_so_far))
+                # colors_seen_so_far.update(colors_in_this_constraint)
+                for n in constraint - {node}:
+                    
+                    disallowed_colors.add(node_coloring[n])
+        # print(f'Active: {active_constraints}')
+        # print(disallowed_colors)
+        
 
         return next(col for col in colors() if col not in disallowed_colors)
 
+    colored = 0
+    bar.start()
     while True:
         next_node = next_node_to_color()
+        # print(next_node)
+        # raise SystemExit()
         if next_node is None:
             break
         color = assign_color(next_node)
         node_coloring[next_node] = color
-        print(f'Colored {next_node} as {color}')
-
+        bar.update(colored)
+        colored += 1
+        # input(f'Colored {next_node} as {color}')
+    bar.finish()
     return node_coloring
 
 
@@ -195,11 +269,70 @@ def colors():
         i += 1
 
 
-def integrate_colored_edges(coloring: Dict[Edge, str], graph: Graph[str], stages: List[List[str]]):
-    nodes: Dict[str, z3.IntNumRef] = {}
+
+def find_all_paths(graph: Graph[Node], start: Node, end: Node):
+    queue = [[start]]
+    paths = []
+    while len(queue) > 0:
+        dequeue = queue[0]
+        del queue[0]
+        # print(f'Looking at {dequeue}')
+        if dequeue[-1] == end:
+            paths.append(dequeue)
+            # print(f'Adding {dequeue}')
+            continue
+
+        for next_vertex in graph[dequeue[-1]]:
+            if next_vertex not in dequeue:
+                queue.append(dequeue + [next_vertex])
+    return paths
+
+         
+
+
+def cegis_edges(unsat_core: List[str]):
+    constraint_subgraph: Graph[str] = defaultdict(list)
+    endpoints = []
+    for line in unsat_core:
+        if '!=' in line:
+            start, end = line.split(' != ')
+            endpoints.append((start, end))
+        elif '==' in line:
+            v1, v2 = line[:line.index(' +')].split(' == ')
+            connect(constraint_subgraph, v1, v2)
+
+    return constraint_subgraph
+
+    def relation_from_path(path: List[Node]) -> Relation[Edge]:
+        relation = []
+        for v1, v2 in zip(path[:-1], path[1:]):
+            relation.append(Edge(v1, v2))
+        return frozenset(relation)
+
+
+    relations: List[Relation[Edge]] = []
+    for start, end in endpoints:
+        paths = find_all_paths(constraint_subgraph, start, end)
+
+        relations += [relation_from_path(path) for path in paths]
+
+    return relations
+
+            
+
+
+
+def integrate_colored_edges(coloring: Dict[Edge, str], graph: Graph[Node], stages: List[List[Node]], bound_lanes=None):
+
+    if bound_lanes is None:
+        bound_lanes = max(map(len, stages))
+
+    print(f'Bounding by {bound_lanes}')
+
+    nodes: Dict[Node, z3.IntNumRef] = {}
     deltas: Dict[str, z3.IntNumRef] = {}
 
-    node_stage: Dict[str, int] = {}
+    node_stage: Dict[Node, int] = {}
     for i, stage in enumerate(stages):
         for node in stage:
             node_stage[node] = i
@@ -209,7 +342,8 @@ def integrate_colored_edges(coloring: Dict[Edge, str], graph: Graph[str], stages
     for node in sum(stages, []):
         nodes[node] = z3.Int(node)
         opt.add(0 <= nodes[node])
-        opt.add(nodes[node] < max(map(len, stages)))
+        if bound_lanes:
+            opt.assert_and_track(nodes[node] < bound_lanes, f'lane_bound_{node}')
 
     for stage in stages:
         for x, y in combinations(stage, 2):
@@ -233,34 +367,118 @@ def integrate_colored_edges(coloring: Dict[Edge, str], graph: Graph[str], stages
 
 
     if opt.check() == z3.unsat:
-        print(opt.unsat_core())
+        unsat_core = list(map(str, opt.unsat_core()))
+        print(unsat_core)
+
+        if any(core.startswith('lane_bound') for core in unsat_core):
+            return integrate_colored_edges(coloring, graph, stages, bound_lanes=2 * bound_lanes)
+
+        return cegis_edges(unsat_core)
         # for constraint in opt.unsat_core():
         #     print(str(constraint))
         # unsat_core = list(map(str, opt.unsat_core()))
-        raise SystemExit()
+        # raise SystemExit()
         
         
 
     model = opt.model()
-    assignment: Dict[str, int] = {}
+    assignment: Dict[Node, int] = {}
     for node in nodes:
         assignment[node] = model[nodes[node]].as_long()
 
     return assignment
 
+
+def split_stage_graph_3():
+    stage1 = ['x1', 'x2', 'x3']
+    stage2 = ['y1', 'y2', 'y3']
+    stage3 = ['z1', 'z5', 'z3']
+    stage4 = ['z4', 'z2', 'z6']
+    stage5 = ['z7', 'z8', 'z9']
+
+    graph: Graph[str] = defaultdict(list)
+    n = 3
+    cur_z = 0
+    for x_index in range(n):
+        for _ in range(n):
+            connect(graph, f'x{x_index + 1}', f'z{cur_z + 1}')
+            cur_z += 1
+
+    cur_z = 0
+    for j in range(n):
+        for y_index in range(n):
+            connect(graph, f'y{y_index + 1}', f'z{cur_z + 1}')
+            cur_z += 1
+
+    return graph, [stage1, stage2, stage3, stage4, stage5]
+
+
+def place_lanes_hypergraph_method(dependencies: List[Dict[int, Set[int]]], max_warp: int):
+    graph: Graph[str] = defaultdict(list)
+    stages = []
+
+    orig_to_renum: Dict[int, str] = {}
+    renum_to_orig: Dict[str, int] = {}
+
+    for i, stage in enumerate(dependencies):
+        stage_keys = sorted(stage.keys())
+        for j, key in enumerate(stage_keys):
+            orig_to_renum[key] = f'{i}_{j}'
+            renum_to_orig[f'{i}_{j}'] = key
+        stages.append([orig_to_renum[stage_key] for stage_key in stage_keys])
+
+
+    for stage in dependencies:
+        for consumer in stage:
+            for producer in stage[consumer]:
+                connect(graph, orig_to_renum[consumer], orig_to_renum[producer])
+
+    for k in graph:
+        graph[k].sort()
+    
+
+    edges, hyperedges = build_hypergraph_with_path_semiring(graph, stages)
+    while True:
+        coloring = color_hypergraph((edges, hyperedges), colors)
+        result = integrate_colored_edges(coloring, graph, stages)
+        if type(result) is defaultdict:
+            print('Unsat!')
+            _, new_relations = build_hypergraph_with_path_semiring(result, stages)
+            hyperedges += new_relations
+            continue
+        break
+
+    return {renum_to_orig[k]: v for k, v in result.items()}
+
+
+
 if __name__ == '__main__':
-    graph, stages = distance_computation_graph(3)
-    # graph, stages = matrix_multiply_graph(2)
-    hypergraph = build_hypergraph_with_path_semiring(graph, stages)
-    # hypergraph = build_hypergraph(graph, stages, 'x1')
+    # graph, stages = split_stage_graph_3()
+    # graph, stages = shuffled_distance_computation_graph(4, swap=True)
+    # graph, stages = distance_computation_graph(4)
+    graph, stages = matrix_multiply_graph(4)
+    for key in graph:
+        graph[key].sort()
 
-    # for relation in hypergraph[1]:
-    #     print(relation)
 
-    # print(hypergraph[0])
+    # graph, stages = matrix_multiply_graph(4)
+    edges, hyperedges = build_hypergraph_with_path_semiring(graph, stages, timeout=5000)
 
-    coloring = color_hypergraph(hypergraph, colors)
-    print(integrate_colored_edges(coloring, graph, stages))
+    while True:
+        coloring = color_hypergraph((edges.copy(), hyperedges.copy()), colors)
+        # for key in sorted(coloring.keys()):
+        #     print(f'{key}: {coloring[key]}')
+        result = integrate_colored_edges(coloring, graph, stages)
+        if type(result) is defaultdict:
+            print('Unsat!')
+            _, new_relations = build_hypergraph_with_path_semiring(result, stages)
+            print(f'Disjoint: {len(set(new_relations).intersection(set(hyperedges)))}')
+            hyperedges += new_relations
+            continue
+        break
 
-    print(max(map(len, stages)))
+    # print(result)
+    for stage in stages:
+        print([result[stage[i]] for i in range(len(stage))])
+    # print(max(map(len, stages)))
 

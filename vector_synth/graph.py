@@ -1,7 +1,9 @@
-from typing import Dict, List, TypeVar
+from typing import TYPE_CHECKING, Dict, List, Set, TypeVar
 
+if TYPE_CHECKING:
+    from _typeshed import SupportsLessThan
 
-Node = TypeVar('Node')
+Node = TypeVar('Node', bound='SupportsLessThan')
 Graph = Dict[Node, List[Node]]
 
 class Edge(frozenset):
@@ -9,8 +11,9 @@ class Edge(frozenset):
         return super().__new__(cls, {v1, v2})
 
     def __repr__(self):
-        v1, v2 = self
+        v1, v2 = sorted(self)
         return f'{v1} -- {v2}'
+
 
 def edges_on_path(path: List[Node]) -> List[Edge]:
     edges: List[Edge] = []
