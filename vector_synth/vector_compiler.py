@@ -1,8 +1,9 @@
-from manual_lane_placement import place_lanes_manually
+from hypergraph_coloring import place_lanes_hypergraph_method
+from manual_lane_placement import place_lanes_manually, place_lanes_piecewise
 from covectorizability_graph import build_graph
 from max_clique import BreaksetCalculator
 from ast_def import *
-from typing import Dict
+from typing import Dict, Tuple
 from vectorize import synthesize_schedule, VecInstr
 from build_code import place_output_lanes, build_vector_program, propagate_lane_assigments, place_lanes
 from sys import stderr
@@ -57,6 +58,8 @@ def quotient_relative_expression(expr: Expression, modulus: List[int]) -> Expres
 def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, log=stderr):
     quotients = []
     unused_outputs = set()
+
+    all_output_dependencies: Dict[int, set] = {}
 
     # for each output of a stage, which previously unused outputs does it consume
     interstage_dicts: List[Dict[int, set]] = []
@@ -113,17 +116,33 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, log=stderr):
 
         for stage_output in bkset:
             print(f'Dealing with stage output {stage_output}')
-            print(f'Outputs unused so far: {unused_outputs}')
-            print(f'All subtags: {comp.tag_lookup[stage_output].subtags}')
-            equiv_class = set(instr.dest.val for instr in stage_code).intersection(unused_outputs)
-            # equiv_class = set(
-            #     filter(lambda l: l in unused_outputs, comp.tag_lookup[stage_output].subtags))
-            print(f'Equivalence class of prior stage outputs being put in here: {equiv_class}')
-            stage_dict[stage_output] = equiv_class
-            # unused_outputs -= equiv_class
+            print(f'All outputs: {unused_outputs}')
+            print(f'Subtags: {comp.tag_lookup[stage_output].subtags}')
+            equiv_class = set(comp.tag_lookup[stage_output].subtags).intersection(unused_outputs)
+            print(f'So far, equiv class is {equiv_class}')
+            actual_equiv_class = equiv_class.copy()
+            for val in equiv_class:
+                actual_equiv_class -= all_output_dependencies[val]
+            stage_dict[stage_output] = actual_equiv_class
+            print(f'Setting dependencies for this one to {actual_equiv_class}')
+            all_output_dependencies[stage_output] = actual_equiv_class
+            intrastage_dict[stage_output] = list(set(intermediates).intersection(set(comp.tag_lookup[stage_output].subtags)))
+            # tags_computed_so_far.add(stage_output)
 
-            intrastage_dict[stage_output] = list(
-                filter(lambda l: l in intermediates, comp.tag_lookup[stage_output].subtags))
+
+        # for stage_output in bkset:
+        #     print(f'Dealing with stage output {stage_output}')
+        #     print(f'Outputs unused so far: {unused_outputs}')
+        #     print(f'All subtags: {comp.tag_lookup[stage_output].subtags}')
+        #     # equiv_class = set(instr.dest.val for instr in stage_code).intersection(unused_outputs)
+        #     equiv_class = set(
+        #         filter(lambda l: l in unused_outputs, comp.tag_lookup[stage_output].subtags))
+        #     print(f'Equivalence class of prior stage outputs being put in here: {equiv_class}')
+        #     stage_dict[stage_output] = equiv_class
+        #     unused_outputs -= equiv_class
+
+        #     intrastage_dict[stage_output] = list(
+        #         filter(lambda l: l in intermediates, comp.tag_lookup[stage_output].subtags))
 
         interstage_dicts.append(stage_dict)
         intrastage_dicts.append(intrastage_dict)
@@ -146,8 +165,19 @@ def vector_compile(comp: Compiler, log=stderr):
     print(interstage_deps, file=log)
     print(f'{len(interstage_deps)} stages')
     # output_placement = place_output_lanes(interstage_deps, warp_size)
-    output_placement = place_lanes_manually(interstage_deps, warp_size)
-    print(f'Placed all stage outputs: {output_placement}')
+    print(interstage_deps)
+    print(warp_size)
+    # raise SystemExit()
+
+
+
+
+    # output_placement = place_lanes_piecewise(interstage_deps, warp_size)
+    # output_placement = place_lanes_manually(interstage_deps, warp_size)
+    output_placement = place_lanes_hypergraph_method(interstage_deps, warp_size)
+    print(output_placement)
+    warp_size = max(output_placement.values()) + 1
+    print(f'Placed all stage outputs: {output_placement}, new warp size is {warp_size}')
     lanes = propagate_lane_assigments(output_placement, intrastage_deps)
     # lanes = place_lanes(interstage_deps, intrastage_deps, warp_size)
 
@@ -174,123 +204,129 @@ def vector_compile(comp: Compiler, log=stderr):
 
     print(f'Overall schedule: {inv_schedule}')
     print(f'Overall lanes: {lanes}')
-    return prepare_all(vector_program, interstage_deps, lanes, schedule, warp_size), warp_size
+    return prepare_all(vector_program, interstage_deps, intrastage_deps, lanes, schedule, warp_size), warp_size
 
 
-def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, set]], lanes: List[int], schedule: List[int], warp_size: int):
-    # compute all the rotation/blending
-    shifts = {}
-    for stage_deps in interstage_deps:
-        for out, inputs in stage_deps.items():
-            for inp in inputs:
-                shift_amt = (lanes[out] - lanes[inp]) % warp_size
-                if shift_amt == 0:
-                    continue
-                shifts[inp] = shift_amt
+def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, Set[int]]], intrastage_deps: List[Dict[int, List[int]]], lanes: List[int], schedule: List[int], warp_size: int):
+    """
+    interstage_deps: List[Dict[int, Set[int]]] ==> i: dict for stage i = (stage output reg -> set of prior stage input regs it consumes)
+    intrastage_deps: List[Dict[int, List[int]]] ==> i: dict for stage i = (stage output reg -> list of stage intermediates)
+    lanes: List[int] ==> i: lane # for reg i
+    schedule: List[int] ==> i: vector # for reg i
+    """
 
-    temp_num = 0
-    temp_shift = 0
-    shifted_names = {}
-    generated_code = []
 
+    shift_amounts_needed: Dict[int, Dict[int, int]] = defaultdict(lambda: defaultdict(lambda: 0)) # producer reg -> (consumer reg -> shift needed to line them up)
+    for stage_dict, intermediates in zip(interstage_deps, intrastage_deps):
+        for consumer, producers in stage_dict.items():
+            for producer in producers:
+                shift_amount = (lanes[consumer] - lanes[producer]) % warp_size
+                shift_amounts_needed[producer][consumer] = shift_amount
+                for intermediate in intermediates[consumer]:
+                    shift_amounts_needed[producer][intermediate] = shift_amount
+                # if producer in shift_amounts_needed:
+                #     shift_amounts_needed[producer][consumer] = shift_amount
+                # else:
+                #     shift_amounts_needed[producer] = {consumer: shift_amount}
+
+    shifted_vectors: Dict[Tuple[int, int], str] = {} # (register, shift amount) -> name of shifted vector
+    shift_temp = 0 # for creating new shifted vectors
+    cur_temp = 0 # for creating temporaries
+    generated_code: List[str] = []
     for i, instr in enumerate(vector_program):
-        keys_to_shift = []  # which keys need shifted
-        shifts_used = []
-        named_shift_amts = {}  # maps each shift amount to the name of the s-vector that's been shifted by that much
-        # queue up all the shifting we need to do for this instruction
-        for key, shift in shifts.items():
+        shifted_names: Dict[int, str] = {} # shift amount -> name of shifted vector [this is just specific to the current vector instruction]
+        shifts_performed: List[int] = [] # what shifts are already queued up for this vector instruction?
 
-            if key in [dest.val for dest in instr.dest]:
-                print(named_shift_amts)
-                if shift in shifts_used:
-                    shifted_names[key] = named_shift_amts[shift]
+        for dest in instr.dest: # for each register produced by this instruction
+            if dest.val not in shift_amounts_needed:
+                continue
+            all_shifts = set(shift_amounts_needed[dest.val].values()) # all the amounts dest.val needs to be shifted by
+            for shift in all_shifts:
+                if shift == 0:
                     continue
-                shifts_used.append(shift)
-                keys_to_shift.append(key)
-                shifted_names[key] = f'__s{temp_shift}'
-                named_shift_amts[shift] = shifted_names[key]
-                temp_shift += 1
+                if shift not in shifts_performed:
+                    # record that __v{i} is being shifted this amount
+                    shifts_performed.append(shift)
 
-        # bitvectors for blending regs from multiple sources
-        left_blend = defaultdict(lambda: [0] * warp_size)
-        right_blend = defaultdict(lambda: [0] * warp_size)
-        # where to blend in constants
-        left_constants: List[Union[int, str]] = [0] * len(instr.left)
-        right_constants: List[Union[int, str]] = [0] * len(instr.right)
+                    # remember the name given to __v{i} >> {shift}
+                    shifted_names[shift] = f'__s{shift_temp}'
+                    shift_temp += 1
+                # record which __s vector to use in order to access {dest.val} shifted by {shift}
+                shifted_vectors[dest.val, shift] = shifted_names[shift]
 
-        # collect all the sources to be blended for left operand
-        for j, symbol in enumerate(instr.left):
-            if symbol != Atom(BLANK_SYMBOL) and symbol.reg:
-                assert isinstance(symbol.val, int)
-                if symbol.val in shifted_names:
-                    src_vec = shifted_names[symbol.val]
-                else:
-                    src_vec = f'__v{schedule[symbol.val]}'
+        # which lanes to blend in constants
+        def get_blends_and_constants(operands: List[Atom], dests: List[Atom]):
+            print(f'There are {len(operands)} operands and the warp size is {warp_size}')
+            blend_masks: Dict[str, List[int]] = defaultdict(lambda: [0] * warp_size) # vector name -> bitvector mask needed for blends
+            constants: List[Union[str, int]] = [0] * len(operands)
 
-                left_blend[src_vec][j] = 1
-            elif symbol != Atom(BLANK_SYMBOL):
-                left_constants[j] = symbol.val
+            for j, symbol in enumerate(operands):
+                if symbol != Atom(BLANK_SYMBOL) and symbol.reg:
+                    assert isinstance(symbol.val, int)
+                    # find which source vec to get lane j of the left operand from
+                    if symbol.val in shift_amounts_needed:
+                        # its an output from a previous stage if its in the dictionary
+                        shift_amount = shift_amounts_needed[symbol.val][dests[j].val]
+                    else:
+                        # its a temporary from this stage, no need to shift anyway
+                        shift_amount = 0
 
-        # collect all the sources to be blended for right operand
-        for j, symbol in enumerate(instr.right):
-            if symbol != Atom(BLANK_SYMBOL) and symbol.reg:
-                assert isinstance(symbol.val, int)
-                if symbol.val in shifted_names:
-                    src_vec = shifted_names[symbol.val]
-                else:
-                    src_vec = f'__v{schedule[symbol.val]}'
-                # print(instr)
-                # print(right_blend, src_vec, j)
-                right_blend[src_vec][j] = 1
-            elif symbol != Atom(BLANK_SYMBOL):
-                right_constants[j] = symbol.val
+                    if shift_amount == 0:
+                        # no shift necessary, use the vector directly
+                        src_vec = f'__v{schedule[symbol.val]}'
+                    else:
+                        # its been shifted, get the name of the shifted vector
+                        src_vec = shifted_vectors[symbol.val, shift_amount]
+                    blend_masks[src_vec][j] = 1
+                elif symbol != Atom(BLANK_SYMBOL):
+                    constants[j] = symbol.val
+
+            return blend_masks, constants
+
+        print(shifted_vectors)
+        left_blend, left_constants = get_blends_and_constants(instr.left, instr.dest)
+        right_blend, right_constants = get_blends_and_constants(instr.right, instr.dest)
 
         if any(x != 0 for x in left_constants):
-            generated_code.append(
-                f'__t{temp_num} = [{", ".join(map(str, left_constants))}]')
-            left_blend[f'__t{temp_num}'] = [
-                int(x != 0) for x in left_constants]
-            temp_num += 1
+            generated_code.append(f'__t{cur_temp} = [{", ".join(map(str, left_constants))}]')
+            left_blend[f'__t{cur_temp}'] = [int(x != 0) for x in left_constants]
+            cur_temp += 1
 
         if any(x != 0 for x in right_constants):
-            generated_code.append(
-                f'__t{temp_num} = [{", ".join(map(str, right_constants))}]')
-            right_blend[f'__t{temp_num}'] = [
-                int(x != 0) for x in right_constants]
-            temp_num += 1
+            generated_code.append(f'__t{cur_temp} = [{", ".join(map(str, right_constants))}]')
+            right_blend[f'__t{cur_temp}'] = [int(x != 0) for x in right_constants]
+            cur_temp += 1
 
         if len(left_blend.keys()) > 1:
-            blend_line = ', '.join(
-                [f'{v}@{"".join(map(str, m))}' for v, m in left_blend.items()])
-            generated_code.append(f'__t{temp_num} = blend({blend_line})')
-            instr.left = f'__t{temp_num}'
-            temp_num += 1
+            # we need to emit a blend
+            blend_line = ', '.join([f'{v}@{"".join(map(str, m))}' for v, m in left_blend.items()])
+            generated_code.append(f'__t{cur_temp} = blend({blend_line})')
+            instr.left = f'__t{cur_temp}'
+            cur_temp += 1
         elif len(left_blend.keys()) == 1:
+            # no blend necessary, just grab it directly
             instr.left = f'{list(left_blend.keys())[0]}'
 
         if len(right_blend.keys()) > 1:
-            blend_line = ', '.join(
-                [f'{v}@{"".join(map(str, m))}' for v, m in right_blend.items()])
-            generated_code.append(f'__t{temp_num} = blend({blend_line})')
-            instr.right = f'__t{temp_num}'
-            temp_num += 1
+            # we need to emit a blend
+            blend_line = ', '.join([f'{v}@{"".join(map(str, m))}' for v, m in right_blend.items()])
+            generated_code.append(f'__t{cur_temp} = blend({blend_line})')
+            instr.right = f'__t{cur_temp}'
+            cur_temp += 1
         elif len(right_blend.keys()) == 1:
+            # no blend necessary, just grab it directly
             instr.right = f'{list(right_blend.keys())[0]}'
 
         instr.dest = f'__v{i}'
         generated_code.append(f'{instr}')
 
-        for key in keys_to_shift:
-            shift = shifts[key]
-            if shift < 0:
-                generated_code.append(
-                    f'{shifted_names[key]} = {instr.dest} << {-shift}')
-            elif shift > 0:
-                generated_code.append(
-                    f'{shifted_names[key]} = {instr.dest} >> {shift}')
+        for shift_amt, shifted_name in shifted_names.items():
+            generated_code.append(f'{shifted_name} = {instr.dest} >> {shift_amt}')
 
     return generated_code
 
+                
+        
 
 def code_stats(code: List[str]):
     adds = mults = 0
