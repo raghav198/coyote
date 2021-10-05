@@ -49,13 +49,13 @@ class Tree:
         self.a = a
     
     def __add__(self, o):
-        return Op('+', self.a, o.a)
+        return Tree(Op('+', self.a, o.a))
     
     def __mul__(self, o):
-        return Op('*', self.a, o.a)
+        return Tree(Op('*', self.a, o.a))
     
     def __sub__(self, o):
-        return Op('-', self.a, o.a)
+        return Tree(Op('-', self.a, o.a))
 
 def plus(a, b):
     if type(a) is str:

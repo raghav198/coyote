@@ -1,10 +1,12 @@
 from multiply_determinant_kernel import get_2x2_determinant
-from ast_def import Compiler, fuzzer
+from ast_def import *
 from random import seed
 from sys import argv
 from vector_compiler import vector_compile
 import os
 import shutil
+from benchmarks.mat_mul_det import *
+from numberTreeGenerator import *
 
 if __name__ == '__main__':
     ### Change name to whatever you want the directory name to be
@@ -33,6 +35,10 @@ if __name__ == '__main__':
     #         'b:1,0', 'b:1,1', 'b:1,2',
     #         'b:2,0', 'b:2,1', 'b:2,2'}]
     # c = Compiler({}, input_groups)
+
+    matrix1 = [[treeGenerator(5,1),treeGenerator(5,2)], [treeGenerator(5,3),treeGenerator(5,4)]]
+    matrix2 = [[treeGenerator(5,5),treeGenerator(5,6)], [treeGenerator(5,7),treeGenerator(5,8)]]
+    print("determinant: ", mat_mul_det_benchmark(matrix1, matrix2))
 
     seed(33)
     exprs = [fuzzer(0.7) for _ in range(4)]

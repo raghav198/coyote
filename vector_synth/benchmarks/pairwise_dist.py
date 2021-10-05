@@ -1,6 +1,3 @@
-arr1 = [[1,2], [2,3], [3,4]]
-arr2 = [[4,5], [5,6], [6,7]]
-
 def calc_distance(arr1, arr2):
     output = [0] * len(arr1) * len(arr2)
     for i in range(len(arr1)):
