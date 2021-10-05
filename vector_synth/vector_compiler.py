@@ -1,3 +1,4 @@
+from hypergraph_coloring import place_lanes_hypergraph_method
 from manual_lane_placement import place_lanes_manually, place_lanes_piecewise
 from covectorizability_graph import build_graph
 from max_clique import BreaksetCalculator
@@ -168,20 +169,12 @@ def vector_compile(comp: Compiler, log=stderr):
     print(warp_size)
     # raise SystemExit()
 
-    dist_constraints: List[Tuple[int, int, int]] = []
-    if not comp.allow_duplicates:
-        
-        for same_val_set in comp.load_register_groups.values():
-            print(same_val_set)
-            same_val_list = list(same_val_set)
-            for first, second in zip(same_val_list[:-1], same_val_list[1:]):
-                dist_constraints.append((first, second, 4)) # TODO: don't hardcode 4
-
 
 
 
     # output_placement = place_lanes_piecewise(interstage_deps, warp_size)
-    output_placement = place_lanes_manually(interstage_deps, warp_size)
+    # output_placement = place_lanes_manually(interstage_deps, warp_size)
+    output_placement = place_lanes_hypergraph_method(interstage_deps, warp_size)
     print(output_placement)
     print(f'Placed all stage outputs: {output_placement}')
     lanes = propagate_lane_assigments(output_placement, intrastage_deps)

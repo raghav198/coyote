@@ -117,9 +117,9 @@ if __name__ == '__main__':
             'b:0,0', 'b:0,1', 'b:0,2',
             'b:1,0', 'b:1,1', 'b:1,2',
             'b:2,0', 'b:2,1', 'b:2,2'}]
-    c = Compiler({}, input_groups, allow_duplicates=True)
+    c = Compiler({}, input_groups, allow_replicating=[])
     c.compile(expr)
-    print(c.load_register_groups)
+
     print('\n'.join(map(str, c.code)))
     vectorized, width = vector_compile(c, log=StringIO())
     print('\n'.join(vectorized))
