@@ -176,7 +176,8 @@ def vector_compile(comp: Compiler, log=stderr):
     # output_placement = place_lanes_manually(interstage_deps, warp_size)
     output_placement = place_lanes_hypergraph_method(interstage_deps, warp_size)
     print(output_placement)
-    print(f'Placed all stage outputs: {output_placement}')
+    warp_size = max(output_placement.values()) + 1
+    print(f'Placed all stage outputs: {output_placement}, new warp size is {warp_size}')
     lanes = propagate_lane_assigments(output_placement, intrastage_deps)
     # lanes = place_lanes(interstage_deps, intrastage_deps, warp_size)
 
@@ -255,6 +256,7 @@ def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, 
 
         # which lanes to blend in constants
         def get_blends_and_constants(operands: List[Atom], dests: List[Atom]):
+            print(f'There are {len(operands)} operands and the warp size is {warp_size}')
             blend_masks: Dict[str, List[int]] = defaultdict(lambda: [0] * warp_size) # vector name -> bitvector mask needed for blends
             constants: List[Union[str, int]] = [0] * len(operands)
 

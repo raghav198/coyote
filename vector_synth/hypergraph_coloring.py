@@ -366,6 +366,7 @@ def integrate_colored_edges(coloring: Dict[Edge, str], graph: Graph[Node], stage
     # opt.add(nodes['y3'] == 2)
 
 
+    print(f'Formulated with {len(opt.assertions())} constraints and {len(nodes), len(deltas)} variables')
     if opt.check() == z3.unsat:
         unsat_core = list(map(str, opt.unsat_core()))
         print(unsat_core)
@@ -437,7 +438,7 @@ def place_lanes_hypergraph_method(dependencies: List[Dict[int, Set[int]]], max_w
         graph[k].sort()
     
 
-    edges, hyperedges = build_hypergraph_with_path_semiring(graph, stages)
+    edges, hyperedges = build_hypergraph_with_path_semiring(graph, stages, timeout=5000)
     while True:
         coloring = color_hypergraph((edges, hyperedges), colors)
         result = integrate_colored_edges(coloring, graph, stages)
