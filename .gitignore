@@ -11,3 +11,4 @@
 **/compile_commands.json
 **/CTestTestfile.cmake
 **/_deps
+**/bfv_backend/build/*
