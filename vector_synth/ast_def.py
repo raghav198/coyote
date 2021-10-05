@@ -98,7 +98,7 @@ class Instr:
 
 
 class Compiler:
-    def __init__(self, tag_lookup: Dict[int, Op], input_groups: List[Set[str]] = [], allow_duplicates=True):
+    def __init__(self, tag_lookup: Dict[int, Op], input_groups: List[Set[str]] = [], allow_replicating=[]):
         self.code: List[Instr] = []
         self.exprs: List[Expression] = []
         self.target = -1
@@ -107,9 +107,12 @@ class Compiler:
 
         self.loaded_regs: Dict[str, int] = {}
         self.input_groups = input_groups
-        self.allow_duplicates = allow_duplicates
-
-        self.load_register_groups: Dict[str, Set[int]] = {}
+        self.allow_duplicates: Set[str] = set()
+        for thing in allow_replicating:
+            if isinstance(thing, int):
+                self.allow_duplicates |= self.input_groups[thing]
+            else:
+                self.allow_duplicates.add(thing)
 
     def compile(self, e: Expression, top=True) -> Atom:
         if isinstance(e, Var):
@@ -119,7 +122,8 @@ class Compiler:
 
             # return Atom(e.name)
 
-            if not self.allow_duplicates and (e.name in self.loaded_regs):
+            # if not self.allow_duplicates and (e.name in self.loaded_regs):
+            if e.name not in self.allow_duplicates and e.name in self.loaded_regs:
                 print(f'Reusing {self.loaded_regs[e.name]} instead of reloading {e.name}')
                 e.tag = self.loaded_regs[e.name]
                 return Atom(self.loaded_regs[e.name])
@@ -130,10 +134,6 @@ class Compiler:
             self.tag_lookup[self.target] = e
 
             self.loaded_regs[e.name] = self.target
-            if e.name in self.load_register_groups:
-                self.load_register_groups[e.name].add(self.target)
-            else:
-                self.load_register_groups[e.name] = {self.target}
 
             return Atom(self.target)
 
