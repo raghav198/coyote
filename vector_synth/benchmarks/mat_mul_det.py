@@ -1,3 +1,5 @@
+import sys 
+sys.path.append('..')
 from ast_def import *
 def calc_determinant(matrix):
         determinant = 0
@@ -31,7 +33,22 @@ def matrix_multiply(matrix1, matrix2):
                     output_matrix[i][j] = output_matrix[i][j] + matrix1[i][k] * matrix2[k][j]
         return(output_matrix)
 
-def mat_mul_det_benchmark(matrix1, matrix2):
+def matrix_generator(char, rows, cols):
+    matrix = [  [Tree(Var(char + ":" + str(r) + "," + str(c))) for c in range(cols)] for r in range(rows)]
+    return(matrix)
+
+def get_input_groups(char1, char2, rows, cols):
+    input_groups = []
+    set1 = [[char1 + ":" + str(r) + "," + str(c) for c in range(cols)] for r in range(rows)]
+    set1 = set1[0] + set1[1]
+    set2 = [[char2 + ":" + str(r) + "," + str(c) for c in range(cols)] for r in range(rows)]
+    set2 = set2[0] + set2[1]
+    input_groups = [{i for i in set1}, {j for j in set2}]
+    return input_groups
+
+def mat_mul_det_benchmark():
+    matrix1 = matrix_generator('a', 2, 2)
+    matrix2 = matrix_generator('b', 2, 2)
     result_matrix = matrix_multiply(matrix1, matrix2)
     determinant = calc_determinant(result_matrix)
     return(determinant)

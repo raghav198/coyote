@@ -49,9 +49,15 @@ class Tree:
         self.a = a
     
     def __add__(self, o):
+        if self.a == 0:
+            return Tree(o.a)
+        if o.a == 0:
+            return Tree(self.a)
         return Tree(Op('+', self.a, o.a))
     
     def __mul__(self, o):
+        if (self.a == 0 or o.a == 0):
+            return Tree(0)
         return Tree(Op('*', self.a, o.a))
     
     def __sub__(self, o):

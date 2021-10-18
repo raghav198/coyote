@@ -6,6 +6,7 @@ from vector_compiler import vector_compile
 import os
 import shutil
 from benchmarks.mat_mul_det import *
+from benchmarks.pairwise_dist import *
 from numberTreeGenerator import *
 
 if __name__ == '__main__':
@@ -36,18 +37,30 @@ if __name__ == '__main__':
     #         'b:2,0', 'b:2,1', 'b:2,2'}]
     # c = Compiler({}, input_groups)
 
-    matrix1 = [[treeGenerator(5,1),treeGenerator(5,2)], [treeGenerator(5,3),treeGenerator(5,4)]]
-    matrix2 = [[treeGenerator(5,5),treeGenerator(5,6)], [treeGenerator(5,7),treeGenerator(5,8)]]
-    print("determinant: ", mat_mul_det_benchmark(matrix1, matrix2))
-
     seed(33)
     exprs = [fuzzer(0.7) for _ in range(4)]
     # exprs = [expr]
+    
+    ### Matrix Multiply Determinant Benchmark
+    # input_groups = get_input_groups('a', 'b', 2, 2)
+    # c = Compiler({}, input_groups)
 
-    c = Compiler({})
+    # tag_list = []
+    # tree = (mat_mul_det_benchmark()).a
+    # print(tree)
+    # tag_list.append(c.compile((mat_mul_det_benchmark()).a))
+    ### End Matrix Multiply Determinant Benchmark
+
+    ### Pairwise Distance Benchmark
+    input_groups = get_input_groups('a', 'b', 'c', 'd', 5, 5)
+    c = Compiler({}, input_groups)
+
     tag_list = []
-    for expr in exprs:
-        tag_list.append(c.compile(expr))
+    for i in pairwise_dist_benchmark():
+        tree = i.a
+        print(tree)
+        tag_list.append(c.compile(i.a))
+    ### End Pairwise Distance Benchmark
 
     scalar_code_to_write = '\n'.join(map(str, c.code))
     scalar_code_to_write = ' '.join(map(str, tag_list)) + '\n' + scalar_code_to_write
