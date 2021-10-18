@@ -15,13 +15,15 @@ def array_generator(char1, char2, nels):
 
 def get_input_groups(char1, char2, char3, char4, nels1, nels2):
     input_groups = []
-    set1 = [[(char1 + ":" + str(n)), (char2 + ":" + str(n))] for n in range(nels1)]
-    set2 = [[(char3 + ":" + str(n)), (char4 + ":" + str(n))] for n in range(nels2)]
-    input_groups = [{tuple(i) for i in set1}, {tuple(j) for j in set2}]
+    set1 = [(char1 + ":" + str(n)) for n in range(nels1)]
+    set2 = [(char2 + ":" + str(n)) for n in range(nels1)]
+    set3 = [(char3 + ":" + str(n)) for n in range(nels2)]
+    set4 = [(char4 + ":" + str(n)) for n in range(nels2)]
+    input_groups = [{i for i in set1}, {i for i in set2}, {i for i in set3}, {j for j in set4}]
     return input_groups
 
-def pairwise_dist_benchmark():
-    array1 = array_generator('a', 'b', 5)
-    array2 = array_generator('c', 'd', 5)
+def pairwise_dist_benchmark(nels1, nels2):
+    array1 = array_generator('a', 'b', nels1)
+    array2 = array_generator('c', 'd', nels2)
     distance = calc_distance(array1, array2)
     return(distance)

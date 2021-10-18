@@ -5,7 +5,7 @@ from sys import argv
 from vector_compiler import vector_compile
 import os
 import shutil
-from benchmarks.mat_mul_det import *
+#from benchmarks.mat_mul_det import *
 from benchmarks.pairwise_dist import *
 from numberTreeGenerator import *
 
@@ -52,11 +52,11 @@ if __name__ == '__main__':
     ### End Matrix Multiply Determinant Benchmark
 
     ### Pairwise Distance Benchmark
-    input_groups = get_input_groups('a', 'b', 'c', 'd', 5, 5)
+    input_groups = get_input_groups('a', 'b', 'c', 'd', 3, 3)
     c = Compiler({}, input_groups)
 
     tag_list = []
-    for i in pairwise_dist_benchmark():
+    for i in pairwise_dist_benchmark(3, 3):
         tree = i.a
         print(tree)
         tag_list.append(c.compile(i.a))
