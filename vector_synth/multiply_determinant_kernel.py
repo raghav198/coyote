@@ -4,7 +4,7 @@ from recursive_similarity import MATCH_MUL
 from sys import stderr
 from typing import Dict, List, Set
 from max_clique import BreaksetCalculator
-from ast_def import Instr, plus, times, Compiler
+from ast_def import Instr, minus, plus, times, Compiler
 from vector_compiler import vector_compile, lookup_code
 from compile_convolution import get_matmul
 
@@ -91,7 +91,7 @@ def get_3x3_determinant():
 
 def get_2x2_determinant():
     c00, c01, c10, c11 = get_matmul('a', 'b', 2, 2, 2)
-    return plus(times(c00, c11), times(c10, c01))
+    return minus(times(c00, c11), times(c10, c01))
 
 
 def manually_compile_with_input_sets(comp: Compiler, log=stderr):

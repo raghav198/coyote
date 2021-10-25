@@ -20,6 +20,9 @@ def compile_scalar(lines):
         if '+' in args:
             lhs, rhs = args.split(' + ')
             computation_lines.append(f'info.eval->add({convert(lhs)}, {convert(rhs)}, {convert(dest)});')
+        elif '-' in args:
+            lhs, rhs = args.split(' - ')
+            computation_lines.append(f'info.eval->sub({convert(lhs)}, {convert(rhs)}, {convert(dest)});')
         elif '*' in args:
             lhs, rhs = args.split(' * ')
             computation_lines.append(f'info.eval->multiply({convert(lhs)}, {convert(rhs)}, {convert(dest)});')

@@ -46,17 +46,24 @@ def dependency_graph(program: List[Instr]) -> List[List[int]]:
     return graph
 
 
-def split_types(program: List[Instr]) -> Tuple[List[int], List[int]]:
+def split_types(program: List[Instr]) -> Tuple[List[int], List[int], List[int]]:
     add_instrs = []
     mul_instrs = []
+    sub_instrs = []
 
     for i, line in enumerate(program):
         if line.op == '+':
             add_instrs.append(i)
-        else:
+        elif line.op == '-':
+            sub_instrs.append(i)
+        elif line.op == '*':
             mul_instrs.append(i)
+        elif line.op == '~':
+            pass # loads get packed together anyway
+        else:
+            raise Exception(f'Unrecognized operand in instruction {line}: {line.op}')
 
-    return add_instrs, mul_instrs
+    return add_instrs, sub_instrs, mul_instrs
 
 
 class ScheduleSynthesizer:
@@ -68,8 +75,8 @@ class ScheduleSynthesizer:
 
         dep_graph = dependency_graph(program)
 
-        adds, mults = split_types(program)
-        ops = ['+' if i in adds else '*' for i in range(self.num_instr)]
+        adds, subs, mults = split_types(program)
+        ops = ['+' if i in adds else ('-' if i in subs else '*') for i in range(self.num_instr)]
 
         self.opt = z3.Solver()
         self.opt.set('timeout', timeout * 1000)
@@ -120,8 +127,8 @@ def synthesize_schedule_bounded_consider_blends(program: List[Instr], max_len: i
 
     dep_graph = dependency_graph(program)
 
-    adds, mults = split_types(program)
-    ops = ['+' if i in adds else '*' for i in range(num_instr)]
+    adds, subs, mults = split_types(program)
+    ops = ['+' if i in adds else ('-' if i in subs else '*') for i in range(num_instr)]
 
     opt = z3.Solver()
     opt.set('timeout', timeout * 1000)
@@ -164,7 +171,7 @@ def synthesize_schedule_bounded_consider_blends(program: List[Instr], max_len: i
 
 def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int, log=stderr):
     dep_graph = dependency_graph(program)
-    adds, mults = split_types(program)
+    adds, subs, mults = split_types(program)
 
     print(program)
     print(dep_graph)
@@ -175,6 +182,7 @@ def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int, l
 
     itype = z3.Datatype('itype')
     itype.declare('plus')
+    itype.declare('minus')
     itype.declare('times')
     itype = itype.create()
 
@@ -207,6 +215,8 @@ def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int, l
 
         if i in adds:
             opt.add(_types[_schedule[i]] == itype.plus)
+        elif i in subs:
+            opt.add(_types[_schedule[i]] == itype.minus)
         elif i in mults:
             opt.add(_types[_schedule[i]] == itype.times)
 
@@ -233,8 +243,8 @@ def synthesize_schedule_iterative_refine(program: List[Instr], timeout=10, log=s
     num_instr = len(program)
     dep_graph = dependency_graph(program)
 
-    adds, _ = split_types(program)
-    ops = ['+' if i in adds else '*' for i in range(num_instr)]
+    adds, subs, muls = split_types(program)
+    ops = ['+' if i in adds else ('-' if i in subs else '*') for i in range(num_instr)]
 
     # build the model
     opt = z3.Solver()

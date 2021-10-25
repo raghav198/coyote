@@ -329,11 +329,12 @@ def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, 
         
 
 def code_stats(code: List[str]):
-    adds = mults = 0
+    adds = mults = subs = 0
     ptxt_mults = 0
     for line in code:
         mults += line.count('*') + line.count(">>")
         adds += line.count(",") * line.count("blend") + line.count('+')
+        subs += line.count('-')
         ptxt_mults += line.count("@")
 
     return adds, mults, ptxt_mults
