@@ -79,7 +79,7 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, log=stderr):
             cur_group = input_groups[0]
             del input_groups[0]
 
-            bkset = []
+            bkset: List[int] = []
             for instr in comp.code:
                 if instr.op == '~' and instr.lhs.val in cur_group:
                     bkset.append(instr.dest.val)
@@ -97,7 +97,7 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, log=stderr):
                 list(filter(lambda t: isinstance(t, int), comp.tag_lookup[b].subtags)))
 
         # Scalar program for this stage
-        stage_code = sum([lookup_code(comp.code, bk, quotients)
+        stage_code: List[Instr] = sum([lookup_code(comp.code, int(bk), quotients)
                           for bk in bkset], [])
         print('-' * 30, file=log)
         print(bkset, file=log)
@@ -115,16 +115,16 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, log=stderr):
         intrastage_dict: Dict[int, list] = {}
 
         for stage_output in bkset:
-            print(f'Dealing with stage output {stage_output}')
-            print(f'All outputs: {unused_outputs}')
-            print(f'Subtags: {comp.tag_lookup[stage_output].subtags}')
+            # print(f'Dealing with stage output {stage_output}')
+            # print(f'All outputs: {unused_outputs}')
+            # print(f'Subtags: {comp.tag_lookup[stage_output].subtags}')
             equiv_class = set(comp.tag_lookup[stage_output].subtags).intersection(unused_outputs)
-            print(f'So far, equiv class is {equiv_class}')
+            # print(f'So far, equiv class is {equiv_class}')
             actual_equiv_class = equiv_class.copy()
             for val in equiv_class:
                 actual_equiv_class -= all_output_dependencies[val]
             stage_dict[stage_output] = actual_equiv_class
-            print(f'Setting dependencies for this one to {actual_equiv_class}')
+            # print(f'Setting dependencies for this one to {actual_equiv_class}')
             all_output_dependencies[stage_output] = actual_equiv_class
             intrastage_dict[stage_output] = list(set(intermediates).intersection(set(comp.tag_lookup[stage_output].subtags)))
             # tags_computed_so_far.add(stage_output)
@@ -256,7 +256,7 @@ def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, 
 
         # which lanes to blend in constants
         def get_blends_and_constants(operands: List[Atom], dests: List[Atom]):
-            print(f'There are {len(operands)} operands and the warp size is {warp_size}')
+            # print(f'There are {len(operands)} operands and the warp size is {warp_size}')
             blend_masks: Dict[str, List[int]] = defaultdict(lambda: [0] * warp_size) # vector name -> bitvector mask needed for blends
             constants: List[Union[str, int]] = [0] * len(operands)
 
@@ -283,7 +283,7 @@ def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, 
 
             return blend_masks, constants
 
-        print(shifted_vectors)
+        # print(shifted_vectors)
         left_blend, left_constants = get_blends_and_constants(instr.left, instr.dest)
         right_blend, right_constants = get_blends_and_constants(instr.right, instr.dest)
 
@@ -332,8 +332,8 @@ def code_stats(code: List[str]):
     adds = mults = 0
     ptxt_mults = 0
     for line in code:
-        mults += line.count("*") + line.count(">>")
-        adds += line.count(",") * line.count("blend") + line.count("+")
+        mults += line.count('*') + line.count(">>")
+        adds += line.count(",") * line.count("blend") + line.count('+')
         ptxt_mults += line.count("@")
 
     return adds, mults, ptxt_mults

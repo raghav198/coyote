@@ -98,7 +98,7 @@ class Instr:
 
 
 class Compiler:
-    def __init__(self, tag_lookup: Dict[int, Op], input_groups: List[Set[str]] = [], allow_replicating=[]):
+    def __init__(self, tag_lookup: Dict[int, Expression], input_groups: List[Set[str]] = [], allow_replicating=[]):
         self.code: List[Instr] = []
         self.exprs: List[Expression] = []
         self.target = -1
