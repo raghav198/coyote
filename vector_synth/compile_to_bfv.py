@@ -88,7 +88,7 @@ def compile_vector(lines):
             lhs, rhs = args.split(' + ')
             compute.append(f'info.eval->add({convert(lhs)}, {convert(rhs)}, {convert(dest)}); // {line}')
         elif '-' in args:
-            lhs, rhs = args.split(' + ')
+            lhs, rhs = args.split(' - ')
             compute.append(f'info.eval->sub({convert(lhs)}, {convert(rhs)}, {convert(dest)}); // {line}')
         elif '*' in args:
             lhs, rhs = args.split(' * ')
