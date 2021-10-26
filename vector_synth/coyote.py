@@ -6,7 +6,8 @@ from vector_compiler import vector_compile
 import os
 import shutil
 #from benchmarks.mat_mul_det import *
-from benchmarks.pairwise_dist import *
+from benchmarks.mat_convol import *
+#from benchmarks.pairwise_dist import *
 from numberTreeGenerator import *
 
 if __name__ == '__main__':
@@ -46,20 +47,32 @@ if __name__ == '__main__':
     # c = Compiler({}, input_groups)
 
     # tag_list = []
-    # tree = (mat_mul_det_benchmark()).a
+    # tree = (mat_mul_det_benchmark(2, 2)).a
     # print(tree)
-    # tag_list.append(c.compile((mat_mul_det_benchmark()).a))
+    # tag_list.append(c.compile(tree))
     ### End Matrix Multiply Determinant Benchmark
 
-    ### Pairwise Distance Benchmark
-    input_groups = get_input_groups('a', 'b', 'c', 'd', 3, 3)
+    ### Matrix Convolution Benchmark
+    input_groups = get_input_groups('a', 'b', 4, 4, 2, 2)
     c = Compiler({}, input_groups)
 
     tag_list = []
-    for i in pairwise_dist_benchmark(3, 3):
-        tree = i.a
-        print(tree)
-        tag_list.append(c.compile(i.a))
+    for i in mat_convol_benchmark(4, 2):
+        for j in range(4 - 2 + 1):
+            tree = i[j].a
+            print(tree)
+            tag_list.append(c.compile(tree))
+    ### End Matrix Convolution Benchmark
+
+    ### Pairwise Distance Benchmark
+    # input_groups = get_input_groups('a', 'b', 'c', 'd', 3, 3)
+    # c = Compiler({}, input_groups)
+
+    # tag_list = []
+    # for i in pairwise_dist_benchmark(3, 3):
+    #     tree = i.a
+    #     print(tree)
+    #     tag_list.append(c.compile(tree))
     ### End Pairwise Distance Benchmark
 
     scalar_code_to_write = '\n'.join(map(str, c.code))

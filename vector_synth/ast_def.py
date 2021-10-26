@@ -71,6 +71,13 @@ def plus(a, b):
 
     return Op('+', a, b)
 
+def minus(a, b):
+    if type(a) is str:
+        a = Var(a)
+    if type(b) is str:
+        b = Var(b)
+
+    return Op('-', a, b)
 
 def times(a, b):
     if type(a) is str:

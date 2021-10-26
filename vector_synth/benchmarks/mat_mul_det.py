@@ -46,9 +46,9 @@ def get_input_groups(char1, char2, rows, cols):
     input_groups = [{i for i in set1}, {j for j in set2}]
     return input_groups
 
-def mat_mul_det_benchmark():
-    matrix1 = matrix_generator('a', 2, 2)
-    matrix2 = matrix_generator('b', 2, 2)
+def mat_mul_det_benchmark(nels1, nels2):
+    matrix1 = matrix_generator('a', nels1, nels1)
+    matrix2 = matrix_generator('b', nels2, nels2)
     result_matrix = matrix_multiply(matrix1, matrix2)
     determinant = calc_determinant(result_matrix)
     return(determinant)
