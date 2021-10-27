@@ -4,7 +4,7 @@ from recursive_similarity import MATCH_MUL
 from sys import stderr
 from typing import Dict, List, Set
 from max_clique import BreaksetCalculator
-from ast_def import Instr, plus, times, Compiler
+from ast_def import Instr, minus, plus, times, Compiler
 from vector_compiler import vector_compile, lookup_code
 from compile_convolution import get_matmul
 
@@ -91,7 +91,7 @@ def get_3x3_determinant():
 
 def get_2x2_determinant():
     c00, c01, c10, c11 = get_matmul('a', 'b', 2, 2, 2)
-    return plus(times(c00, c11), times(c10, c01))
+    return minus(times(c00, c11), times(c10, c01))
 
 
 def manually_compile_with_input_sets(comp: Compiler, log=stderr):
@@ -108,7 +108,9 @@ def manually_compile_with_input_sets(comp: Compiler, log=stderr):
 
 
 if __name__ == '__main__':
-    expr = get_3x3_determinant()
+    # exprs = [get_3x3_determinant()]
+    exprs = [get_2x2_determinant()]
+    # exprs = get_matmul('a', 'b', 3, 3, 3)
     input_groups = [{
         'a:0,0', 'a:0,1', 'a:0,2',
         'a:1,0', 'a:1,1', 'a:1,2',
@@ -116,8 +118,14 @@ if __name__ == '__main__':
             'b:0,0', 'b:0,1', 'b:0,2',
             'b:1,0', 'b:1,1', 'b:1,2',
             'b:2,0', 'b:2,1', 'b:2,2'}]
-    c = Compiler({}, input_groups)
-    c.compile(expr)
-    print('\n'.join(map(str, c.code)))
+    c = Compiler({}, input_groups, allow_replicating=[])
+    tag_list = [c.compile(expr) for expr in exprs]
+    # for expr in exprs:
+    #     c.compile(expr)
+
+    scalar_code = '\n'.join(map(str, c.code))
+    scalar_code = ' '.join(map(str, tag_list)) + '\n' + scalar_code
+    print(scalar_code, file=open('outputs/determinant2x2/scal', 'w'))
     vectorized, width = vector_compile(c, log=StringIO())
-    print('\n'.join(vectorized))
+
+    print(str(width) + '\n' + '\n'.join(vectorized), file=open('outputs/determinant2x2/vec', 'w'))

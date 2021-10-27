@@ -20,10 +20,16 @@ def compile_scalar(lines):
         if '+' in args:
             lhs, rhs = args.split(' + ')
             computation_lines.append(f'info.eval->add({convert(lhs)}, {convert(rhs)}, {convert(dest)});')
+        elif '-' in args:
+            lhs, rhs = args.split(' - ')
+            computation_lines.append(f'info.eval->sub({convert(lhs)}, {convert(rhs)}, {convert(dest)});')
         elif '*' in args:
             lhs, rhs = args.split(' * ')
             computation_lines.append(f'info.eval->multiply({convert(lhs)}, {convert(rhs)}, {convert(dest)});')
             computation_lines.append(f'info.eval->relinearize_inplace({convert(dest)}, rk);')
+        elif '~' in args:
+            lhs, rhs = args.split(' ~ ')
+            computation_lines.append(f'{convert(dest)} = {convert(lhs)};')
 
     computation_lines.append('std::vector<ctxt> answer;')
     for reg in output_regs:
@@ -67,15 +73,23 @@ def compile_vector(lines):
     compute = []
 
     for line in lines[1:]:
+        print(line)
         dest, args = line.split(' = ')
         if args.startswith('['):
+            print(line)
             input_num = int(dest[3:])
             input_liveness = '"' + ''.join([('1' if c != '0' else c) for c in args[1:-1].replace(', ', '')]) + '"'
             prep_temps.append(f'ts[{input_num}] = encrypt_input({input_liveness}, info);')
             continue
-        if '+' in args:
+        elif '~' in args:
+            lhs, rhs = args.split(' ~ ')
+            compute.append(f'{convert(dest)} = {convert(lhs)}; // vector load instr')
+        elif '+' in args:
             lhs, rhs = args.split(' + ')
             compute.append(f'info.eval->add({convert(lhs)}, {convert(rhs)}, {convert(dest)}); // {line}')
+        elif '-' in args:
+            lhs, rhs = args.split(' - ')
+            compute.append(f'info.eval->sub({convert(lhs)}, {convert(rhs)}, {convert(dest)}); // {line}')
         elif '*' in args:
             lhs, rhs = args.split(' * ')
             compute.append(f'info.eval->multiply({convert(lhs)}, {convert(rhs)}, {convert(dest)}); // {line}')

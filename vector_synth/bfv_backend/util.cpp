@@ -2,7 +2,7 @@
 
 ptxt encode_bits(std::string bitstring, RuntimeContext &info)
 {
-    std::vector<long> vals(info.batcher->slot_count());
+    std::vector<int64_t> vals(info.batcher->slot_count());
     for (int i = 0; i < bitstring.length(); i++)
     {
         vals[i] = bitstring[i] - '0';

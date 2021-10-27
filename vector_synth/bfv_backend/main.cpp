@@ -17,20 +17,48 @@ int main()
 
     RuntimeContext info(params);
 
-    ScalarProgram scal;
-    VectorProgram vec;
+    ScalarProgram scal(info);
+    VectorProgram vec(info);
 
-    auto start = _clock::now();
-    for (int i = 0; i < ITERATIONS; i++)
-        vec.run(info);
-    auto end = _clock::now();
-    std::cout << "Vector took " << std::chrono::duration_cast<ms>(end - start).count() << "ms\n";
+    long long   vector_enc_time = 0,
+                vector_run_time = 0,
+                scalar_enc_time = 0,
+                scalar_run_time = 0;
 
-    start = _clock::now();
+    auto chkpoint = _clock::now();
     for (int i = 0; i < ITERATIONS; i++)
-        scal.run(info);
-    end = _clock::now();
-    std::cout << "Scalar took " << std::chrono::duration_cast<ms>(end - start).count() << "ms\n";
+    {
+        chkpoint = _clock::now();
+        vec.setup();
+        vector_enc_time += std::chrono::duration_cast<ms>(_clock::now() - chkpoint).count();
+        chkpoint = _clock::now();
+        vec.run();
+        vector_run_time += std::chrono::duration_cast<ms>(_clock::now() - chkpoint).count();
+    }
+        
+
+    // std::cout << "Vector took " << std::chrono::duration_cast<ms>(end - start).count() << "ms\n";
+    std::cout << "Vector took (enc, run, enc + run) = (" 
+            << vector_enc_time << ", " 
+            << vector_run_time << ", " 
+            << vector_enc_time + vector_run_time << ")\n";
+
+    // start = _clock::now();
+    for (int i = 0; i < ITERATIONS; i++)
+    {
+        chkpoint = _clock::now();
+        scal.setup();
+        scalar_enc_time += std::chrono::duration_cast<ms>(_clock::now() - chkpoint).count();
+        chkpoint = _clock::now();
+        scal.run();
+        scalar_run_time += std::chrono::duration_cast<ms>(_clock::now() - chkpoint).count();
+    }
+    // end = _clock::now();
+    // std::cout << "Scalar took " << std::chrono::duration_cast<ms>(end - start).count() << "ms\n";
+    std::cout << "Scalar took (enc, run, enc + run) = (" 
+            << scalar_enc_time << ", " 
+            << scalar_run_time << ", " 
+            << scalar_enc_time + scalar_run_time << ")\n";
 
     return 0;
 }
