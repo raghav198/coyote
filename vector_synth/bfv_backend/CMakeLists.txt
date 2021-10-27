@@ -7,12 +7,12 @@ include(CMakeFindDependencyMacro)
 enable_testing()
 
 add_executable(CoyoteBFVBackend main.cpp util.cpp
-            small_test/scalar.cpp
-            small_test/vector.cpp
+            test/scalar.cpp
+            test/vector.cpp
 )
 
-find_package(SEAL 3.6 REQUIRED)
-target_link_libraries(CoyoteBFVBackend SEAL::seal_shared)
+find_package(SEAL 3.7 REQUIRED)
+target_link_libraries(CoyoteBFVBackend SEAL::seal)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
