@@ -6,7 +6,7 @@ def calc_distance(arr1, arr2):
     output = [Tree(0) for i in arr1 for j in arr2]
     for i in range(len(arr1)):
         for j in range(len(arr2)):
-            output[len(arr1) * i + j] = (arr1[i][0] + arr2[j][0]) * (arr1[i][0] + arr2[j][0]) + (arr1[i][1] + arr2[j][1]) * (arr1[i][1] + arr2[j][1]) 
+            output[len(arr1) * i + j] = (arr1[i][0] + arr2[j][0]) * (arr1[i][0] + arr2[j][0]) - (arr1[i][1] + arr2[j][1]) * (arr1[i][1] + arr2[j][1]) 
     return(output)
 
 def array_generator(char1, char2, nels):
