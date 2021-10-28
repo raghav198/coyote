@@ -1,0 +1,11 @@
+\system is a staging compiler for Python.
+The runtime provides a \texttt{CoyoteVar} datatype which represents a symbolic encrypted value, and supports addition, subtraction, and multiplication.
+Python code that manipulates these symbolic variables produces an arithmetic circuit representation of the program, which \system then compiles into a set of vector primitives that can be further lowered into C++ code that targets Microsoft's SEAL backend for BFV \raghav{(citation needed)}.
+ 
+\subsection{Vectorization}
+\system reduces the search space for vectorized programs \raghav{Does it make sense to call it ``search space''?} by first splitting the computation into multiple stages, and only allowing for vector rotations to line operands up between stages.
+A stage consists of a set of independent subgraphs of the entire circuit \raghav{Do I need to explain what independent means here?}. 
+The subgraphs are scheduled together, with each one being placed on its own vector lane. 
+Once vector code for a stage has been generated, all of its subgraphs are removed from the circuit, and the subgraphs for the next stage are picked out.
+After the entire circuit has been split up into stages, the subgraphs from each stage are assigned specific vector lanes to minimize the number of distinct rotations required to line up the outputs of one stage with the inputs of the next.
+Finally, \system computes and inserts these rotation instructions between stages and emits the vector code.
