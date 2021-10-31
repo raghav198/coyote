@@ -13,6 +13,18 @@ The key idea of our approach is to balance between these two extremes, by findin
 
 \subsection{Selecting Vectorizable Subexpressions}
 \subsubsection*{Measuring structural similarity between subtrees}
+The structural similarity of two expression trees is used as a proxy for their vectorizability; in particular, we want to measure how well the instruction sequences corresponding to two arbitrary expression trees line up.
+Given an expression tree, we can inductively compute the structural similarity between every pair of independent subtrees (two trees are independent if neither root is an ancestor of the other) as follows:
+The base case is comparing any tree to a leaf node (a single variable with no operations), in which case the similarity is $0$.
+
+In the inductive case of two nontrivial trees, there are six ways they could be lined up:
+Either root could be lined up with either child of the other tree in four ways. 
+Or, the two roots could line up, giving two ways for their children to line up (left with left and right with right, or left with right and right with left).
+In the first four cases, the similarity score of the two trees is the similarity score of the alignment. 
+In the last two cases, the similarity score of the two trees is the sum of the scores of the aligned children, plus a 1 if the roots have the same operation.
+The final similarity score of the two trees is the maximum possible score out of all six cases. 
+\raghav{This makes no sense even to me, and I was looking at the code when I wrote this.}
 \subsubsection*{Choosing maximally vectorizable sets}
+Given a way of measuring the vectorizability of every pair of subexpressions, we now need to select a set of these to vectorize together. 
 \subsection{Lane Placement}
 \subsection{Code Generation}
