@@ -1,0 +1,18 @@
+\raghav{TODO: learn a word that's not ``approach''}
+A naive approach to vectorizing arbitrary arithmetic circuits looks a lot like SLP: We start by serializing the circuit into a sequence of scalar three-address code.
+At each step, we look at all available scalar instructions (i.e. instructions whose operands have all already been scheduled), pick the largest set with the same operation, and schedule them together.
+The problem with this naive approach is it makes no guarantees about values being computed and used on the same lane; in other words, it incurs arbitrarily many shuffles to make the computation line up. 
+Unlike in normal vectorization, where applying arbitrary permutations to the lanes is relatively cheap, in FHE we are only allowed to rotate the entire vector by a fixed number of slots, and this rotation operation is expensive.
+Hence, the cost of bookkeeping quickly outweighs whatever benefit we might get from vectorization, making this approach not worth it.
+
+The fundamental problem that makes vectorization in an FHE setting very hard is the high cost of moving data between vector lanes. 
+Data movement is actually impossible to avoid: in an arithmetic circuit that computes a single expression, all the intermediate nodes eventually feed into the root, meaning that without data movement every instruction must be on the same line; in other words, no vectorization can take place.
+
+Here we have two extremes: on one end of the spectrum is the SLP approach, which packs aggressively without considering data movement; the other end avoids data movement entirely, precluding any vectorization within individual expressions.
+The key idea of our approach is to balance between these two extremes, by finding highly vectorizable subexpressions and evaluating them together with each one on its own lane.
+
+\subsection{Selecting Vectorizable Subexpressions}
+\subsubsection*{Measuring structural similarity between subtrees}
+\subsubsection*{Choosing maximally vectorizable sets}
+\subsection{Lane Placement}
+\subsection{Code Generation}

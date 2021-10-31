@@ -9,3 +9,6 @@ The subgraphs are scheduled together, with each one being placed on its own vect
 Once vector code for a stage has been generated, all of its subgraphs are removed from the circuit, and the subgraphs for the next stage are picked out.
 After the entire circuit has been split up into stages, the subgraphs from each stage are assigned specific vector lanes to minimize the number of distinct rotations required to line up the outputs of one stage with the inputs of the next.
 Finally, \system computes and inserts these rotation instructions between stages and emits the vector code.
+
+\subsection{Backend}
+Coyote targets the BFV backend for Microsoft SEAL \raghav{(citation needed)}.
