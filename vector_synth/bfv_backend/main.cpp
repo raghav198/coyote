@@ -2,13 +2,18 @@
 #include "util.hpp"
 #include "vector.hpp"
 #include <chrono>
+#include <iostream>
+#include <fstream>
 
 using _clock = std::chrono::high_resolution_clock;
 using ms = std::chrono::milliseconds;
 constexpr int ITERATIONS = 50;
 
 int main()
-{
+{ 
+std::ofstream myfile("mat_mul_det.csv");
+myfile << "VEC,ENC,RUN,ENC + RUN,SCAL,ENC,RUN,ENC + RUN,\n";
+for (int runs = 0; runs < 1; runs++) {
     seal::EncryptionParameters params(seal::scheme_type::bfv);
     size_t poly_modulus_degree = 8192;
     params.set_poly_modulus_degree(poly_modulus_degree);
@@ -59,6 +64,9 @@ int main()
             << scalar_enc_time << ", " 
             << scalar_run_time << ", " 
             << scalar_enc_time + scalar_run_time << ")\n";
+    //myfile << ("v," + std::to_string(vector_enc_time) + "," + std::to_string(vector_run_time) + "," + std::to_string(vector_run_time + vector_enc_time) + "," + "s," + std::to_string(scalar_enc_time) + "," + std::to_string(scalar_run_time) + "," + std::to_string(scalar_run_time + scalar_enc_time) + "," + "\n");
+}
+myfile.close();
+return 0;
 
-    return 0;
 }
