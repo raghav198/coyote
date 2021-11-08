@@ -42,7 +42,7 @@ To avoid having to recompute all the similarities each time, we store for each e
 Each time a node is quotiented out, it is removed from each list that contains it; doing so automatically updates all the edge weights to account for its removal.
 Now, we can repeat the above process of finding a maximal clique and vectorizing it, until eventually all nontrivial cliques have a negative total weight, meaning that there are no more subexpressions that are vectorizable enough to make the rotation costs worth it, so we just emit scalar code for the rest of the program.
 
-\subsection{Vector Scheduling}
+\subsection{Instruction Packing}
 Given a set of subexpressions to compute in a single phase of the program, we can align the instructions between subexpressions to actually produce a vector schedule.
 Aligning trees is more complicated than a simple sequence alignment, because at each step the number of available children to align roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
 \raghav{Is this a good enough explanation for why sequence alignment doesn't work here?}
@@ -76,5 +76,6 @@ This is relatively straightforward to do: At each step we pick the vertex that i
 
 Now, all that remains is getting actual integer values for each color. 
 This can be formulated as a simple integer program, with a variable $c_i$ for each color, a variable  $v_j$ for each subexpression, and a constraint for each edge $(v, v')$ in the dependency graph colored $c$ to assert $v - v' == c$.
+The way we colored the hypergraph ensures that this integer program is always solvable \raghav{In a happier timeline I might have proven this claim}, and the solution tells us exactly which vector lane each instruction should go on.
 
-\subsection{Code Generation}
+\raghav{I debated including the whole ``how do we calculate paths'' thing as well as the whole ``there's too many paths so we guess at a few and hope it works'' thing but decided against it for now, that may be the wrong decision though}
