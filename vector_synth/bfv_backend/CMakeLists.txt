@@ -7,8 +7,8 @@ include(CMakeFindDependencyMacro)
 enable_testing()
 
 add_executable(CoyoteBFVBackend main.cpp util.cpp
-            test/scalar.cpp
-            test/vector.cpp
+			mat_mul_det/scalar.cpp
+			mat_mul_det/vector.cpp
 )
 
 find_package(SEAL 3.7 REQUIRED)
