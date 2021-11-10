@@ -5,20 +5,20 @@
 \raghav{TODO: learn a word that's not ``approach''}\milind{strategy, procedure, way, scheme}
 A naive approach to vectorizing arbitrary arithmetic circuits looks a lot like SLP: We start by serializing the circuit into a sequence of scalar three-address code.
 At each step, we look at all available scalar instructions (i.e. instructions whose operands have all already been scheduled), pick the largest set with the same operation, and schedule them together.
-The problem with this naive approach is it makes no guarantees about values being computed and used on the same lane; in other words, it incurs arbitrarily many shuffles to make the computation line up. 
+The problem with this naive approach is it makes no guarantees about values being computed and used on the same lane; in other words, it incurs arbitrarily many shuffles to make the computation line up.\milind{I think this should be illustrated with an example. Not necessarily a figure, but at least something that shows why shuffles are necessary] 
 Unlike in normal vectorization, where applying arbitrary permutations to the lanes is relatively cheap, in FHE we are only allowed to rotate the entire vector by a fixed number of slots, and this rotation operation is expensive.
 Hence, the cost of bookkeeping quickly outweighs whatever benefit we might get from vectorization, making this approach not worth it.
 
-The fundamental problem that makes vectorization in an FHE setting very hard is the high cost of moving data between vector lanes. 
-Data movement is actually impossible to avoid: in an arithmetic circuit that computes a single expression, all the intermediate nodes eventually feed into the root, meaning that without data movement every instruction must be on the same line; in other words, no vectorization can take place.
+The fundamental problem that makes vectorization in an FHE setting very hard is the high cost of moving data between vector lanes. \milind{Isn't this just a restatement of what you wrote above?}
+Data movement is actually impossible to avoid: in an arithmetic circuit that computes a single expression, all the intermediate nodes eventually feed into the root, meaning that without data movement every instruction must be on the same lane; in other words, no vectorization can take place.
 
-Here we have two extremes: on one end of the spectrum is the SLP approach, which packs aggressively without considering data movement; the other end avoids data movement entirely, precluding any vectorization within individual expressions.
+Here we have two extremes: on one end of the spectrum is the SLP approach, which packs aggressively without considering data movement; the other end avoids data movement entirely, precluding any vectorization within individual expressions. \milind{nice.}
 The key idea of our approach is to balance between these two extremes, by finding highly vectorizable subexpressions and evaluating them together with each one on its own lane.
 
 \subsection{Selecting Vectorizable Subexpressions} \milind{In general, each of these subsections should have a figure associated with it. This subsection might not need one, since there will be a figure from Section 3, right? ;-)} \raghav{I need annotations on this entire subsection of which things don't make sense and need to be rewritten, because I am certain there are several.}
 \subsubsection*{Measuring structural similarity between subtrees}
 The structural similarity of two expression trees is used as a proxy for their vectorizability; in particular, we want to measure how well the instruction sequences corresponding to two arbitrary expression trees line up.
-Given an expression tree, we can inductively compute the structural similarity between every pair of independent subtrees (two trees are independent if neither root is an ancestor of the other) as follows:
+Given an expression tree, we can inductively compute the structural similarity between every pair of independent subtrees (two trees are independent if neither root is an ancestor of the other) as follows:\milind{Write this out as a formal algorithm}
 The base case is comparing any tree to a leaf node (a single variable with no operations), in which case the similarity is $0$, as there are no operations that can be packed together.
 
 In the inductive case of two nontrivial trees, there are six ways they could be lined up: \raghav{TODO: diagram}
@@ -27,31 +27,32 @@ Or, the two roots could line up, giving two ways for their children to line up (
 In the first four cases, the similarity score of the two trees is the similarity score of the alignment. 
 In the last two cases, the similarity score of the two trees is the sum of the scores of the aligned children, plus a 1 if the roots have the same operation.
 The final similarity score of the two trees is the maximum possible score out of all six cases. 
-\raghav{This makes no sense even to me, and I was looking at the code when I wrote this.}
+\raghav{This makes no sense even to me, and I was looking at the code when I wrote this.}\milind{Actually, now that I think about it, maybe write this as a set of recurrence relations, a la smith waterman}
+
 \subsubsection*{Choosing maximally vectorizable sets}\raghav{TODO: add a running example $(ab+c)(xy+z)$}
 Not every pair of subexpressions is eligible to be vectorized together, since they have to be independent of each other.
 This data can be encoded in an undirected {\em vectorizability graph}, where each subexpression is a vertex, and there is an edge between two vertices if the corresponding subexpressions are independent (and thus vectorizable).
 Cliques in this graph correspond exactly to sets of expressions that can all be vectorized together. 
 We can further label each edge with the similarity score of the two subexpressions it connects.
 Since each similarity score roughly corresponds to the number of instructions that could be packed together, the total weight of a clique represents the total number of operations we save by vectorizing together all the subexpressions contained within. 
-By simply subtracting a fixed amount from the weight of each edge we can penalize large cliques which would incur a much higher rotation overhead, unless the vectorizability of the clique is high enough to be worth it.
+By simply subtracting a fixed amount from the weight of each edge we can penalize large cliques which would incur a much higher rotation overhead, unless the vectorizability of the clique is high enough to be worth it. \milind{Rephrase this: start by explaining why you don't want to just take super big cliques -- it doesn't take into account rotation -- and then explain how you adjust the weights to account for this}
 The problem of finding a set of subexpressions to vectorize together reduces to finding a maximal weight clique in this graph, which is easily packaged off to an SMT solver.
 
-A single round of this technique greedily selects the optimal ``breakpoints'' up to which to vectorize before inserting rotations, so we need to iterate until the entire program has been scheduled.
+A single round of this technique greedily selects the optimal ``breakpoints'' up to which to vectorize before inserting rotations, so we need to iterate until the entire program has been scheduled. \milind{This doesn't make sense to me... I think it'll help to have the overview section already talk about stages, so you can explain this in terms of that.}
 Once a set of breakpoints is selected \raghav{Yeah, this is the first time I'm officially using the word breakpoint so far, I should introduce it earlier. Terminology is {\em hard}.}, they need to be ``quotiented out'' (i.e. each subexpression needs to be replaced by a single leaf node in the expression tree).
 This has two effects on the vectorizability graph: First, all the nodes that appear in the quotient need to be eliminated (including the {\em sub}-subexpressions of the chosen subexpressions), since they are no longer eligible to be vectorized.
 However, removing these subexpressions also affects the similarities of their ancestors, since they now have fewer operations that can be packed together.
 These changes must be reflected by updating the weights of the vectorizability graph.
-To avoid having to recompute all the similarities each time, we store for each edge the list of operations it could pack together; the edge weight can be recovered as the sum of the costs of all of these (in the simplest case, the length).
+To avoid having to recompute all the similarities each time, we store for each edge the list of operations it could pack together; the edge weight can be recovered as the sum of the costs of all of these (in the simplest case, the length). \milind{very confusing...}
 Each time a node is quotiented out, it is removed from each list that contains it; doing so automatically updates all the edge weights to account for its removal.
 Now, we can repeat the above process of finding a maximal clique and vectorizing it, until eventually all nontrivial cliques have a negative total weight, meaning that there are no more subexpressions that are vectorizable enough to make the rotation costs worth it, so we just emit scalar code for the rest of the program.
 
 \subsection{Instruction Packing}
-Given a set of subexpressions to compute in a single phase of the program, we can align the instructions between subexpressions to actually produce a vector schedule.
+Given a set of subexpressions to compute in a single phase \milind{why ``phase'' here instead of ``stage''?} of the program, we can align the instructions between subexpressions to actually produce a vector schedule.
 Aligning trees is more complicated than a simple sequence alignment, because at each step the number of available children to align roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
-\raghav{Is this a good enough explanation for why sequence alignment doesn't work here?}
+\raghav{Is this a good enough explanation for why sequence alignment doesn't work here?}\milind{Don't just say sequence alignment out of the blue. You want to say something like "It may seem like the way to go is sequence alignment but ..."}
 
-Instead of wrangling so many subproblems, we can easily pass this off to an SMT solver.
+Instead of wrangling so many subproblems, we can easily pass this off to an SMT solver. \milind{Maybe say that you formulate this as an ILP? "pass to an SMT solver" is an implementation decision -- the {\em design} is that you create a bunch of ILP constraints}
 The encoding consists of a variable for each instruction representing when it gets scheduled, as well as constraints that require two instructions scheduled at the same time to have the same operation, and constraints that require the two dependencies of each instruction to be scheduled before it.
 Finally, to speed up the search for a solution, we place a bound on the maximum number of slots in the schedule (i.e. the latest time an instruction can be scheduled).
 This bound is initially very loose, but once a schedule is produced we iteratively tighten it until the solver returns UNSAT, meaning no smaller schedule could be found. 
@@ -59,7 +60,8 @@ To prevent compilation from taking too long, we also set a timeout after which t
 Of course, this means that the vector schedule is no longer guaranteed to be optimal, but this timeout can be adjusted, allowing for a tradeoff between compilation time and optimality.
 
 \subsection{Lane Placement} \milind{This subsection definitely needs a couple of figures: Fig 1: here's some expressions, here's what a ``dumb'' lane placement looks like, here's what a ``good'' lane placement looks like. Fig 2: Here's some expressions. Here's the set of constraints we need to use to capture lane placement constraints. Here's the hypergraph that we derive from those constraints. Here's what it looks like when colored. See how it looks like the ``good'' lane placement?} \raghav{``Correspond'' is also becoming an overused word}
-Scheduling the program in the way described above amounts to splitting it into a number of {\em phases}, where each phase consists of a set of subexpressions to compute.
+Scheduling the program in the way described above amounts to splitting it into a number of {\em phases}, where each phase consists of a set of subexpressions to compute. \milind{again ``phase'' vs ``stage''. Also, what's important here isn't that you have the phases -- what's important is that each phase generates output operands in particular lanes, and those operands might need to hook up to one or more input operands in other phases, which means that either the lanes need to be set so everything lines up right, or you need to add rotations.}
+
 For a program that is split into $k$ phases, we can represent these dependencies in a $k$-partite graph, where each partition corresponds to a phase and each vertex in a partition corresponds to a subexpression computed in that phase.
 Placing expressions to lanes corresponds to assigning an integer to each vertex in this dependency graph such that no two vertices in the same partition get mapped to the same integer.
 Unfortunately, a naive approach to this can have very poor results, leading to a single vector needing several rotations to line each slot up with where it gets used.
@@ -82,4 +84,4 @@ Now, all that remains is getting actual integer values for each color.
 This can be formulated as a simple integer program, with a variable $c_i$ for each color, a variable  $v_j$ for each subexpression, and a constraint for each edge $(v, v')$ in the dependency graph colored $c$ to assert $v - v' == c$.
 The way we colored the hypergraph ensures that this integer program is always solvable \raghav{In a happier timeline I might have proven this claim}, and the solution tells us exactly which vector lane each instruction should go on.
 
-\raghav{I debated including the whole ``how do we calculate paths'' thing as well as the whole ``there's too many paths so we guess at a few and hope it works'' thing but decided against it for now, that may be the wrong decision though}
+\raghav{I debated including the whole ``how do we calculate paths'' thing as well as the whole ``there's too many paths so we guess at a few and hope it works'' thing but decided against it for now, that may be the wrong decision though}\milind{The CEGIS-y approach to finding paths might be a nice thing to add to the implementation section.}
