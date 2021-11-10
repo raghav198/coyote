@@ -19,7 +19,6 @@ This is a very straightforward process, and essentially consists of transliterat
 SEAL does not support a built-in blend instruction, though, so each of these generate several ctxt/ptxt multiplies followed by a single ctxt add.
 While lowering to C++, we also precompute all the blending masks, so that we can encode all of them into the plaintext space once at the beginning of the program and just look up the appropriate one to use each time.
 
-
 \begin{enumerate}
     \item Generate arithmetic circuit within python, pass it to the compiler which tags it and produces scalar code
     \item Take compiler object (mostly contains metadata + scalar code) and pass it to vectorization function, which goes through the algorithm described in section~\ref{sec:algorithm} and uses it to produce a vector schedule (this consists of assigning a lane and a time to each scalar instruction).
@@ -27,3 +26,11 @@ While lowering to C++, we also precompute all the blending masks, so that we can
     \item The vector IR as well as the original scalar code are both translated into C++ code for SEAL and put into the appropriate place in a pre-configured CMake project.
     \item Building the CMake project links the generated C++ against our test harness, which runs both the vector and scalar C++ code a specified number of times, collects timing information, and dumps it to a CSV.
 \end{enumerate}
+
+\subsection{Optimality Tradeoffs}
+Because each of the compilation steps quickly blows up when given larger programs, we make a number of tradeoffs that sacrifice some optimality in exchange for faster compilation times.
+\subsubsection*{Finding maximal cliques/synthesizing alignment}
+\raghav{Instead of asking the solver to optimize, just ask it to find any solution, and then recursively constrain the next solution to be strictly better until we hit either UNSAT or a timeout. This allows for varying the timeout to trade between the best possible solution }
+\subsubsection*{Computing graph paths}
+
+\subsection{Duplicating Inputs}

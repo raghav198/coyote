@@ -6,7 +6,13 @@ Python code that manipulates these symbolic variables produces an arithmetic cir
 
 \milind{This whole section will benefit from having a running example :-)}
  
-\subsection{Vectorization}
+\subsection*{Compilation Steps}
+\begin{enumerate}
+    \item The entire program is analyzed to identify easily vectorized subcircuits
+    \item These are aligned into a single vectorized circuit
+\end{enumerate}
+% enumerate
+% add figure
 \milind{This dives in too quickly; I think the overview thing I laid out above is necessary. Otherwise: what's a stage? What does it mean to schedule subgraphs together? What does it mean to ``line operands up.''}
 \system reduces the search space for vectorized programs \raghav{Does it make sense to call it ``search space''?} by first splitting the computation into multiple stages, and only allowing for vector rotations to line operands up between stages.
 A stage consists of a set of independent subgraphs of the entire circuit \raghav{Do I need to explain what independent means here?}. 
