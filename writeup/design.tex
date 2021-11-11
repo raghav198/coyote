@@ -1,11 +1,12 @@
+\section{Design}\label{sec:design}
 \milind{Call this section ``Design.'' Try to make the order and names of the subsections here correspond to the order and names of subsections in Section 3. It's OK if one subsection in 3 becomes multiple subsections here, though.}
 
-\milind{As a LaTeX structural thing: it's helpful to put the section markup at the top of the section text. That way you don't have to bounce around between files, and also you can immediately tell from looking at the top of the file what the section is}
+% \milind{As a LaTeX structural thing: it's helpful to put the section markup at the top of the section text. That way you don't have to bounce around between files, and also you can immediately tell from looking at the top of the file what the section is}
 
 \raghav{TODO: learn a word that's not ``approach''}\milind{strategy, procedure, way, scheme}
 A naive approach to vectorizing arbitrary arithmetic circuits looks a lot like SLP: We start by serializing the circuit into a sequence of scalar three-address code.
 At each step, we look at all available scalar instructions (i.e. instructions whose operands have all already been scheduled), pick the largest set with the same operation, and schedule them together.
-The problem with this naive approach is it makes no guarantees about values being computed and used on the same lane; in other words, it incurs arbitrarily many shuffles to make the computation line up.\milind{I think this should be illustrated with an example. Not necessarily a figure, but at least something that shows why shuffles are necessary] 
+The problem with this naive approach is it makes no guarantees about values being computed and used on the same lane; in other words, it incurs arbitrarily many shuffles to make the computation line up.\milind{I think this should be illustrated with an example. Not necessarily a figure, but at least something that shows why shuffles are necessary} 
 Unlike in normal vectorization, where applying arbitrary permutations to the lanes is relatively cheap, in FHE we are only allowed to rotate the entire vector by a fixed number of slots, and this rotation operation is expensive.
 Hence, the cost of bookkeeping quickly outweighs whatever benefit we might get from vectorization, making this approach not worth it.
 
