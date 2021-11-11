@@ -115,11 +115,10 @@ if __name__ == '__main__':
     c = Compiler({}, input_groups)
 
     tag_list = []
-    for i in pairwise_dist_benchmark(3, 3):
-    #for i in pairwise_dist_benchmark(6, 6):
-        tree = i.a
-        print(tree)
-        tag_list.append(c.compile(tree))
+    tree = pairwise_dist_benchmark(3, 3).a
+    #tree = pairwise_dist_benchmark(6, 6).a
+    print(tree)
+    tag_list.append(c.compile(tree))
     ## End Dot Prodcut Benchmark
 
     ######################################################
