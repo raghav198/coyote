@@ -32,7 +32,7 @@ def matrix_convolution(matrix1, matrix2):
             output[i][j] = Sum
     return output
 
-def get_input_groups(char1, char2, rows1, cols1, rows2, cols2):
+def get_mc_input_groups(char1, char2, rows1, cols1, rows2, cols2):
     input_groups = []
     set1 = [[char1 + ":" + str(r) + "," + str(c) for c in range(cols1)] for r in range(rows1)]
     set1 = set1[0] + set1[1]

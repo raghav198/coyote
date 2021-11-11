@@ -13,7 +13,7 @@ def array_generator(char1, char2, nels):
     array = [[Tree(Var(char1 + ":" + str(n))), Tree(Var(char2 + ":" + str(n)))] for n in range(nels)]
     return(array)
 
-def get_input_groups(char1, char2, char3, char4, nels1, nels2):
+def get_pd_input_groups(char1, char2, char3, char4, nels1, nels2):
     input_groups = []
     set1 = [(char1 + ":" + str(n)) for n in range(nels1)]
     set2 = [(char2 + ":" + str(n)) for n in range(nels1)]
