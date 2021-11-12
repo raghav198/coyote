@@ -35,11 +35,9 @@ def get_dp_input_groups(char1, char2, nels1, nels2):
     input_groups = [{i for i in set1}, {i for i in set2}]
     return input_groups
 
-def pairwise_dist_benchmark(nels1, nels2):
+def dot_product_benchmark(nels1, nels2):
     array1 = array_generator('a', nels1)
     array2 = array_generator('b', nels2)
     distance = dot_prod(array1, array2)
     print(distance.a)
     return(distance)
-
-pairwise_dist_benchmark(6,6)

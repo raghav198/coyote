@@ -2,7 +2,7 @@ import sys
 sys.path.append('..')
 from ast_def import *
 def calc_determinant(matrix):
-        determinant = 0
+        determinant = Tree(0)
         indices = list(range(len(matrix)))
         # For 2x2
         if len(matrix) == 2 and len(matrix[0]) == 2:
@@ -10,7 +10,7 @@ def calc_determinant(matrix):
             return val
         # Recursive path for larger matrices
         for column in indices:
-            copy = copy_matrix(matrix)
+            copy = matrix.copy()
             copy = copy[1:]
             height = len(copy)
     
@@ -21,12 +21,15 @@ def calc_determinant(matrix):
             else:
                 sign = -1
 
-            sub_det = determinant_recursive(copy)
-            total += sign * matrix[0][column] * sub_det 
+            sub_det = calc_determinant(copy)
+            if (sign == 1):
+                determinant = determinant + matrix[0][column] * sub_det 
+            else:
+                determinant = determinant - matrix[0][column] * sub_det 
         return determinant
 
 def matrix_multiply(matrix1, matrix2):
-        output_matrix = [[Tree(0), Tree(0)],[Tree(0), Tree(0)]]
+        output_matrix = [[Tree(0) for i in matrix1] for i in matrix2[0]]
         for i in range(len(matrix1)):
             for j in range(len(matrix2[0])):
                 for k in range(len(matrix2)):

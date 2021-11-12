@@ -7,7 +7,7 @@ def matrix_generator(char, rows, cols):
     return(matrix)
 
 def matrix_multiply(matrix1, matrix2):
-        output_matrix = [[Tree(0), Tree(0)],[Tree(0), Tree(0)]]
+        output_matrix = [[Tree(0) for i in matrix1] for i in matrix2[0]]
         for i in range(len(matrix1)):
             for j in range(len(matrix2[0])):
                 for k in range(len(matrix2)):
