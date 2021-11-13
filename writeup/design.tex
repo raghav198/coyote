@@ -4,9 +4,10 @@
 % \milind{As a LaTeX structural thing: it's helpful to put the section markup at the top of the section text. That way you don't have to bounce around between files, and also you can immediately tell from looking at the top of the file what the section is}
 
 \raghav{TODO: learn a word that's not ``approach''}\milind{strategy, procedure, way, scheme}
-A naive approach to vectorizing arbitrary arithmetic circuits looks a lot like SLP: We start by serializing the circuit into a sequence of scalar three-address code.
+Naively vectorizing arbitrary arithmetic circuits looks a lot like SLP: We start by serializing the circuit into a sequence of scalar three-address code.
 At each step, we look at all available scalar instructions (i.e. instructions whose operands have all already been scheduled), pick the largest set with the same operation, and schedule them together.
-The problem with this naive approach is it makes no guarantees about values being computed and used on the same lane; in other words, it incurs arbitrarily many shuffles to make the computation line up.\milind{I think this should be illustrated with an example. Not necessarily a figure, but at least something that shows why shuffles are necessary} 
+The problem with this naive approach is it makes no guarantees about values being computed and used on the same lane; in other words, it incurs arbitrarily many shuffles to make the computation line up.
+For instance, take the \raghav{\dots what's an example of a computation like that??}\milind{I think this should be illustrated with an example. Not necessarily a figure, but at least something that shows why shuffles are necessary} 
 Unlike in normal vectorization, where applying arbitrary permutations to the lanes is relatively cheap, in FHE we are only allowed to rotate the entire vector by a fixed number of slots, and this rotation operation is expensive.
 Hence, the cost of bookkeeping quickly outweighs whatever benefit we might get from vectorization, making this approach not worth it.
 
@@ -19,7 +20,23 @@ The key idea of our approach is to balance between these two extremes, by findin
 \subsection{Selecting Vectorizable Subexpressions} \milind{In general, each of these subsections should have a figure associated with it. This subsection might not need one, since there will be a figure from Section 3, right? ;-)} \raghav{I need annotations on this entire subsection of which things don't make sense and need to be rewritten, because I am certain there are several.}
 \subsubsection*{Measuring structural similarity between subtrees}
 The structural similarity of two expression trees is used as a proxy for their vectorizability; in particular, we want to measure how well the instruction sequences corresponding to two arbitrary expression trees line up.
-Given an expression tree, we can inductively compute the structural similarity between every pair of independent subtrees (two trees are independent if neither root is an ancestor of the other) as follows:\milind{Write this out as a formal algorithm}
+Given an expression tree, we can inductively compute the structural similarity between every pair $(t_1, t_2)$ of independent subtrees (two trees are independent if neither root is an ancestor of the other) as follows:
+
+\begin{align*}
+    sim(t_1, var) &= 0\\
+    sim(var, t_2) &= 0\\
+    sim(t_1, t_2) &= \max \begin{cases}
+        sim(t_1.L, t_2)\\
+        sim(t_1.R, t_2)\\
+        sim(t_1, t_2.L)\\
+        sim(t_1, t_2.R)\\
+        sim(t_1.L, t_2.L) + sim(t_1.R, t_2.R) + b\\
+        sim(t_1.L, t_2.R) + sim(t_1.R, t_2.L) + b
+    \end{cases}
+\end{align*}
+where $b = 1$ if $t_1.op = t_2.op$ and $b = 0$ otherwise.
+
+
 The base case is comparing any tree to a leaf node (a single variable with no operations), in which case the similarity is $0$, as there are no operations that can be packed together.
 
 In the inductive case of two nontrivial trees, there are six ways they could be lined up: \raghav{TODO: diagram}
@@ -61,6 +78,25 @@ To prevent compilation from taking too long, we also set a timeout after which t
 Of course, this means that the vector schedule is no longer guaranteed to be optimal, but this timeout can be adjusted, allowing for a tradeoff between compilation time and optimality.
 % sequence of four figures: (a) dependency graph [2 stages] (b) written out list of constraints (c) colored hypergraph (d) colored dependency graph
 \subsection{Lane Placement} \milind{This subsection definitely needs a couple of figures: Fig 1: here's some expressions, here's what a ``dumb'' lane placement looks like, here's what a ``good'' lane placement looks like. Fig 2: Here's some expressions. Here's the set of constraints we need to use to capture lane placement constraints. Here's the hypergraph that we derive from those constraints. Here's what it looks like when colored. See how it looks like the ``good'' lane placement?} \raghav{``Correspond'' is also becoming an overused word}
+\begin{figure*}
+    \begin{subfigure}{0.24\textwidth}
+        \includegraphics[width=0.9\textwidth]{figures/hypergraph_coloring/small_dependency_graph.drawio.png}
+        \caption{A depdendency graph for a simple 3-phase computation}\label{fig:dependency-graph}
+    \end{subfigure}
+    \begin{subfigure}{0.24\textwidth}
+        \includegraphics[width=0.9\textwidth]{figures/hypergraph_coloring/hypergraph_relations.drawio.png}
+        \caption{The path relations induced by the dependency graph}\label{fig:path-relations}
+    \end{subfigure}
+    \begin{subfigure}{0.24\textwidth}
+        \includegraphics[width=0.9\textwidth]{figures/hypergraph_coloring/colored_dependency_hypergraph.drawio.png}
+        \caption{A minimal coloring of the hypergraph corresponding to the path relations}\label{fig:colored-hypergraph}
+    \end{subfigure}
+    \begin{subfigure}{0.24\textwidth}
+        \includegraphics[width=0.9\textwidth]{figures/hypergraph_coloring/colored_dependency_graph.drawio.png}
+        \caption{The coloring applied to the original dependency graph. Edges with the same color correspond to the same rotation amount.}\label{fig:colored-dependency-graph}
+    \end{subfigure}
+    \caption{An example coloring the edges of a dependency graph to produce a good lane assignment}\label{fig:lane-assignment}
+\end{figure*}
 Scheduling the program in the way described above amounts to splitting it into a number of {\em phases}, where each phase consists of a set of subexpressions to compute. \milind{again ``phase'' vs ``stage''. Also, what's important here isn't that you have the phases -- what's important is that each phase generates output operands in particular lanes, and those operands might need to hook up to one or more input operands in other phases, which means that either the lanes need to be set so everything lines up right, or you need to add rotations.}
 
 For a program that is split into $k$ phases, we can represent these dependencies in a $k$-partite graph, where each partition corresponds to a phase and each vertex in a partition corresponds to a subexpression computed in that phase.

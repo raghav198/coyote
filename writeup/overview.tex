@@ -10,22 +10,22 @@ Python code that manipulates these symbolic variables produces an arithmetic cir
 \subsection*{Compilation Steps}
 \begin{figure}
     \begin{subfigure}{0.45\columnwidth}
-        \includegraphics[scale=0.25]{figures/small_expression_circuit.drawio.png}
+        \includegraphics[scale=0.25]{figures/compilation_overview/small_expression_circuit.drawio.png}
         \caption{Arithmetic circuit computing $$(ab+c)(xy+z)$$ with vectorizable subcircuits highlighted}
         \label{fig:small-expr-circuit}
     \end{subfigure}
     \begin{subfigure}{0.45\columnwidth}
-        \includegraphics[scale=0.4]{figures/stacked_vector_circuit.drawio.png}
+        \includegraphics[scale=0.4]{figures/compilation_overview/stacked_vector_circuit.drawio.png}
         \caption{Arithmetic circuit with highlighted subcircuits vectorized}
         \label{fig:partially-vectorized-circuit}
     \end{subfigure}
     \begin{subfigure}{0.3\columnwidth}
-        \includegraphics[scale=0.3]{figures/code_split_into_phases.drawio.png}
+        \includegraphics[scale=0.3]{figures/compilation_overview/code_split_into_phases.drawio.png}
         \caption{Scalar code split into vectorizable phases}
         \label{fig:code-split-phases}
     \end{subfigure}
     \begin{subfigure}{0.6\columnwidth}
-        \includegraphics[scale=0.3]{figures/vector_schedule_needing_rotates.drawio.png}
+        \includegraphics[scale=0.3]{figures/compilation_overview/vector_schedule_needing_rotates.drawio.png}
         \caption{Vector schedule for scalar code demonstrating need for rotation}
         \label{fig:vector-sched-needing-rotates}
     \end{subfigure}
