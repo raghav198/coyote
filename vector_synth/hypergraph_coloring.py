@@ -8,7 +8,7 @@ from numpy import matrix
 from path_semiring import LangSemiring, Matrix, Path, adjacency_matrix_from_graph, is_zero
 from graph import Edge, Graph, Node, connect, edges_on_path
 from itertools import combinations
-from typing import Callable, Dict, FrozenSet, Iterator, List, Optional, Set, Tuple, TypeVar
+from typing import Callable, Counter, Dict, FrozenSet, Iterator, List, Optional, Set, Tuple, TypeVar
 import z3
 from progressbar import ProgressBar
 
@@ -319,18 +319,35 @@ def cegis_edges(unsat_core: List[str]):
     return relations
 
             
+def quotient_by_zero_color(coloring: Dict[Edge, Color], graph: Graph[Node], zero_color: Color):
+    print(f'Setting {zero_color} to zero')
+    equivalence_classes: Dict[Node, str] = {}
+    next_q = 0
+    for v1 in graph:
+        for v2 in graph[v1]:
+            if coloring[Edge(v1, v2)] == zero_color:
+                if v1 in equivalence_classes:
+                    equivalence_classes[v2] = equivalence_classes[v1]
+                elif v2 in equivalence_classes:
+                    equivalence_classes[v1] = equivalence_classes[v2]
+                else:
+                    equivalence_classes[v1] = f'__quotient_{next_q}'
+                    equivalence_classes[v2] = f'__quotient_{next_q}'
+                    next_q += 1
+
+    return equivalence_classes
 
 
-
-def integrate_colored_edges(coloring: Dict[Edge, str], graph: Graph[Node], stages: List[List[Node]], bound_lanes=None):
+def integrate_colored_edges(coloring: Dict[Edge, Color], graph: Graph[Node], stages: List[List[Node]], bound_lanes=None, force_zero=None):
 
     if bound_lanes is None:
         bound_lanes = max(map(len, stages))
 
+
     print(f'Bounding by {bound_lanes}')
 
     nodes: Dict[Node, z3.IntNumRef] = {}
-    deltas: Dict[str, z3.IntNumRef] = {}
+    deltas: Dict[Color, z3.IntNumRef] = {}
 
     node_stage: Dict[Node, int] = {}
     for i, stage in enumerate(stages):
@@ -338,6 +355,7 @@ def integrate_colored_edges(coloring: Dict[Edge, str], graph: Graph[Node], stage
             node_stage[node] = i
 
     opt = z3.Solver()
+    opt.set('timeout', 20000)
     
     for node in sum(stages, []):
         nodes[node] = z3.Int(node)
@@ -355,7 +373,12 @@ def integrate_colored_edges(coloring: Dict[Edge, str], graph: Graph[Node], stage
                 color = coloring[Edge(v1, v2)]
                 if color not in deltas:
                     deltas[color] = z3.Int(color)
+                # if color_multiplicities[color] == 1:
+                #     continue
                 opt.assert_and_track(nodes[v1] == nodes[v2] + deltas[color], f'{v1} == {v2} + {color}')
+    
+    # if force_zero is not None:
+    #     opt.add(deltas[force_zero] == 0)
 
     # opt.add(nodes['x1'] == 0)
     # opt.add(nodes['x2'] == 1)
@@ -367,7 +390,9 @@ def integrate_colored_edges(coloring: Dict[Edge, str], graph: Graph[Node], stage
 
 
     print(f'Formulated with {len(opt.assertions())} constraints and {len(nodes), len(deltas)} variables')
-    if opt.check() == z3.unsat:
+    start = time()
+    result = opt.check()
+    if result == z3.unsat:
         unsat_core = list(map(str, opt.unsat_core()))
         print(unsat_core)
 
@@ -379,8 +404,14 @@ def integrate_colored_edges(coloring: Dict[Edge, str], graph: Graph[Node], stage
         #     print(str(constraint))
         # unsat_core = list(map(str, opt.unsat_core()))
         # raise SystemExit()
+
+    elif result == z3.unknown and opt.reason_unknown() == 'canceled':
+        print('Adding more lanes and trying again')
+        return integrate_colored_edges(coloring, graph, stages, bound_lanes=2 * bound_lanes)
         
-        
+    end = time()
+    # print(f'Solving took {end - start} time')
+    # raise SystemExit()
 
     model = opt.model()
     assignment: Dict[Node, int] = {}
@@ -441,7 +472,14 @@ def place_lanes_hypergraph_method(dependencies: List[Dict[int, Set[int]]], max_w
     edges, hyperedges = build_hypergraph_with_path_semiring(graph, stages, timeout=5000)
     while True:
         coloring = color_hypergraph((edges, hyperedges), colors)
-        result = integrate_colored_edges(coloring, graph, stages)
+
+        # print(Counter(coloring.values()))
+
+        # print(quotient_by_zero_color(coloring, graph, Counter(coloring.values()).most_common()[0][0]))
+        # raise SystemExit()
+
+        color_mode = Counter(coloring.values()).most_common()[0][0]
+        result = integrate_colored_edges(coloring, graph, stages, force_zero=color_mode)
         if type(result) is defaultdict:
             print('Unsat!')
             _, new_relations = build_hypergraph_with_path_semiring(result, stages)

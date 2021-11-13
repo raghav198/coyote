@@ -1,0 +1,37 @@
+\section{Implementation}\label{sec:implementation}
+\subsection{Code Generation}
+The output of the algorithm in Section~\ref{sec:design} is a vector schedule (i.e. a lane and time for each scalar, where the time determines the order in which instructions get executed). \raghav{Is `time' the right word for this? (like, what time step the instruction gets scheduled on)}
+This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction.
+
+Throughout the compilation, we keep a lookup table that maps a (scalar, lane) pair to the name of the vector register containing it.
+In particular, there may be several vector registers that contain a particular scalar, but on separate lanes (this results from a rotation of the original register where the instruction was produced).
+(For example, the table might say ``The vector register {\texttt s2} has scalar 11 on lane 3'').
+
+At every time step, the schedule compiler finds all scalar instructions scheduled to execute.
+For each operand, we use the table to look up the name of the register containing that scalar in the appropriate lane.
+If the data for a single vector operand comes from multiple registers, we emit a blend instruction, which multiplies each of the registers by a plaintext mask and adds them, essentially ``blending'' together their values.
+Once all the operands have been blended and prepared, we emit the appropriate vector add, subtract, or multiply instruction.
+We then look ahead to see if any of the scalars produced by this vector instruction get used on different lanes; for each distinct rotation this induces, we emit a vector rotate instruction.
+To standardize, all rotation amounts are positive modulo the vector width.
+Finally, for each vector register just produced (including the original one and any rotated ones), we add all of its scalars and their lanes to the lookup table and proceed to the next time step.
+
+Once the circuit is compiled to the vector IR, it can be further lowered to C++ SEAL code.
+This is a very straightforward process, and essentially consists of transliterating the IR. 
+SEAL does not support a built-in blend instruction, though, so each of these generate several ctxt/ptxt multiplies followed by a single ctxt add.
+While lowering to C++, we also precompute all the blending masks, so that we can encode all of them into the plaintext space once at the beginning of the program and just look up the appropriate one to use each time.
+
+\begin{enumerate}
+    \item Generate arithmetic circuit within python, pass it to the compiler which tags it and produces scalar code
+    \item Take compiler object (mostly contains metadata + scalar code) and pass it to vectorization function, which goes through the algorithm described in section~\ref{sec:design} and uses it to produce a vector schedule (this consists of assigning a lane and a time to each scalar instruction).
+    \item Given a vector schedule, we compile it into the actual vector IR that consists of loads, vector adds/subtracts/multiplies, and rotations.
+    \item The vector IR as well as the original scalar code are both translated into C++ code for SEAL and put into the appropriate place in a pre-configured CMake project.
+    \item Building the CMake project links the generated C++ against our test harness, which runs both the vector and scalar C++ code a specified number of times, collects timing information, and dumps it to a CSV.
+\end{enumerate}
+
+\subsection{Optimality Tradeoffs}
+Because each of the compilation steps quickly blows up when given larger programs, we make a number of tradeoffs that sacrifice some optimality in exchange for faster compilation times.
+\subsubsection*{Finding maximal cliques/synthesizing alignment}
+\raghav{Instead of asking the solver to optimize, just ask it to find any solution, and then recursively constrain the next solution to be strictly better until we hit either UNSAT or a timeout. This allows for varying the timeout to trade between the best possible solution }
+\subsubsection*{Computing graph paths}
+
+\subsection{Duplicating Inputs}

@@ -1,14 +1,16 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.19.0)
 project(CoyoteBFVBackend VERSION 0.1.0)
 
 include(CTest)
 include(CMakeFindDependencyMacro)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 enable_testing()
 
 add_executable(CoyoteBFVBackend main.cpp util.cpp
-	     small_test/scalar.cpp
-	     small_test/vector.cpp
+            determinant3x3/scalar.cpp
+            determinant3x3/vector.cpp
 )
 
 find_package(SEAL 3.6 REQUIRED)

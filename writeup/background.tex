@@ -1,0 +1,14 @@
+\section{Background}\label{sec:background}
+\subsection{Fully Homomorphic Encryption}
+Fully Homomorphic Encryption (FHE) refers to any encryption scheme with the property that ciphertexts can be added and multiplied, and these operations commute with the encryption and decryption functions.
+\subsubsection{Limitations}
+% very slow
+% multiplicative depth
+% no loops or branching
+\subsubsection{Arithmetic Circuits}
+% given that there's no loops or branching, you're forced to write combinatorial arithmetic circuits, where the entire computation happens in one shot.
+% For the rest of the paper, we'll assume we're given a program structured as an arithmetic circuit, and talk about how to map the computation encoded therein to vectors.
+\subsubsection{Vectorization}
+\subsection{Vectorization}
+\raghav{So\dots this is weird, because I want to talk about vectorization as it pertains to FHE (i.e. ``a property of FHE schemes is they allow for packing a huge number of plaintexts into a single ciphertext'') but also give the background of vectorization terminology I'll be using (in particular the idea of lanes and how lining things up makes vectorization very different from parallelism). }
+\milind{I'd put this as part of background then. You can even move 2.1.3 into a "Background on vectorization" section, and call it "Vectorization in FHE" -- that would also let you discuss why it's different than traditional SIMD vectorization.}
