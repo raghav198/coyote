@@ -4,18 +4,16 @@
 std::map<std::string, ptxt> VectorProgram::make_bits(RuntimeContext &info)
 {
     std::map<std::string, ptxt> bits;
-    add_bitstring(bits, "100000", info);
     add_bitstring(bits, "000100", info);
+    add_bitstring(bits, "100000", info);
     return bits;
 }
 
 std::vector<ctxt> VectorProgram::initialize_temps(RuntimeContext &info)
 {
-    std::vector<ctxt> ts(10);
+    std::vector<ctxt> ts(8);
     ts[0] = encrypt_input("110111111111111111", info);
-    ts[1] = encrypt_input("110111111111111111", info);
     ts[2] = encrypt_input("110111111111111111", info);
-    ts[3] = encrypt_input("110111111111111111", info);
     return ts;
 }
 

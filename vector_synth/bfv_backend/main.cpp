@@ -12,7 +12,7 @@ constexpr int ITERATIONS = 50;
 
 int main()
 { 
-std::ofstream myfile("dot_product6x6.csv");
+std::ofstream myfile("dot_product3x3.csv");
 myfile << "VEC,ENC,RUN,ENC + RUN,SCAL,ENC,RUN,ENC + RUN,\n";
 for (int runs = 0; runs < 100; runs++) {
     seal::EncryptionParameters params(seal::scheme_type::bfv);
