@@ -37,15 +37,15 @@ Given an expression tree, we can inductively compute the structural similarity b
 where $b = 1$ if $t_1.op = t_2.op$ and $b = 0$ otherwise.
 
 
-The base case is comparing any tree to a leaf node (a single variable with no operations), in which case the similarity is $0$, as there are no operations that can be packed together.
+% The base case is comparing any tree to a leaf node (a single variable with no operations), in which case the similarity is $0$, as there are no operations that can be packed together.
 
-In the inductive case of two nontrivial trees, there are six ways they could be lined up: \raghav{TODO: diagram}
-Either root could be lined up with either child of the other tree in four ways. 
-Or, the two roots could line up, giving two ways for their children to line up (left with left and right with right, or left with right and right with left).
-In the first four cases, the similarity score of the two trees is the similarity score of the alignment. 
-In the last two cases, the similarity score of the two trees is the sum of the scores of the aligned children, plus a 1 if the roots have the same operation.
-The final similarity score of the two trees is the maximum possible score out of all six cases. 
-\raghav{This makes no sense even to me, and I was looking at the code when I wrote this.}\milind{Actually, now that I think about it, maybe write this as a set of recurrence relations, a la smith waterman}
+% In the inductive case of two nontrivial trees, there are six ways they could be lined up: \raghav{TODO: diagram}
+% Either root could be lined up with either child of the other tree in four ways. 
+% Or, the two roots could line up, giving two ways for their children to line up (left with left and right with right, or left with right and right with left).
+% In the first four cases, the similarity score of the two trees is the similarity score of the alignment. 
+% In the last two cases, the similarity score of the two trees is the sum of the scores of the aligned children, plus a 1 if the roots have the same operation.
+% The final similarity score of the two trees is the maximum possible score out of all six cases. 
+% \raghav{This makes no sense even to me, and I was looking at the code when I wrote this.}\milind{Actually, now that I think about it, maybe write this as a set of recurrence relations, a la smith waterman}
 
 \subsubsection*{Choosing maximally vectorizable sets}\raghav{TODO: add a running example $(ab+c)(xy+z)$}
 Not every pair of subexpressions is eligible to be vectorized together, since they have to be independent of each other.
@@ -53,31 +53,52 @@ This data can be encoded in an undirected {\em vectorizability graph}, where eac
 Cliques in this graph correspond exactly to sets of expressions that can all be vectorized together. 
 We can further label each edge with the similarity score of the two subexpressions it connects.
 Since each similarity score roughly corresponds to the number of instructions that could be packed together, the total weight of a clique represents the total number of operations we save by vectorizing together all the subexpressions contained within. 
-By simply subtracting a fixed amount from the weight of each edge we can penalize large cliques which would incur a much higher rotation overhead, unless the vectorizability of the clique is high enough to be worth it. \milind{Rephrase this: start by explaining why you don't want to just take super big cliques -- it doesn't take into account rotation -- and then explain how you adjust the weights to account for this}
+There is a subtlety here: we don't just want to take the largest clique in the graph, since this means vectorizing a lot of expressions, which will likely incur several rotates down the line. 
+To account for this, we subtract a fixed amount from the weight of each edge; this penalizes large cliques, and ensures that we prioritize finding small cliques of highly vectorizable expressions to avoid doing too many rotations.
+% By simply subtracting a fixed amount from the weight of each edge we can penalize large cliques which would incur a much higher rotation overhead, unless the vectorizability of the clique is high enough to be worth it. \milind{Rephrase this: start by explaining why you don't want to just take super big cliques -- it doesn't take into account rotation -- and then explain how you adjust the weights to account for this}
 The problem of finding a set of subexpressions to vectorize together reduces to finding a maximal weight clique in this graph, which is easily packaged off to an SMT solver.
 
-A single round of this technique greedily selects the optimal ``breakpoints'' up to which to vectorize before inserting rotations, so we need to iterate until the entire program has been scheduled. \milind{This doesn't make sense to me... I think it'll help to have the overview section already talk about stages, so you can explain this in terms of that.}
-Once a set of breakpoints is selected \raghav{Yeah, this is the first time I'm officially using the word breakpoint so far, I should introduce it earlier. Terminology is {\em hard}.}, they need to be ``quotiented out'' (i.e. each subexpression needs to be replaced by a single leaf node in the expression tree).
-This has two effects on the vectorizability graph: First, all the nodes that appear in the quotient need to be eliminated (including the {\em sub}-subexpressions of the chosen subexpressions), since they are no longer eligible to be vectorized.
-However, removing these subexpressions also affects the similarities of their ancestors, since they now have fewer operations that can be packed together.
-These changes must be reflected by updating the weights of the vectorizability graph.
-To avoid having to recompute all the similarities each time, we store for each edge the list of operations it could pack together; the edge weight can be recovered as the sum of the costs of all of these (in the simplest case, the length). \milind{very confusing...}
-Each time a node is quotiented out, it is removed from each list that contains it; doing so automatically updates all the edge weights to account for its removal.
+This effectively greedily selects a set of expressions to vectorize, which amounts to scheduling the first {\em phase} of the program, s we want to repeat the process until the entire program has been scheduled.
+Repeating the process requires some extra work: whenever a set of subexpressions is selected, each one needs to be ``quotiented out'' of the original program (i.e. replaced by a single leaf node in the expression tree).
+Doing so has two effects on the vectorizability graph:
+\begin{enumerate}
+    \item All the nodes that were cut out of the expression tree (the {\em sub}-subexpressions) need to be eliminated, since they have already been scheduled.
+    \item Removing certain subexpressions affects the similarities of their ancestors, since there are now fewer operations that can be packed together. These changes need to be reflected by updating the weights of the vectorizability graph.
+\end{enumerate}
+% A single round of this technique greedily selects the optimal ``breakpoints'' up to which to vectorize before inserting rotations, so we need to iterate until the entire program has been scheduled. \milind{This doesn't make sense to me... I think it'll help to have the overview section already talk about stages, so you can explain this in terms of that.}
+% Once a set of breakpoints is selected \raghav{Yeah, this is the first time I'm officially using the word breakpoint so far, I should introduce it earlier. Terminology is {\em hard}.}, they need to be ``quotiented out'' (i.e. each subexpression needs to be replaced by a single leaf node in the expression tree).
+% This has two effects on the vectorizability graph: First, all the nodes that appear in the quotient need to be eliminated (including the {\em sub}-subexpressions of the chosen subexpressions), since they are no longer eligible to be vectorized.
+% However, removing these subexpressions also affects the similarities of their ancestors, since they now have fewer operations that can be packed together.
+% These changes must be reflected by updating the weights of the vectorizability graph.
+% To avoid having to recompute all the similarities each time, we store for each edge the list of operations it could pack together; the edge weight can be recovered as the sum of the costs of all of these (in the simplest case, the length). \milind{very confusing...}
+% Each time a node is quotiented out, it is removed from each list that contains it; doing so automatically updates all the edge weights to account for its removal.
+\raghav{To deal with point (2) more efficiently, I do a trick where I track all the pieces that make up the weight of an edge, so I can update the weights without having to recompute similarity. I originally tried to write this out, but its kind of confusing. Now that I think about it, though, it seems like more of an implementation detail than anything. Should I still write it out here, or just leave it?}
 Now, we can repeat the above process of finding a maximal clique and vectorizing it, until eventually all nontrivial cliques have a negative total weight, meaning that there are no more subexpressions that are vectorizable enough to make the rotation costs worth it, so we just emit scalar code for the rest of the program.
 
 \subsection{Instruction Packing}
-Given a set of subexpressions to compute in a single phase \milind{why ``phase'' here instead of ``stage''?} of the program, we can align the instructions between subexpressions to actually produce a vector schedule.
-Aligning trees is more complicated than a simple sequence alignment, because at each step the number of available children to align roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
-\raghav{Is this a good enough explanation for why sequence alignment doesn't work here?}\milind{Don't just say sequence alignment out of the blue. You want to say something like "It may seem like the way to go is sequence alignment but ..."}
+Given a set of subexpressions to compute in a single phase of the program, we can align the instructions between subexpressions to actually produce a vector schedule.\milind{why ``phase'' here instead of ``stage''?}\raghav{I was getting in the habit of calling it a phase everywhere, since ``stage'' is kind of overloaded (staging compiler). If stage makes more sense, though, I can go back to it. }
+It may seem like the solution to this is just sequence alignment, but aligning trees is actually more complicated than that.
+At each step, the number of available children that can be aligned roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
+This causes the dynamic programming approach of sequence alignment to quickly blow up.
+% Aligning trees is more complicated than a simple sequence alignment, because at each step the number of available children to align roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
+% \raghav{Is this a good enough explanation for why sequence alignment doesn't work here?}\milind{Don't just say sequence alignment out of the blue. You want to say something like "It may seem like the way to go is sequence alignment but ..."}
 
-Instead of wrangling so many subproblems, we can easily pass this off to an SMT solver. \milind{Maybe say that you formulate this as an ILP? "pass to an SMT solver" is an implementation decision -- the {\em design} is that you create a bunch of ILP constraints}
-The encoding consists of a variable for each instruction representing when it gets scheduled, as well as constraints that require two instructions scheduled at the same time to have the same operation, and constraints that require the two dependencies of each instruction to be scheduled before it.
-Finally, to speed up the search for a solution, we place a bound on the maximum number of slots in the schedule (i.e. the latest time an instruction can be scheduled).
-This bound is initially very loose, but once a schedule is produced we iteratively tighten it until the solver returns UNSAT, meaning no smaller schedule could be found. 
-To prevent compilation from taking too long, we also set a timeout after which the solver simply returns the best available schedule.
-Of course, this means that the vector schedule is no longer guaranteed to be optimal, but this timeout can be adjusted, allowing for a tradeoff between compilation time and optimality.
+Instead of wrangling so many subproblems, we can easily formulate this as an ILP.
+We create a variable for each scalar instruction representing its {\em schedule slot}, or the time at which it executes.
+We add constraints to require that each instruction be scheduled after all of its dependencies have been scheduled, and also to require that two instructions with different operations never be scheduled at the same time. 
+Finally, to speed up the search for a solution, we place a bound on the total length of the schedule (in other words, an upper bound on the value of the schedule slot for any scalar instruction).
+The bound is initally very loose but we iteratively tighten it until the solver returns UNSAT, meaning no smaller schedule could be found, so the most recent one was the smallest. \raghav{better?}
+
+% Instead of wrangling so many subproblems, we can easily pass this off to an SMT solver. \milind{Maybe say that you formulate this as an ILP? "pass to an SMT solver" is an implementation decision -- the {\em design} is that you create a bunch of ILP constraints}
+% The encoding consists of a variable for each instruction representing when it gets scheduled, as well as constraints that require two instructions scheduled at the same time to have the same operation, and constraints that require the two dependencies of each instruction to be scheduled before it.
+% Finally, to speed up the search for a solution, we place a bound on the maximum number of slots in the schedule (i.e. the latest time an instruction can be scheduled).
+% This bound is initially very loose, but once a schedule is produced we iteratively tighten it until the solver returns UNSAT, meaning no smaller schedule could be found. 
+% To prevent compilation from taking too long, we also set a timeout after which the solver simply returns the best available schedule.
+% Of course, this means that the vector schedule is no longer guaranteed to be optimal, but this timeout can be adjusted, allowing for a tradeoff between compilation time and optimality.
 % sequence of four figures: (a) dependency graph [2 stages] (b) written out list of constraints (c) colored hypergraph (d) colored dependency graph
-\subsection{Lane Placement} \milind{This subsection definitely needs a couple of figures: Fig 1: here's some expressions, here's what a ``dumb'' lane placement looks like, here's what a ``good'' lane placement looks like. Fig 2: Here's some expressions. Here's the set of constraints we need to use to capture lane placement constraints. Here's the hypergraph that we derive from those constraints. Here's what it looks like when colored. See how it looks like the ``good'' lane placement?} \raghav{``Correspond'' is also becoming an overused word}
+\subsection{Lane Placement} 
+% \milind{This subsection definitely needs a couple of figures: Fig 1: here's some expressions, here's what a ``dumb'' lane placement looks like, here's what a ``good'' lane placement looks like. Fig 2: Here's some expressions. Here's the set of constraints we need to use to capture lane placement constraints. Here's the hypergraph that we derive from those constraints. Here's what it looks like when colored. See how it looks like the ``good'' lane placement?} \raghav{``Correspond'' is also becoming an overused word}
+\raghav{TODO: write the bad vs the good lane placement for this example}
 \begin{figure*}
     \begin{subfigure}{0.24\textwidth}
         \includegraphics[width=0.9\textwidth]{figures/hypergraph_coloring/small_dependency_graph.drawio.png}
