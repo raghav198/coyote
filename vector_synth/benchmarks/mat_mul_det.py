@@ -55,3 +55,4 @@ def mat_mul_det_benchmark(nels1, nels2):
     result_matrix = matrix_multiply(matrix1, matrix2)
     determinant = calc_determinant(result_matrix)
     return(determinant)
+
