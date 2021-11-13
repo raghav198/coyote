@@ -339,8 +339,11 @@ def push_out_rotates(generated_code: List[str]) -> List[str]:
     defined_vars: Dict[str, int] = {} # variable -> line num its defined on
     rotation_amount: Dict[str, int] = {} # variable -> amount its been rotated
     original_var: Dict[str, str] = {} # rotated variable -> unshifted version of it
+    next_v = 0
     for i, line in enumerate(generated_code):
         lhs, rhs = line.split(' = ')
+        if lhs.startswith('__v'):
+            next_v += 1
         for v in defined_vars:
             if v in rhs:
                 lines_used[v].append(i)
@@ -367,11 +370,12 @@ def push_out_rotates(generated_code: List[str]) -> List[str]:
                     generated_code[i] = generated_code[i].replace(
                                                 x, original_var[x]).replace(
                                                 y, original_var[y]).replace(
-                                                lhs, lhs + "'"
+                                                lhs, f'__v{next_v}'
                                                 ) + \
-                                                f'\n{lhs} = {lhs}\' >> {rotation_amount[x]}'
+                                                f'\n{lhs} = __v{next_v} >> {rotation_amount[x]}'
+                    next_v += 1
 
-
+    print(next_v)
     return list(filter(None, '\n'.join(generated_code).split('\n')))
 
 
@@ -423,6 +427,7 @@ __v4 = __v2 + __v3
 __v5 = __v0 * __v1
 __v6 = __v5 + __v4""".split("\n")
 
+    # print('\n'.join(push_out_rotates(code.copy())))
     print('\n'.join(remove_repeated_ops(push_out_rotates(code))))
     # seed(3)
     # e = times(times(times('d', 'b'), plus('g', times('w', 'p'))),
