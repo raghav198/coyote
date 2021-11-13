@@ -230,6 +230,7 @@ def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, 
                 #     shift_amounts_needed[producer] = {consumer: shift_amount}
 
     shifted_vectors: Dict[Tuple[int, int], str] = {} # (register, shift amount) -> name of shifted vector
+    amount_shifted: Dict[str, int] = {} # name of vector -> amount it has been rotated
     shift_temp = 0 # for creating new shifted vectors
     cur_temp = 0 # for creating temporaries
     generated_code: List[str] = []
@@ -250,6 +251,7 @@ def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, 
 
                     # remember the name given to __v{i} >> {shift}
                     shifted_names[shift] = f'__s{shift_temp}'
+                    amount_shifted[f'__s{shift_temp}'] = shift
                     shift_temp += 1
                 # record which __s vector to use in order to access {dest.val} shifted by {shift}
                 shifted_vectors[dest.val, shift] = shifted_names[shift]
@@ -323,10 +325,74 @@ def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, 
         for shift_amt, shifted_name in shifted_names.items():
             generated_code.append(f'{shifted_name} = {instr.dest} >> {shift_amt}')
 
+
+
+    peepholes = [push_out_rotates, remove_repeated_ops]
+    for peephole in peepholes:
+        generated_code = peephole(generated_code)
     return generated_code
 
-                
-        
+def push_out_rotates(generated_code: List[str]) -> List[str]:
+    import re
+    # Collect metadata
+    lines_used: Dict[str, List[int]] = {} # variable -> list of line nums it gets used on
+    defined_vars: Dict[str, int] = {} # variable -> line num its defined on
+    rotation_amount: Dict[str, int] = {} # variable -> amount its been rotated
+    original_var: Dict[str, str] = {} # rotated variable -> unshifted version of it
+    for i, line in enumerate(generated_code):
+        lhs, rhs = line.split(' = ')
+        for v in defined_vars:
+            if v in rhs:
+                lines_used[v].append(i)
+        defined_vars[lhs] = i
+        lines_used[lhs] = []
+        if '>>' in rhs:
+            orig, amt = rhs.split(' >> ')
+            rotation_amount[lhs] = amt
+            original_var[lhs] = orig
+
+    # push rotations down when possible
+    for i, line in enumerate(generated_code):
+        lhs, rhs = line.split(' = ')
+        p = re.split(' (\+|-|\*) ', rhs)
+        if len(p) == 3:
+            x, _, y = p
+            if x in rotation_amount and y in rotation_amount and rotation_amount[x] == rotation_amount[y]:
+                if len(lines_used[x]) == 1 and len(lines_used[y]) == 1:
+                    # remove both rotation lines
+                    generated_code[defined_vars[x]] = ''
+                    generated_code[defined_vars[y]] = ''
+
+                    # add a rotate after this line
+                    generated_code[i] = generated_code[i].replace(
+                                                x, original_var[x]).replace(
+                                                y, original_var[y]).replace(
+                                                lhs, lhs + "'"
+                                                ) + \
+                                                f'\n{lhs} = {lhs}\' >> {rotation_amount[x]}'
+
+
+    return list(filter(None, '\n'.join(generated_code).split('\n')))
+
+
+def remove_repeated_ops(generated_code: List[str]) -> List[str]:
+    computation: Dict[str, str] = {} # expression -> variable storing that expression (backwards of assignment)
+    remap: Dict[str, str] = {} # variable -> variable to use instead of it
+    for i, line in enumerate(generated_code):
+        lhs, rhs = line.split(' = ')
+
+        for v in remap:
+            rhs = rhs.replace(v, remap[v])
+
+        if rhs in computation:
+            generated_code[i] = ''
+            remap[lhs] = computation[rhs]
+        else:
+            computation[rhs] = lhs
+            generated_code[i] = f'{lhs} = {rhs}'
+
+    return list(filter(None, '\n'.join(generated_code).split('\n')))
+
 
 def code_stats(code: List[str]):
     adds = mults = subs = 0
@@ -341,6 +407,23 @@ def code_stats(code: List[str]):
 
 
 if __name__ == '__main__':
+    code = """__t0 = [a:0, a:1, a:2]
+__t1 = [a:0, a:1, a:2]
+__v0 = __t0 ~ __t1
+__s0 = __v0 >> 2
+__s1 = __v0 >> 1
+__t2 = [b:0, b:1, b:2]
+__t3 = [b:0, b:1, b:2]
+__v1 = __t2 ~ __t3
+__s2 = __v1 >> 2
+__s3 = __v1 >> 1
+__v2 = __s0 * __s2
+__v3 = __s1 * __s3
+__v4 = __v2 + __v3
+__v5 = __v0 * __v1
+__v6 = __v5 + __v4""".split("\n")
+
+    print('\n'.join(remove_repeated_ops(push_out_rotates(code))))
     # seed(3)
     # e = times(times(times('d', 'b'), plus('g', times('w', 'p'))),
     #              times(times('e', 'x'), plus(plus(plus('h', 'n'), 'q'), 'o')))
@@ -360,19 +443,19 @@ if __name__ == '__main__':
     # code = vector_compile(comp)
     # print('\n'.join(code))
 
-    import sys
-    seed = 33
-    Expression = Union['Var', 'Op']
+    # import sys
+    # seed = 33
+    # Expression = Union['Var', 'Op']
 
-    exprs = [treeGenerator(3) for i in range(1)]
-    comp = Compiler({})
-    for expr in exprs:
-        comp.compile(expr)
+    # exprs = [treeGenerator(3) for i in range(1)]
+    # comp = Compiler({})
+    # for expr in exprs:
+    #     comp.compile(expr)
 
-    scalar_code = list(map(str, comp.code))
-    # print('\n'.join(map(str, comp.code)))
-    vector_code = vector_compile(comp)
-    print('\n'.join(vector_code))
+    # scalar_code = list(map(str, comp.code))
+    # # print('\n'.join(map(str, comp.code)))
+    # vector_code = vector_compile(comp)
+    # print('\n'.join(vector_code))
 
-    print(f'Scalar code stats: {code_stats(scalar_code)}')
-    print(f'Vector code stats: {code_stats(vector_code)}')
+    # print(f'Scalar code stats: {code_stats(scalar_code)}')
+    # print(f'Vector code stats: {code_stats(vector_code)}')
