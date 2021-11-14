@@ -74,7 +74,7 @@ def compile_vector(lines):
 
     def max_index(lines, prefix):
         return max(map(lambda line: int(line.split(' ')[0][len(prefix):]), 
-                        filter(lambda line: line.startswith(prefix), lines))) + 1
+                        filter(lambda line: line.startswith(prefix), lines)), default=-1) + 1
     
     mask_set = set()
     
