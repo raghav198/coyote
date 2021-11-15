@@ -35,10 +35,14 @@ def matrix_convolution(matrix1, matrix2):
 def get_mc_input_groups(char1, char2, rows1, cols1, rows2, cols2):
     input_groups = []
     set1 = [[char1 + ":" + str(r) + "," + str(c) for c in range(cols1)] for r in range(rows1)]
-    set1 = set1[0] + set1[1]
+    newset1 = set1[0]
+    for i in range(1, rows1):
+        newset1 += set1[i]
     set2 = [[char2 + ":" + str(r) + "," + str(c) for c in range(cols2)] for r in range(rows2)]
-    set2 = set2[0] + set2[1]
-    input_groups = [{i for i in set1}, {j for j in set2}]
+    newset2 = set2[0]
+    for i in range(1, rows2):
+        newset2 += set2[i]
+    input_groups = [{i for i in newset1}, {j for j in newset2}]
     return input_groups
 
 def mat_convol_benchmark(nels1, nels2):
