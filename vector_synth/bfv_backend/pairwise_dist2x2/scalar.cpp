@@ -2,12 +2,12 @@
 # include "../scalar.hpp"
 int ScalarProgram::num_registers()
 {
-    return 60;
+    return 48;
 }
 
 std::vector<std::string> ScalarProgram::vars_used()
 {
-    return {"d:0", "b:1", "a:1", "a:0", "b:0", "c:1", "d:1", "c:0"};
+    return {"d:0", "b:0", "b:1", "a:0", "d:1", "c:1", "c:0", "a:1"};
 }
 
 std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, RuntimeContext &info)
@@ -18,75 +18,63 @@ std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, R
     regs[1] = locs["c:0"];
     info.eval->sub(regs[0], regs[1], regs[2]);
     regs[3] = locs["a:0"];
-    regs[4] = locs["c:0"];
-    info.eval->sub(regs[3], regs[4], regs[5]);
-    info.eval->multiply(regs[2], regs[5], regs[6]);
-    info.eval->relinearize_inplace(regs[6], rk);
-    regs[7] = locs["b:0"];
-    regs[8] = locs["d:0"];
-    info.eval->sub(regs[7], regs[8], regs[9]);
-    regs[10] = locs["b:0"];
-    regs[11] = locs["d:0"];
-    info.eval->sub(regs[10], regs[11], regs[12]);
-    info.eval->multiply(regs[9], regs[12], regs[13]);
-    info.eval->relinearize_inplace(regs[13], rk);
-    info.eval->add(regs[6], regs[13], regs[14]);
-    regs[15] = locs["a:0"];
-    regs[16] = locs["c:1"];
-    info.eval->sub(regs[15], regs[16], regs[17]);
-    regs[18] = locs["a:0"];
-    regs[19] = locs["c:1"];
-    info.eval->sub(regs[18], regs[19], regs[20]);
-    info.eval->multiply(regs[17], regs[20], regs[21]);
-    info.eval->relinearize_inplace(regs[21], rk);
+    info.eval->sub(regs[3], regs[1], regs[4]);
+    info.eval->multiply(regs[2], regs[4], regs[5]);
+    info.eval->relinearize_inplace(regs[5], rk);
+    regs[6] = locs["b:0"];
+    regs[7] = locs["d:0"];
+    info.eval->sub(regs[6], regs[7], regs[8]);
+    regs[9] = locs["b:0"];
+    info.eval->sub(regs[9], regs[7], regs[10]);
+    info.eval->multiply(regs[8], regs[10], regs[11]);
+    info.eval->relinearize_inplace(regs[11], rk);
+    info.eval->add(regs[5], regs[11], regs[12]);
+    regs[13] = locs["a:0"];
+    regs[14] = locs["c:1"];
+    info.eval->sub(regs[13], regs[14], regs[15]);
+    regs[16] = locs["a:0"];
+    info.eval->sub(regs[16], regs[14], regs[17]);
+    info.eval->multiply(regs[15], regs[17], regs[18]);
+    info.eval->relinearize_inplace(regs[18], rk);
+    regs[19] = locs["b:0"];
+    regs[20] = locs["d:1"];
+    info.eval->sub(regs[19], regs[20], regs[21]);
     regs[22] = locs["b:0"];
-    regs[23] = locs["d:1"];
-    info.eval->sub(regs[22], regs[23], regs[24]);
-    regs[25] = locs["b:0"];
-    regs[26] = locs["d:1"];
-    info.eval->sub(regs[25], regs[26], regs[27]);
-    info.eval->multiply(regs[24], regs[27], regs[28]);
-    info.eval->relinearize_inplace(regs[28], rk);
-    info.eval->add(regs[21], regs[28], regs[29]);
-    regs[30] = locs["a:1"];
-    regs[31] = locs["c:0"];
-    info.eval->sub(regs[30], regs[31], regs[32]);
-    regs[33] = locs["a:1"];
-    regs[34] = locs["c:0"];
-    info.eval->sub(regs[33], regs[34], regs[35]);
-    info.eval->multiply(regs[32], regs[35], regs[36]);
-    info.eval->relinearize_inplace(regs[36], rk);
-    regs[37] = locs["b:1"];
-    regs[38] = locs["d:0"];
-    info.eval->sub(regs[37], regs[38], regs[39]);
-    regs[40] = locs["b:1"];
-    regs[41] = locs["d:0"];
-    info.eval->sub(regs[40], regs[41], regs[42]);
-    info.eval->multiply(regs[39], regs[42], regs[43]);
-    info.eval->relinearize_inplace(regs[43], rk);
-    info.eval->add(regs[36], regs[43], regs[44]);
-    regs[45] = locs["a:1"];
-    regs[46] = locs["c:1"];
-    info.eval->sub(regs[45], regs[46], regs[47]);
-    regs[48] = locs["a:1"];
-    regs[49] = locs["c:1"];
-    info.eval->sub(regs[48], regs[49], regs[50]);
-    info.eval->multiply(regs[47], regs[50], regs[51]);
-    info.eval->relinearize_inplace(regs[51], rk);
-    regs[52] = locs["b:1"];
-    regs[53] = locs["d:1"];
-    info.eval->sub(regs[52], regs[53], regs[54]);
-    regs[55] = locs["b:1"];
-    regs[56] = locs["d:1"];
-    info.eval->sub(regs[55], regs[56], regs[57]);
-    info.eval->multiply(regs[54], regs[57], regs[58]);
-    info.eval->relinearize_inplace(regs[58], rk);
-    info.eval->add(regs[51], regs[58], regs[59]);
+    info.eval->sub(regs[22], regs[20], regs[23]);
+    info.eval->multiply(regs[21], regs[23], regs[24]);
+    info.eval->relinearize_inplace(regs[24], rk);
+    info.eval->add(regs[18], regs[24], regs[25]);
+    regs[26] = locs["a:1"];
+    info.eval->sub(regs[26], regs[1], regs[27]);
+    regs[28] = locs["a:1"];
+    info.eval->sub(regs[28], regs[1], regs[29]);
+    info.eval->multiply(regs[27], regs[29], regs[30]);
+    info.eval->relinearize_inplace(regs[30], rk);
+    regs[31] = locs["b:1"];
+    info.eval->sub(regs[31], regs[7], regs[32]);
+    regs[33] = locs["b:1"];
+    info.eval->sub(regs[33], regs[7], regs[34]);
+    info.eval->multiply(regs[32], regs[34], regs[35]);
+    info.eval->relinearize_inplace(regs[35], rk);
+    info.eval->add(regs[30], regs[35], regs[36]);
+    regs[37] = locs["a:1"];
+    info.eval->sub(regs[37], regs[14], regs[38]);
+    regs[39] = locs["a:1"];
+    info.eval->sub(regs[39], regs[14], regs[40]);
+    info.eval->multiply(regs[38], regs[40], regs[41]);
+    info.eval->relinearize_inplace(regs[41], rk);
+    regs[42] = locs["b:1"];
+    info.eval->sub(regs[42], regs[20], regs[43]);
+    regs[44] = locs["b:1"];
+    info.eval->sub(regs[44], regs[20], regs[45]);
+    info.eval->multiply(regs[43], regs[45], regs[46]);
+    info.eval->relinearize_inplace(regs[46], rk);
+    info.eval->add(regs[41], regs[46], regs[47]);
     std::vector<ctxt> answer;
-    answer.push_back(regs[14]);
-    answer.push_back(regs[29]);
-    answer.push_back(regs[44]);
-    answer.push_back(regs[59]);
+    answer.push_back(regs[12]);
+    answer.push_back(regs[25]);
+    answer.push_back(regs[36]);
+    answer.push_back(regs[47]);
     return answer;
 }
     

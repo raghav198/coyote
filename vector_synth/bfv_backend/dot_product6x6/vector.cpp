@@ -11,7 +11,7 @@ std::map<std::string, ptxt> VectorProgram::make_bits(RuntimeContext &info)
 
 std::vector<ctxt> VectorProgram::initialize_temps(RuntimeContext &info)
 {
-    std::vector<ctxt> ts(8);
+    std::vector<ctxt> ts(10);
     ts[0] = encrypt_input("110111111111111111", info);
     ts[2] = encrypt_input("110111111111111111", info);
     return ts;
