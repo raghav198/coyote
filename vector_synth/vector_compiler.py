@@ -380,13 +380,16 @@ def push_out_rotates(generated_code: List[str]) -> List[str]:
 
 
 def remove_repeated_ops(generated_code: List[str]) -> List[str]:
+    import re
     computation: Dict[str, str] = {} # expression -> variable storing that expression (backwards of assignment)
     remap: Dict[str, str] = {} # variable -> variable to use instead of it
     for i, line in enumerate(generated_code):
+        print(f'{i}: {line}')
         lhs, rhs = line.split(' = ')
 
         for v in remap:
-            rhs = rhs.replace(v, remap[v])
+            rhs = re.sub(rf'\b{v}\b', remap[v], rhs)
+            # rhs = rhs.replace(v, remap[v])
 
         if rhs in computation:
             generated_code[i] = ''

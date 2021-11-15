@@ -2,6 +2,7 @@ from collections import defaultdict
 from email.policy import default
 import enum
 from inspect import BoundArguments
+from math import sqrt
 from time import time
 
 from numpy import matrix
@@ -407,7 +408,7 @@ def integrate_colored_edges(coloring: Dict[Edge, Color], graph: Graph[Node], sta
 
     elif result == z3.unknown and opt.reason_unknown() == 'canceled':
         print('Adding more lanes and trying again')
-        return integrate_colored_edges(coloring, graph, stages, bound_lanes=2 * bound_lanes)
+        return integrate_colored_edges(coloring, graph, stages, bound_lanes=int(sqrt(sqrt(2)) * bound_lanes))
         
     end = time()
     # print(f'Solving took {end - start} time')
