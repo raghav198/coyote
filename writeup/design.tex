@@ -63,7 +63,7 @@ Repeating the process requires some extra work: whenever a set of subexpressions
 Doing so requires that we make two changes to the vectorizability graph:
 \begin{enumerate}
     \item All the nodes that were cut out of the circuit (the {\em sub}-subexpressions) need to be eliminated, since they have already been scheduled.
-    \item Removing certain subexpressions affects the similarities of their ancestors, since there are now fewer operations that can be packed together. These changes need to be reflected by updating the weights of the vectorizability graph.
+    \item Removing certain subexpressions changes the structure of the larger expressions containing them, and hence changes the similarity of those larger  expressions in the overall circuit. \footnote{This is in contrast to what one might expect when vectorizing at the level of instructions instead of subexpressions. The reason we vectorize at the level of subexpressions is to reduce the total number of epochs, and hence the total number of rotations.} These changes need to be reflected by updating the weights of the vectorizability graph.
 \end{enumerate}
 
 Using the circuit from Figure~\ref{fig:small-expr-circuit} as a running example, the maximal weight clique in its vectorizability graph is just the edge connecting $(ab + c)$ and $(xy + z)$ (which from earlier has a weight of 2), so \system selects them to vectorize in the first epoch.
@@ -122,28 +122,48 @@ The bound is initally very loose but we iteratively tighten it until the solver 
     \end{subfigure}
     \caption{An example coloring the edges of a dependency graph to produce a good lane assignment}\label{fig:lane-assignment}
 \end{figure*}
-Scheduling the program in the way described above amounts to splitting it into a number of {\em epochs}, where each epoch consists of a set of subexpressions to compute. \milind{again ``phase'' vs ``stage''. Also, what's important here isn't that you have the phases -- what's important is that each phase generates output operands in particular lanes, and those operands might need to hook up to one or more input operands in other phases, which means that either the lanes need to be set so everything lines up right, or you need to add rotations.}
+
+Once the entire program is scheduled, each epoch produces a set of outputs which may depend on outputs from previous epochs.
+Each output is produced on a single lane, and whenever a pair of outputs with a dependence between them do not map to the same lane, we need to insert a rotation to get them to line up. \raghav{is this better?}
+
+% Scheduling the program in the way described above amounts to splitting it into a number of {\em epochs}, where each epoch consists of a set of subexpressions to compute. \milind{again ``phase'' vs ``stage''. Also, what's important here isn't that you have the phases -- what's important is that each phase generates output operands in particular lanes, and those operands might need to hook up to one or more input operands in other phases, which means that either the lanes need to be set so everything lines up right, or you need to add rotations.}
 
 For a program that is split into $k$ epochs, we can represent these dependencies in a $k$-partite graph, where each partition corresponds to a epoch and each vertex in a partition corresponds to a subexpression computed in that epoch.
-Placing expressions to lanes corresponds to assigning an integer to each vertex in this dependency graph such that no two vertices in the same partition get mapped to the same integer.
-Unfortunately, a naive approach to this can have very poor results, leading to a single vector needing several rotations to line each slot up with where it gets used.
-Instead, we try to assign lanes in a way that minimizes the number of {\em distinct} rotations required for each vector (for example, if multiple pieces of data on the same vector are produced two lanes away from where they are consumed, we can rotate the vector a single time to get them both to line up).
-In other words, given a $k$-partite graph with an integer associated to each vertex, we can assign to each edge the difference of its two endpoints, representing the rotation. 
-To minimize the distinct numbers we have to assign to the edges, we'd like to be able to go backwards: in other words, we want to assign as few numbers as possible to all the edges such that ``integrating'' them gives a consistent assignment of numbers to the vertices.
+Figure~\ref{fig:dependency-graph} shows an example 3-partite dependency graph for a particular 3-epoch program, where the first epoch had three subexpressions in it, the second had two, and the third had three.
+To assign lanes to the subexpressions, we need to assign a number to each vertex in this dependency graph so that no two vertices in the same epoch get the same number.
+Unfortunately, a naive approach to this can have very poor results: consider, for example, placing B, D, and G on lane 1, C, E, and F on lane 2, and A and H on the lane 3.
+This particular placement requires one rotation each to line up B with E, A with F, and C with H, an additional two rotations to line up D with H and F, and a final rotation to line up E with G.
+In the worst case, this incurs 6 rotations.
+In the best case, if the vector schedule happens to pack the outputs of B and C together into the same vector, the $B\rightarrow E$ and $C\rightarrow H$ rotations are the same (since they are both a rotation of 1); similarly, if D and E are packed into the same vector, the $D\rightarrow F$ and $E\rightarrow G$ rotations are the same, requiring a total of 4 rotations to line everything up. \raghav{I feel like this is important to say since its the crux of the whole ``use the same number for multiple edges if possible'' thing, but I don't know that I did a good enough job explaining it.}
+% This particular placement requires one rotation to line B up with E, an additional two rotations to line D up with H and F, respectively, and a final rotation to line up E with G, incurring a total of four rotations. 
+However, if we instead place B, E, and G on lane 1, A, D and F on lane 2, and C and H on lane 3, we can do this with only two rotations: one to line up B and D, and one to line up D and H. 
+The goal of the algorithm described here is automatically determining the latter placement.
 
-This consistency constraint can be reworded as follows: For every path through the $k$-partite graph that starts and ends on the same partition, the directed sum of the edge weights along that path must be 0 if the path is a cycle, or nonzero otherwise.
-(Notice that this automatically enforces the condition that two different paths between a pair of vertices on the same partition must add up to the same value, since concatenating one path with the reversal of the other produces a cycle, which must sum to 0).
-\raghav{If only I could figure out a neat and tidy way to describe this whole process mathematically\dots}
+The heuristic approach is to place vertices on lanes while getting as many edges as possible to have the same rotation along them.
+It would be much easier to reason about this by assigning rotation values to edges instead of assigning lanes to vertices, but there is a subtlety we need to keep track of here: not every assignment of rotation values to edges comes from a consistent assignment of lanes to vertices.
+This consistency requirement be reworded as follows: for any path that starts and ends on the same epoch in the dependency graph, the {\em directed sum} of the rotation values along it should be zero if the path is a cycle, and nonzero otherwise.
+(In a directed sum, we assign a direction to each edge, and negate its value if we follow the edge backwards).
+Notice that this automatically enforces that two different paths between a pair of vertices should add up to the same value, since any two such paths also form a cycle by inverting one of them, and the cycle needs to add up to 0.
+% Instead, we try to assign lanes in a way that minimizes the number of {\em distinct} rotations required for each vector (for example, if multiple pieces of data on the same vector are produced two lanes away from where they are consumed, we can rotate the vector a single time to get them both to line up).
+% In other words, given a $k$-partite graph with an integer associated to each vertex, we can assign to each edge the difference of its two endpoints, representing the rotation. 
+% To minimize the distinct numbers we have to assign to the edges, we'd like to be able to go backwards: in other words, we want to assign as few numbers as possible to all the edges such that ``integrating'' them gives a consistent assignment of numbers to the vertices.
 
-Iterating over all the paths in the graph, we end up with a bunch of linear {\em path relations} that look like $$R_k(x_{i_1}, \dots, x_{i_{n_k}})$$ where initially all of the $x_i$s are unassigned.
-To assign a particular $x_i$, if it is part of a relation where it is the only unassigned variable, its value is fixed to be one that satisfies the relation; otherwise, it can be assigned freely.
-This data forms a hypergraph, where the vertices correspond to edges in the $k$-partite dependency graph, and each path relation becomes a hyperedge connecting the associated vertices.
-In order to find a consistent assignment of rotation values to edges we need to color this hypergraph in such a way that the last vertex to be colored on any hyperedge must be given a distinct color from the rest of the vertices on the hyperedge.
-Obviously, to minimize the number of distinct rotations needed we would like to use as few colors as possible.
+% This consistency constraint can be reworded as follows: For every path through the $k$-partite graph that starts and ends on the same partition, the directed sum of the edge weights along that path must be 0 if the path is a cycle, or nonzero otherwise.
+% (Notice that this automatically enforces the condition that two different paths between a pair of vertices on the same partition must add up to the same value, since concatenating one path with the reversal of the other produces a cycle, which must sum to 0).
+% \raghav{If only I could figure out a neat and tidy way to describe this whole process mathematically\dots}
+
+Iterating over all the paths in the graph, we end up with a bunch of linear {\em path relations} as shown in Figure~\ref{fig:path-relations}, where initially all of the $X_i$s are unassigned.
+To assign a particular $X_i$, if it is part of a relation where it is the only unassigned variable, its value is fixed to be one that satisfies the relation; otherwise, it can be assigned freely.
+This data forms a hypergraph like the one in Figure~\ref{fig:colored-hypergraph}, where the vertices $1,\dots, 7$ correspond to edges in Figure~\ref{fig:dependency-graph}, and each path relation becomes a hyperedge connecting the associated vertices.
+In order to find a consistent assignment of rotation values to edges we need to color this hypergraph in such a way that the last vertex to be colored on any hyperedge must be given a distinct color from the rest of the vertices on the hyperedge (this is equivalent to producing a fresh value for the last $X_i$ to be assigned in a path relation, so it can freely be assigned to satisfy the relation). \raghav{Better explanation?}
+To minimize the number of distinct rotations needed, we would like to use as few colors as possible.
 This is relatively straightforward to do: At each step we pick the vertex that is part of as few ``free'' hyperedges as possible and assign it the next available color, until all the vertices have been colored.
+In the example shown in Figure~\ref{fig:colored-hypergraph}, we first assign to $X_3, X_4$, and $X_7$, (hyperdegree 2), then to $X_2$ and $X_6$ (hyperdegree 3), and then to $X_1$ and $X_5$ (hyperdegree 4).
+Since $X_1$ is the last vertex to be assigned in the relation $X_2 - X_1 \neq 0$, it must be given a color other than blue, so it gets red, and since $X_5$ is the last to be assigned in the relation $X_3 - X_5 - X_1 \neq 0$, it cannot be red or blue, so it gets green.
 
-Now, all that remains is getting actual integer values for each color. 
-This can be formulated as a simple integer program, with a variable $c_i$ for each color, a variable  $v_j$ for each subexpression, and a constraint for each edge $(v, v')$ in the dependency graph colored $c$ to assert $v - v' == c$.
-The way we colored the hypergraph ensures that this integer program is always solvable \raghav{In a happier timeline I might have proven this claim}, and the solution tells us exactly which vector lane each instruction should go on.
+Once the vertices of the hypergraph are colored, we can use it to color the edges of the original dependency graph, like in Figure~\ref{fig:colored-dependency-graph}. 
+Now, all that remains is getting actual rotation for each color. 
+This can be formulated as a simple integer program, with a variable $c_i$ for each color, a variable  $v_j$ for each node in the dependency graph, and a constraint for each edge $(v, v')$ colored $c$ to assert $v - v' == c$.
+The way we colored the hypergraph ensures that this integer program is always solvable, and the solution tells us exactly which vector lane each instruction should go on.
 
 \raghav{I debated including the whole ``how do we calculate paths'' thing as well as the whole ``there's too many paths so we guess at a few and hope it works'' thing but decided against it for now, that may be the wrong decision though}\milind{The CEGIS-y approach to finding paths might be a nice thing to add to the implementation section.}
