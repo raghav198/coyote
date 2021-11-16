@@ -54,7 +54,7 @@ Cliques in this graph correspond exactly to sets of expressions that can all be 
 We can further label each edge with the similarity score of the two subexpressions it connects.
 Since each similarity score roughly corresponds to the number of instructions that could be packed together, the total weight of a clique represents the total number of operations we save by vectorizing together all the subexpressions contained within. 
 There is a subtlety here: we don't just want to take the largest clique in the graph, since this means vectorizing a lot of expressions, which will likely incur several rotates down the line. 
-To account for this, we subtract a fixed amount from the weight of each edge; this penalizes large cliques, and ensures that we prioritize finding small cliques of highly vectorizable expressions to avoid doing too many rotations.
+To account for this, we subtract a fixed \milind{Not fixed---based on size of the clique} amount from the weight of each edge; this penalizes large cliques, and ensures that we prioritize finding small cliques of highly vectorizable expressions to avoid doing too many rotations.
 % By simply subtracting a fixed amount from the weight of each edge we can penalize large cliques which would incur a much higher rotation overhead, unless the vectorizability of the clique is high enough to be worth it. \milind{Rephrase this: start by explaining why you don't want to just take super big cliques -- it doesn't take into account rotation -- and then explain how you adjust the weights to account for this}
 The problem of finding a set of subexpressions to vectorize together reduces to finding a maximal weight clique in this graph, which is easily packaged off to an SMT solver.
 
