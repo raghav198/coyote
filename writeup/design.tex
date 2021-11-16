@@ -1,22 +1,15 @@
 \section{Design}\label{sec:design}
-% \milind{Call this section ``Design.'' Try to make the order and names of the subsections here correspond to the order and names of subsections in Section 3. It's OK if one subsection in 3 becomes multiple subsections here, though.}
-
-% \milind{As a LaTeX structural thing: it's helpful to put the section markup at the top of the section text. That way you don't have to bounce around between files, and also you can immediately tell from looking at the top of the file what the section is}
-
-% \raghav{TODO: learn a word that's not ``approach''}\milind{strategy, procedure, way, scheme}
 Naively vectorizing arbitrary arithmetic circuits looks a lot like SLP: We start by serializing the circuit into a sequence of scalar three-address code.
 At each step, we look at all available scalar instructions (i.e. instructions whose operands have all already been scheduled), pick the largest set with the same operation, and schedule them together.
 The problem with this naive strategy is it makes no guarantees about values being computed and used on the same lane; in other words, it incurs arbitrarily many shuffles to make the computation line up.
-% For instance, take the \raghav{\dots what's an example of a computation like that??}\milind{I think this should be illustrated with an example. Not necessarily a figure, but at least something that shows why shuffles are necessary} 
 Unlike in normal vectorization, where applying arbitrary permutations to the lanes is relatively cheap, in FHE we are only allowed to rotate the entire vector by a fixed number of slots, and this rotation operation is expensive.
 Hence, the cost of bookkeeping quickly outweighs whatever benefit we might get from vectorization, making this approach not worth it.
 
-% The fundamental problem that makes vectorization in an FHE setting very hard is the high cost of moving data between vector lanes. \milind{Isn't this just a restatement of what you wrote above?}
 Data movement is actually impossible to avoid: in an arithmetic circuit that computes a single expression, all the intermediate nodes eventually feed into the root, meaning that without data movement every instruction must be on the same lane; in other words, no vectorization can take place.
 Here we have two extremes: on one end of the spectrum is SLP, which packs aggressively without considering data movement; the other end avoids data movement entirely, precluding any vectorization within individual expressions.
 The key idea of our approach is to balance between these two extremes, by finding highly vectorizable subexpressions and evaluating them together with each one on its own lane.
 % don't be specific about trees here
-\subsection{Selecting Vectorizable Subexpressions} %\milind{In general, each of these subsections should have a figure associated with it. This subsection might not need one, since there will be a figure from Section 3, right? ;-)} \raghav{I need annotations on this entire subsection of which things don't make sense and need to be rewritten, because I am certain there are several.}
+\subsection{Selecting Vectorizable Subexpressions} 
 \subsubsection*{Measuring subexpression vectorizability}
 We want to measure how well the instruction sequences corresponding to two arbitrary expressions line up.
 Given an arithmetic circuit, we can inductively compute the structural similarity between every pair $(t_1, t_2)$ of independent subcircuits (two circuits are independent if they have no overlap) as follows:
@@ -63,7 +56,7 @@ Repeating the process requires some extra work: whenever a set of subexpressions
 Doing so requires that we make two changes to the vectorizability graph:
 \begin{enumerate}
     \item All the nodes that were cut out of the circuit (the {\em sub}-subexpressions) need to be eliminated, since they have already been scheduled.
-    \item Removing certain subexpressions changes the structure of the larger expressions containing them, and hence changes the similarity of those larger  expressions in the overall circuit. \footnote{This is in contrast to what one might expect when vectorizing at the level of instructions instead of subexpressions. The reason we vectorize at the level of subexpressions is to reduce the total number of epochs, and hence the total number of rotations.} These changes need to be reflected by updating the weights of the vectorizability graph.
+    \item Removing certain subexpressions changes the structure of the larger expressions containing them, and hence changes the similarity of those larger  expressions in the overall circuit. \footnote{This is in contrast to what one might expect when vectorizing at the level of instructions instead of subexpressions. The reason we vectorize at the level of subexpressions is to reduce the total number of epochs, and hence the total number of rotations.} These changes need to be reflected by updating the weights of the vectorizability graph. To handle this more efficiently, we track all the pieces that make up the weight of an edge when computing similarities. These weights can then be updated without having to recompute everything each time. \raghav{How's that?}
 \end{enumerate}
 
 Using the circuit from Figure~\ref{fig:small-expr-circuit} as a running example, the maximal weight clique in its vectorizability graph is just the edge connecting $(ab + c)$ and $(xy + z)$ (which from earlier has a weight of 2), so \system selects them to vectorize in the first epoch.
@@ -76,7 +69,7 @@ Since there are no subexpressions here that can be vectorized, \system chooses t
 % These changes must be reflected by updating the weights of the vectorizability graph.
 % To avoid having to recompute all the similarities each time, we store for each edge the list of operations it could pack together; the edge weight can be recovered as the sum of the costs of all of these (in the simplest case, the length). \milind{very confusing...}
 % Each time a node is quotiented out, it is removed from each list that contains it; doing so automatically updates all the edge weights to account for its removal.
-\raghav{To deal with point (2) more efficiently, I do a trick where I track all the pieces that make up the weight of an edge, so I can update the weights without having to recompute similarity. I originally tried to write this out, but its kind of confusing. Now that I think about it, though, it seems like more of an implementation detail than anything. Should I still write it out here, or just leave it?}\milind{What you wrote in this comment is sufficient, and it's short enough that it's worth including. It {\em is} sort of an implementation detail, but we can cut it for space if we need to.}
+% \raghav{To deal with point (2) more efficiently, I do a trick where I track all the pieces that make up the weight of an edge, so I can update the weights without having to recompute similarity. I originally tried to write this out, but its kind of confusing. Now that I think about it, though, it seems like more of an implementation detail than anything. Should I still write it out here, or just leave it?}\milind{What you wrote in this comment is sufficient, and it's short enough that it's worth including. It {\em is} sort of an implementation detail, but we can cut it for space if we need to.}
 Now, we can repeat the above process of finding a maximal clique and vectorizing it, until eventually all nontrivial cliques have a negative total weight, meaning that there are no more subexpressions that are vectorizable enough to make the rotation costs worth it, so we just emit scalar code for the rest of the program.
 
 \subsection{Instruction Packing}
@@ -89,9 +82,9 @@ This causes the dynamic programming strategy of sequence alignment to quickly bl
 
 Instead of wrangling so many subproblems, we can easily formulate this as an ILP.
 We create a variable for each scalar instruction representing its {\em schedule slot}, or the time at which it executes.
-We add constraints to require that each instruction be scheduled after all of its dependencies have been scheduled, and also to require that two instructions with different operations never be scheduled at the same time. 
+We add constraints to require that each instruction be scheduled after all of its dependences have been scheduled, and also to require that two instructions with different operations never be scheduled at the same time. 
 Finally, to speed up the search for a solution, we place a bound on the total length of the schedule (in other words, an upper bound on the value of the schedule slot for any scalar instruction).
-The bound is initially very loose but we iteratively tighten it until the solver returns UNSAT, meaning no smaller schedule could be found, so the most recent one was the smallest. \raghav{better?}\milind{yup.}
+The bound is initially very loose but we iteratively tighten it until the solver returns UNSAT, meaning no smaller schedule could be found, so the most recent one was the smallest.
 
 % Instead of wrangling so many subproblems, we can easily pass this off to an SMT solver. \milind{Maybe say that you formulate this as an ILP? "pass to an SMT solver" is an implementation decision -- the {\em design} is that you create a bunch of ILP constraints}
 % The encoding consists of a variable for each instruction representing when it gets scheduled, as well as constraints that require two instructions scheduled at the same time to have the same operation, and constraints that require the two dependencies of each instruction to be scheduled before it.
@@ -123,11 +116,13 @@ The bound is initially very loose but we iteratively tighten it until the solver
     \caption{An example coloring the edges of a dependency graph to produce a good lane assignment}\label{fig:lane-assignment}
 \end{figure*}
 
-Once the entire program is scheduled, each epoch produces a set of outputs which may depend on outputs from previous epochs.
-Each output is produced on a single lane, and whenever a pair of outputs with a dependence between them do not map to the same lane, we need to insert a rotation to get them to line up. \raghav{is this better?}
+Once the entire program is scheduled, each epoch produces a set of outputs which may feed into inputs of subsequent epochs.
+Since no rotation happens within an epoch, each input must be on the same lane as the output of the epoch it eventually flows into.
+This creates a dependence between the output of one epoch with the output of a later epoch, in the sense that if these do not map to the same lane, we need to insert a rotation to line them up.
+% Once the entire program is scheduled, each epoch produces a set of outputs which may depend on outputs from previous epochs.
+% Each output is produced on a single lane, and whenever a pair of outputs with a dependence between them do not map to the same lane, we need to insert a rotation to get them to line up. \raghav{is this better?}
 
 % Scheduling the program in the way described above amounts to splitting it into a number of {\em epochs}, where each epoch consists of a set of subexpressions to compute. \milind{again ``phase'' vs ``stage''. Also, what's important here isn't that you have the phases -- what's important is that each phase generates output operands in particular lanes, and those operands might need to hook up to one or more input operands in other phases, which means that either the lanes need to be set so everything lines up right, or you need to add rotations.}
-\milind{You say ``these dependencies'' here, but there's no mention of dependences earlier in this section :-) Also, you definitely need to explain wha the lane placement problem {\em is} before you explain how you solve it... Just make sure that's part of your TODO above :-) Also, I definitely prefer ``dependence'' and ``dependences'' as the words to use here...}
 For a program that is split into $k$ epochs, we can represent these dependencies in a $k$-partite graph, where each partition corresponds to a epoch and each vertex in a partition corresponds to a subexpression computed in that epoch.
 Figure~\ref{fig:dependency-graph} shows an example 3-partite dependency graph for a particular 3-epoch program, where the first epoch had three subexpressions in it, the second had two, and the third had three.
 To assign lanes to the subexpressions, we need to assign a number to each vertex in this dependency graph so that no two vertices in the same epoch get the same number.
