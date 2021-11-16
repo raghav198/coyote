@@ -14,7 +14,7 @@ from numberTreeGenerator import *
 
 if __name__ == '__main__':
     ### Change name to whatever you want the directory name to be
-    directory = "mat_mul_det2x2"
+    directory = "pairwise_dist4x4"
     ###
     path = os.path.join("outputs/", directory)
     shutil.rmtree(path)
@@ -57,16 +57,14 @@ if __name__ == '__main__':
     # tag_list.append(c.compile(tree))
     ## End Matrix Multiply Determinant Benchmark
 
-    
-
     ## Matrix Multiply Determinant Benchmark
-    input_groups = get_mmd_input_groups('a', 'b', 3, 3)
-    c = Compiler({}, input_groups, allow_replicating = [0])
+    # input_groups = get_mmd_input_groups('a', 'b', 3, 3)
+    # c = Compiler({}, input_groups, allow_replicating = [0])
 
-    tag_list = []
-    tree = (mat_mul_det_benchmark(3, 3)).a
-    print(tree)
-    tag_list.append(c.compile(tree))
+    # tag_list = []
+    # tree = (mat_mul_det_benchmark(3, 3)).a
+    # print(tree)
+    # tag_list.append(c.compile(tree))
     ## End Matrix Multiply Determinant Benchmark
 
     ######################################################
@@ -109,14 +107,14 @@ if __name__ == '__main__':
     ## End Pairwise Distance Benchmark
 
     ## Pairwise Distance Benchmark
-    # input_groups = get_pd_input_groups('a', 'b', 'c', 'd', 4, 4)
-    # c = Compiler({}, input_groups, allow_replicating = [0, 1])
+    input_groups = get_pd_input_groups('a', 'b', 'c', 'd', 4, 4)
+    c = Compiler({}, input_groups, allow_replicating = [0, 1])
 
-    # tag_list = []
-    # for i in pairwise_dist_benchmark(4, 4):
-    #     tree = i.a
-    #     print(tree)
-    #     tag_list.append(c.compile(tree))
+    tag_list = []
+    for i in pairwise_dist_benchmark(4, 4):
+        tree = i.a
+        print(tree)
+        tag_list.append(c.compile(tree))
     ## End Pairwise Distance Benchmark
 
     ######################################################
