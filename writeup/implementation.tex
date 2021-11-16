@@ -1,7 +1,7 @@
 \section{Implementation}\label{sec:implementation}
 \subsection{Code Generation}
-The output of the algorithm in Section~\ref{sec:design} is a vector schedule (i.e. a lane and time for each scalar, where the time determines the order in which instructions get executed). \raghav{Is `time' the right word for this? (like, what time step the instruction gets scheduled on)}
-This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction.
+The output of the algorithm in Section~\ref{sec:design} is a vector schedule (i.e. a lane and time for each scalar, where the time determines the order in which instructions get executed). \raghav{Is `time' the right word for this? (like, what time step the instruction gets scheduled on)}\milind{You used ``schedule slot'' earlier ... just use that again.}
+This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction.\milind{Whoah: definitely explain what a blend instruction is here :-) No italicizing to say a word is important without explaining what the word means!}
 
 Throughout the compilation, we keep a lookup table that maps a (scalar, lane) pair to the name of the vector register containing it.
 In particular, there may be several vector registers that contain a particular scalar, but on separate lanes (this results from a rotation of the original register where the instruction was produced).
