@@ -70,15 +70,15 @@ if __name__ == '__main__':
     ######################################################
 
     ## Matrix Convolution Benchmark
-    # input_groups = get_mc_input_groups('a', 'b', 4, 4, 2, 2)
-    # c = Compiler({}, input_groups, allow_replicating = [1])
+    input_groups = get_mc_input_groups('a', 'b', 4, 4, 2, 2)
+    c = Compiler({}, input_groups, allow_replicating = [1])
 
-    # tag_list = []
-    # for i in mat_convol_benchmark(4, 2):
-    #     for j in range(4 - 2 + 1):
-    #         tree = i[j].a
-    #         print(tree)
-    #         tag_list.append(c.compile(tree))
+    tag_list = []
+    for i in mat_convol_benchmark(4, 2):
+        for j in range(4 - 2 + 1):
+            tree = i[j].a
+            print(tree)
+            tag_list.append(c.compile(tree))
     ## End Matrix Convolution Benchmark
 
     ## Matrix Convolution Benchmark
@@ -97,7 +97,7 @@ if __name__ == '__main__':
 
     ## Pairwise Distance Benchmark
     # input_groups = get_pd_input_groups('a', 'b', 'c', 'd', 2, 2)
-    # c = Compiler({}, input_groups, allow_replicating = [0, 1])
+    # c = Compiler({}, input_groups, allow_replicating = [0, 1, 2, 3])
 
     # tag_list = []
     # for i in pairwise_dist_benchmark(2, 2):
@@ -107,8 +107,13 @@ if __name__ == '__main__':
     ## End Pairwise Distance Benchmark
 
     ## Pairwise Distance Benchmark
+<<<<<<< HEAD
     input_groups = get_pd_input_groups('a', 'b', 'c', 'd', 4, 4)
     c = Compiler({}, input_groups, allow_replicating = [0, 1])
+=======
+    # input_groups = get_pd_input_groups('a', 'b', 'c', 'd', 4, 4)
+    # c = Compiler({}, input_groups, allow_replicating = [0, 1, 2, 3])
+>>>>>>> bc6a8ee152dde1056af57fe8924c288359fa6a0f
 
     tag_list = []
     for i in pairwise_dist_benchmark(4, 4):

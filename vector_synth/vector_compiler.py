@@ -1,4 +1,6 @@
-from hypergraph_coloring import place_lanes_hypergraph_method
+from math import sqrt
+from graph import Edge
+from hypergraph_coloring import build_dependency_graph, build_hypergraph_with_path_semiring, color_hypergraph, colors, place_lanes_hypergraph_method
 from manual_lane_placement import place_lanes_manually, place_lanes_piecewise
 from covectorizability_graph import build_graph
 from max_clique import BreaksetCalculator
@@ -74,6 +76,8 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, log=stderr):
 
     input_groups = comp.input_groups[:]
 
+    total_bkset_val = 0
+
     while True:
         if len(input_groups) > 0:
             cur_group = input_groups[0]
@@ -84,7 +88,8 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, log=stderr):
                 if instr.op == '~' and instr.lhs.val in cur_group:
                     bkset.append(instr.dest.val)
         else:
-            bkset, _ = bkset_calc.solve()  # get_breakset(expr, tag_lookup)
+            bkset, val = bkset_calc.solve()  # get_breakset(expr, tag_lookup)
+            total_bkset_val += int(sqrt(val))
         if len(bkset) > max_warp:
             max_warp = len(bkset)
 
@@ -147,7 +152,7 @@ def divide_stages(comp: Compiler, bkset_calc: BreaksetCalculator, log=stderr):
         interstage_dicts.append(stage_dict)
         intrastage_dicts.append(intrastage_dict)
 
-    return program_stages, interstage_dicts, intrastage_dicts, max_warp
+    return program_stages, interstage_dicts, intrastage_dicts, max_warp, total_bkset_val
 
 
 def vector_compile(comp: Compiler, log=stderr):
@@ -156,10 +161,38 @@ def vector_compile(comp: Compiler, log=stderr):
     # comp.compile(expr)
 
     # split the scalar program into stages
-    bkset_calc = BreaksetCalculator(
-        comp.target + 1, *build_graph(comp.exprs, log=log), rotate_penalty=MATCH_MUL, log=log)
-    program_stages, interstage_deps, intrastage_deps, warp_size = divide_stages(
-        comp, bkset_calc, log=log)
+    *pen_stuff, pen_score = compute_epochs(comp, log, penalty=10, overhead=7)
+    *unpen_stuff, unpen_score = compute_epochs(comp, log, penalty=0, overhead=7)
+
+    if pen_score > unpen_score:
+        print('PENALIZING ROTATIONS')
+        program_stages, interstage_deps, intrastage_deps, warp_size = pen_stuff
+    else:
+        print('NOT PENALIZING ROTATIONS')
+        program_stages, interstage_deps, intrastage_deps, warp_size = unpen_stuff
+
+    # print('TRYING WITHOUT ROTATE PENALTY')
+    # bkset_calc = BreaksetCalculator(
+    #     comp.target + 1, *build_graph(comp.exprs, log=log), rotate_penalty=0, log=log)
+    # program_stages, interstage_deps, intrastage_deps, warp_size, total = divide_stages(
+    #     comp, bkset_calc, log=log)
+
+
+    # graph, stages, _ = build_dependency_graph(interstage_deps)
+    # edges, hyperedges = build_hypergraph_with_path_semiring(graph, stages, timeout=5000)
+    # coloring = color_hypergraph((edges, hyperedges), colors)
+    # print(f'TOTAL BKSET VALUE: {total}')
+    # rotate_overhead = 0
+    # for i in range(len(stages)):
+    #     colors_used = set()
+    #     for v1 in stages[i]:
+    #         for v2 in filter(lambda v2: any(v2 in s for s in stages[i+1:]), graph[v1]):
+    #             colors_used.add(coloring[Edge(v1, v2)])
+    #     rotate_overhead += len(colors_used)
+    # # print(f'COLORS USED: {len(set(coloring.values()))}')
+    # print(f'ROTATE PENALTY: {rotate_overhead}')
+
+    # input()
 
     # optimal lane placement based on interstage and intrastage dependences
     print(interstage_deps, file=log)
@@ -205,6 +238,28 @@ def vector_compile(comp: Compiler, log=stderr):
     print(f'Overall schedule: {inv_schedule}')
     print(f'Overall lanes: {lanes}')
     return prepare_all(vector_program, interstage_deps, intrastage_deps, lanes, schedule, warp_size), warp_size
+
+def compute_epochs(comp, log, penalty, overhead):
+    bkset_calc = BreaksetCalculator(
+        comp.target + 1, *build_graph(comp.exprs, log=log), rotate_penalty=penalty, log=log)
+    program_stages, interstage_deps, intrastage_deps, warp_size, total = divide_stages(
+        comp, bkset_calc, log=log)
+
+
+    graph, stages, _ = build_dependency_graph(interstage_deps)
+    edges, hyperedges = build_hypergraph_with_path_semiring(graph, stages, timeout=5000)
+    coloring = color_hypergraph((edges, hyperedges), colors)
+    print(f'TOTAL BKSET VALUE: {total}')
+    rotate_overhead = 0
+    for i in range(len(stages)):
+        colors_used = set()
+        for v1 in stages[i]:
+            for v2 in filter(lambda v2: any(v2 in s for s in stages[i+1:]), graph[v1]):
+                colors_used.add(coloring[Edge(v1, v2)])
+        rotate_overhead += len(colors_used)
+    # print(f'COLORS USED: {len(set(coloring.values()))}')
+    print(f'ROTATE PENALTY: {rotate_overhead}')
+    return program_stages,interstage_deps,intrastage_deps,warp_size, total - overhead * rotate_overhead
 
 
 def prepare_all(vector_program: List[VecInstr], interstage_deps: List[Dict[int, Set[int]]], intrastage_deps: List[Dict[int, List[int]]], lanes: List[int], schedule: List[int], warp_size: int):
