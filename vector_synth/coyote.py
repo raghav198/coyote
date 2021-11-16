@@ -60,27 +60,27 @@ if __name__ == '__main__':
     
 
     ## Matrix Multiply Determinant Benchmark
-    input_groups = get_mmd_input_groups('a', 'b', 3, 3)
-    c = Compiler({}, input_groups, allow_replicating = [0])
+    # input_groups = get_mmd_input_groups('a', 'b', 3, 3)
+    # c = Compiler({}, input_groups, allow_replicating = [0])
 
-    tag_list = []
-    tree = (mat_mul_det_benchmark(3, 3)).a
-    print(tree)
-    tag_list.append(c.compile(tree))
+    # tag_list = []
+    # tree = (mat_mul_det_benchmark(3, 3)).a
+    # print(tree)
+    # tag_list.append(c.compile(tree))
     ## End Matrix Multiply Determinant Benchmark
 
     ######################################################
 
     ## Matrix Convolution Benchmark
-    # input_groups = get_mc_input_groups('a', 'b', 4, 4, 2, 2)
-    # c = Compiler({}, input_groups, allow_replicating = [1])
+    input_groups = get_mc_input_groups('a', 'b', 4, 4, 2, 2)
+    c = Compiler({}, input_groups, allow_replicating = [1])
 
-    # tag_list = []
-    # for i in mat_convol_benchmark(4, 2):
-    #     for j in range(4 - 2 + 1):
-    #         tree = i[j].a
-    #         print(tree)
-    #         tag_list.append(c.compile(tree))
+    tag_list = []
+    for i in mat_convol_benchmark(4, 2):
+        for j in range(4 - 2 + 1):
+            tree = i[j].a
+            print(tree)
+            tag_list.append(c.compile(tree))
     ## End Matrix Convolution Benchmark
 
     ## Matrix Convolution Benchmark
@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
     ## Pairwise Distance Benchmark
     # input_groups = get_pd_input_groups('a', 'b', 'c', 'd', 2, 2)
-    # c = Compiler({}, input_groups, allow_replicating = [0, 1])
+    # c = Compiler({}, input_groups, allow_replicating = [0, 1, 2, 3])
 
     # tag_list = []
     # for i in pairwise_dist_benchmark(2, 2):
@@ -110,7 +110,7 @@ if __name__ == '__main__':
 
     ## Pairwise Distance Benchmark
     # input_groups = get_pd_input_groups('a', 'b', 'c', 'd', 4, 4)
-    # c = Compiler({}, input_groups, allow_replicating = [0, 1])
+    # c = Compiler({}, input_groups, allow_replicating = [0, 1, 2, 3])
 
     # tag_list = []
     # for i in pairwise_dist_benchmark(4, 4):
