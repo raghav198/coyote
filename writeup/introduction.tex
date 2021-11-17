@@ -17,6 +17,16 @@ To properly take advantage of ciphertext packing, we need a compiler that can ve
 
 % Who has tried to solve this problem before?
 Vectorizing compilers for FHE are nothing new \cite{CHET, Porcupine}.
+However, these are optimized for highly regular computations over packed tensors (such as neural networks in the case of CHET), and often don't take into account how expensive rotations can be in more irregular applications.
+A lot of FHE computations don't work with regular data structures like tensors, which makes it much harder to take advantage of vectorization opportunities.
+
+Other approaches to vectorizing arbitrary code that's not in a loop, such as SLP \cite{SLP}, also fail here.
+SLP aggressively packs isomorphic instructions into vectors, because it assumes that shuffling vector lanes around or indexing into a vector is relatively cheap.
+In FHE, however, the vectors are not physical vector registers with slots for data, but rather {\em abstract mathematical objects} which only {\em encode} several ciphertexts.
+The only way to move data between vector lanes in FHE is by performing a cyclic rotation of the entire vector.
+While it is theoretically possible to encode arbitrary permutations as a series of masks and rotates, realizing the shuffles incurred by SLP in this way can quickly outweigh any benefits from vectorizing in the first place.
+This means that we need a new arbitrary vectorization strategy that is {\em FHE-aware}; i.e., it packs instructions without relying on regularity in the original computation, but still accounts for the high cost of data movement.
+
 
 %% Contributions
 
