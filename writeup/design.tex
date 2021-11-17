@@ -5,7 +5,7 @@ The problem with this naive strategy is it makes no guarantees about values bein
 Unlike in normal vectorization, where applying arbitrary permutations to the lanes is relatively cheap, in FHE we are only allowed to rotate the entire vector by a fixed number of slots, and this rotation operation is expensive.
 Hence, the cost of bookkeeping quickly outweighs whatever benefit we might get from vectorization, making this approach not worth it.
 
-Data movement is actually impossible to avoid: in an arithmetic circuit that computes a single expression, all the intermediate nodes eventually feed into the root\milind{I think we want to consistently talk about these as dependence graphs, where data flows down and things feed into the {\em last} instruction, rather than as expression trees where results flow up and computation resolves at the root...} meaning that without data movement every instruction must be on the same lane; in other words, no vectorization can take place.
+Data movement is actually impossible to avoid: in an arithmetic circuit that computes a single expression, all the intermediate nodes eventually feed into the root, meaning that without data movement every instruction must be on the same lane; in other words, no vectorization can take place.
 Here we have two extremes: on one end of the spectrum is SLP, which packs aggressively without considering data movement; the other end avoids data movement entirely, precluding any vectorization within individual expressions.
 The key idea of our approach is to balance between these two extremes, by finding highly vectorizable groups of subexpressions and evaluating those subexpressions together with each one on its own lane.
 % don't be specific about trees here
@@ -26,9 +26,12 @@ Given an arithmetic circuit, we can inductively compute the structural similarit
         sim(t_1.L, t_2.R) + sim(t_1.R, t_2.L) + b
     \end{cases}
 \end{align*}
-where $b = 1$ if $t_1.op = t_2.op$ and $b = 0$ otherwise. \milind{need: explanation of what $L$, $R$, $var$ are, and a plain english intuitive explanation}
+where $t_i.L$ and $t_i.R$ represent the left and right subcircuits\footnote{If $t_i$ is a DAG but not a tree, it is possible that $t_i.L = t_i.R$. This is fine.} of $t_i$, $var$ represents a leaf node, and $b = 1$ if $t_1.op = t_2.op$ and $0$ otherwise.
 
-For example, in the circuit from Figure~\ref{fig:small-expr-circuit}, we have a similarity score of $2$ between $(ab + c)$ and $(xy + z)$.
+Intuitively, this formula says that the similarity between any tree and a leaf node (which is an input variable) is $0$.
+To compute the similarity between two trees, we consider the best of all six possible ways of aligning them, adding to the similarity score if the roots align with the same operation. \raghav{Intuitive enough? I considered writing out the six possible ways of aligning them but that's what I had before and it sounded even more confusing.}
+
+For example, in the circuit from Figure~\ref{fig:small-expr-circuit}, we have a similarity score of $2$ between $(ab + c)$ and $(xy + z)$. \raghav{Should I step through the induction here to show why that's the case?}
 
 % The base case is comparing any tree to a leaf node (a single variable with no operations), in which case the similarity is $0$, as there are no operations that can be packed together.
 
@@ -46,8 +49,11 @@ This data can be encoded in an undirected {\em vectorizability graph}, where eac
 Cliques in this graph correspond exactly to sets of expressions that can all be vectorized together. 
 We can further label each edge with the similarity score of the two subexpressions it connects.
 Since each similarity score roughly corresponds to the number of instructions that could be packed together, the total weight of a clique represents the total number of operations we save by vectorizing together all the subexpressions contained within. 
-There is a subtlety here: we don't just want to take the largest clique in the graph, since this means vectorizing a lot of expressions, which will likely incur several rotates down the line. 
-To account for this, we subtract a fixed \milind{Not fixed---based on size of the clique} amount from the weight of each edge; this penalizes large cliques, and ensures that we prioritize finding small cliques of highly vectorizable expressions to avoid doing too many rotations. \milind{Be more vague about this subtraction bit, since we maybe don't do it exactly like that anymore :-) You can add something in implementation that's specifically about the weighting...}
+There is a subtlety here: if we just take the largest clique in the graph, we do get to vectorize a lot of expressions, but this also potentially incurs more rotates down the line.
+To account for this, we have the choice\footnote{The details of how we make this choice are discussed in Section~\ref{sec:penalizing-rotates}} to penalize larger cliques by, for example, subtracting a fixed amount from every edge.
+% There is a subtlety here: we don't just want to take the largest clique in the graph, since this means vectorizing a lot of expressions, which will likely incur several rotates down the line. 
+% To account for this, we subtract a fixed \milind{Not fixed---based on size of the clique} amount from the weight of each edge; this penalizes large cliques, and ensures that we prioritize finding small cliques of highly vectorizable expressions to avoid doing too many rotations. 
+\milind{Be more vague about this subtraction bit, since we maybe don't do it exactly like that anymore :-) You can add something in implementation that's specifically about the weighting...}\raghav{Is that better now? Or should I not be saying subtract at all}
 % By simply subtracting a fixed amount from the weight of each edge we can penalize large cliques which would incur a much higher rotation overhead, unless the vectorizability of the clique is high enough to be worth it. \milind{Rephrase this: start by explaining why you don't want to just take super big cliques -- it doesn't take into account rotation -- and then explain how you adjust the weights to account for this}
 The problem of finding a set of subexpressions to vectorize together reduces to finding a maximal weight clique in this graph, which is easily packaged off to an SMT solver.
 
@@ -56,7 +62,7 @@ Repeating the process requires some extra work: whenever a set of subexpressions
 Doing so requires that we make two changes to the vectorizability graph:
 \begin{enumerate}
     \item All the nodes that were cut out of the circuit (the {\em sub}-subexpressions) need to be eliminated, since they have already been scheduled.
-    \item Removing certain subexpressions changes the structure of the larger expressions containing them, and hence changes the similarity of those larger  expressions in the overall circuit. \footnote{This is in contrast to what one might expect when vectorizing at the level of instructions instead of subexpressions. The reason we vectorize at the level of subexpressions is to reduce the total number of epochs, and hence the total number of rotations.} These changes need to be reflected by updating the weights of the vectorizability graph. To handle this more efficiently, we track all the pieces that make up the weight of an edge when computing similarities. These weights can then be updated without having to recompute everything each time. \raghav{How's that?}\milind{works}
+    \item Removing certain subexpressions changes the structure of the larger expressions containing them, and hence changes the similarity of those larger  expressions in the overall circuit. \footnote{This is in contrast to what one might expect when vectorizing at the level of instructions instead of subexpressions. The reason we vectorize at the level of subexpressions is to reduce the total number of epochs, and hence the total number of rotations.} These changes need to be reflected by updating the weights of the vectorizability graph. To handle this more efficiently, we track all the pieces that make up the weight of an edge when computing similarities. These weights can then be updated without having to recompute everything each time. 
 \end{enumerate}
 
 Using the circuit from Figure~\ref{fig:small-expr-circuit} as a running example, the maximal weight clique in its vectorizability graph is just the edge connecting $(ab + c)$ and $(xy + z)$ (which from earlier has a weight of 2), so \system selects them to vectorize in the first epoch.
@@ -129,7 +135,7 @@ To assign lanes to the subexpressions, we need to assign a number to each vertex
 Unfortunately, a naive approach to this can have very poor results: consider, for example, placing B, D, and G on lane 1; C, E, and F on lane 2; and A and H on the lane 3.
 This particular placement requires one rotation each to line up B with E, A with F, and C with H, an additional two rotations to line up D with H and F, and a final rotation to line up E with G.
 In the worst case, this incurs 6 rotations.
-In the best case, if the vector schedule happens to pack the outputs of B and C together into the same vector, the $B\rightarrow E$ and $C\rightarrow H$ rotations are the same (since they are both a rotation of 1); similarly, if D and E are packed into the same vector, the $D\rightarrow F$ and $E\rightarrow G$ rotations are the same, requiring a total of 4 rotations to line everything up. \raghav{I feel like this is important to say since its the crux of the whole ``use the same number for multiple edges if possible'' thing, but I don't know that I did a good enough job explaining it.}\milind{I think this is good.}
+In the best case, if the vector schedule happens to pack the outputs of B and C together into the same vector, the $B\rightarrow E$ and $C\rightarrow H$ rotations are the same (since they are both a rotation of 1); similarly, if D and E are packed into the same vector, the $D\rightarrow F$ and $E\rightarrow G$ rotations are the same, requiring a total of 4 rotations to line everything up. 
 % This particular placement requires one rotation to line B up with E, an additional two rotations to line D up with H and F, respectively, and a final rotation to line up E with G, incurring a total of four rotations. 
 But we can do better: if we instead place B, E, and G on lane 1, A, D and F on lane 2, and C and H on lane 3, we can align the epochs with only two rotations: one to line up B and D, and one to line up D and H. 
 The goal of the lane assignment algorithm is to automatically determine that optimal placement.
@@ -138,8 +144,12 @@ The heuristic approach is to place vertices on lanes while getting as many edges
 It would be much easier to reason about this by assigning rotation values to edges instead of assigning lanes to vertices: a positive value on the edge represents rotating the value to the right before continuing the computation, a negative value represents rotating the value to the left, and a zero represents no rotation.\milind{check}. But note that there is a subtlety we need to keep track of here: not every assignment of rotation values to edges comes from a consistent assignment of lanes to vertices. 
 
 There are two consistency requirements: If the same input value (which is in a particular lane) flows through different operations to the same output value (which is in a particular, possibly different, lane), then all the rotations along the two sequences of operations should eventually place the results on the same lane to generate the output. On the other hand, if the same input value flows to two {\em different} outputs, then the rotations along those two paths {\em must} place the final results in different lanes. \milind{does the preceding explanation of the consistency requirements make sense?} \milind{Maybe give an example of what an inconsistent rotation set looks like.}
+For an example of an inconsistent assignment, consider the dependence graph in Figure~\ref{fig:dependence-graph}.
+If edges 5 and 6 both get assigned a value of 0, then $D$ must be on the same lane as both $H$ and $F$.
+This means that $H$ and $F$ must be on the same lane, which violates the first consistency constraint.
+\raghav{I think the consistency requirements written above are too weak, but maybe its sufficient for intuition?}
 
-This consistency requirement be reworded as follows: for any path that starts and ends on the same epoch in the dependence graph, the {\em directed sum} of the rotation values along it should be zero if the path is a cycle, and nonzero otherwise.
+The consistency requirements can be reworded as follows: for any path that starts and ends on the same epoch in the dependence graph, the {\em directed sum} of the rotation values along it should be zero if the path is a cycle, and nonzero otherwise.
 (In a directed sum, we assign a direction to each edge, and negate its value if we follow the edge backwards).
 Notice that this automatically enforces that two different paths between a pair of vertices should add up to the same value, since any two such paths also form a cycle by inverting one of them, and the cycle needs to add up to 0. 
 % Instead, we try to assign lanes in a way that minimizes the number of {\em distinct} rotations required for each vector (for example, if multiple pieces of data on the same vector are produced two lanes away from where they are consumed, we can rotate the vector a single time to get them both to line up).
@@ -153,7 +163,7 @@ Notice that this automatically enforces that two different paths between a pair 
 Iterating over all the paths in the graph, we end up with a bunch of linear {\em path relations} as shown in Figure~\ref{fig:path-relations}, where initially all of the $X_i$s are unassigned.
 To assign a particular $X_i$, if it is part of a relation where it is the only unassigned variable, its value is fixed to be one that satisfies the relation; otherwise, it can be assigned freely.
 These constraints form a hypergraph like the one in Figure~\ref{fig:colored-hypergraph}, where the vertices $1,\dots, 7$ correspond to edges in Figure~\ref{fig:dependence-graph}, and each path relation becomes a hyperedge connecting the associated vertices.
-In order to find a consistent assignment of rotation values to edges we need to color this hypergraph in such a way that the last vertex to be colored on any hyperedge must be given a distinct color from the rest of the vertices on the hyperedge (this is equivalent to producing a fresh value for the last $X_i$ to be assigned in a path relation, so it can freely be assigned to satisfy the relation). \raghav{Better explanation?}\milind{seems ok}
+In order to find a consistent assignment of rotation values to edges we need to color this hypergraph in such a way that the last vertex to be colored on any hyperedge must be given a distinct color from the rest of the vertices on the hyperedge (this is equivalent to producing a fresh value for the last $X_i$ to be assigned in a path relation, so it can freely be assigned to satisfy the relation).
 To minimize the number of distinct rotations needed, we would like to use as few colors as possible.
 This is relatively straightforward to do: At each step we pick the vertex that is part of as few ``free'' hyperedges as possible and assign it the next available color, until all the vertices have been colored.
 In the example shown in Figure~\ref{fig:colored-hypergraph}, we first assign to $X_3, X_4$, and $X_7$, (hyperdegree 2), then to $X_2$ and $X_6$ (hyperdegree 3), and then to $X_1$ and $X_5$ (hyperdegree 4).

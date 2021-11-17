@@ -1,5 +1,5 @@
 \section{Implementation}\label{sec:implementation}
-\subsection{Code Generation}
+\subsection{Code Generation}\label{sec:codegen}
 The output of the algorithm in Section~\ref{sec:design} is a vector schedule (i.e. a lane and schedule slot for each scalar, where the schedule slot determines the order in which instructions get executed).
 This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction.
 A blend instruction does no data movement, but takes several vectors and ``blends'' them together by choosing specific lanes to take from each one.
@@ -30,9 +30,9 @@ While lowering to C++, we also precompute all the blending masks, so that we can
 %     \item Building the CMake project links the generated C++ against our test harness, which runs both the vector and scalar C++ code a specified number of times, collects timing information, and dumps it to a CSV.
 % \end{enumerate}
 
-\subsection{Optimality Tradeoffs}
+\subsection{Optimality Tradeoffs}\label{sec:optimality-tradeoffs}
 Because each of the compilation steps quickly blows up when given larger programs, we make a number of tradeoffs that sacrifice some optimality in exchange for faster compilation times.
-\subsubsection*{Finding maximal cliques/synthesizing alignment}
+\subsubsection*{Finding maximal cliques/synthesizing alignment}\label{sec:iterative-synthesis}
 In many cases, we want a certain optimal solution to the problem we are passing to the solver; for instance, we want the clique with the largest sum of edge weights, or we want the vector schedule that uses the fewest schedule slots.
 One way to accomplish this is to pass an objective function to the solver; however, this technique often takes a long time, since before returning a solution the solver must first prove that no better one exists.
 Instead of supplying an objective function, we first find any legal solution (e.g. any clique, or any schedule that respects instructions and dependences).
@@ -40,9 +40,9 @@ We then add a constraint that require the next solution to be strictly better th
 We can then set a time limit so that if no better solution is found within it, we use the best one we have so far.
 By varying the time limit, we can trade off between optimality and compilation time.
 
-\subsubsection*{Computing graph paths}
+\subsubsection*{Computing graph paths}\label{sec:computing-graph-paths}
 To build the hypergraph described in Section~\ref{sec:lane-placement}, we first need to compute all paths through the dependence graph.
-This is accomplished by starting with all paths of length one (edges) and inductively computing transitive closures, keeping track of all the cycles we find along the way. \raghav{Did I say that right?}\milind{yup}
+This is accomplished by starting with all paths of length one (edges) and inductively computing transitive closures, keeping track of all the cycles we find along the way.
 However, for very large or complicated dependence graphs, this can take a very long time, so we once again set a time limit after which we stop looking for paths (in practice, this amounts to choosing a maximum length of path to look for).
 This means that when the time limit is hit, we miss some relations, meaning that even a properly colored hypergraph may produce an unsolvable integer program.
 In these cases, the solver produces an ``unsat core'', witnessing the unsatisfiability as a set of paths through the dependence graph that start and end on the same epoch, but sum to the wrong thing (e.g. a cycle that sums to a nonzero value).
@@ -50,4 +50,5 @@ When we encounter this, we ``uncolor'' all the edges along such paths, allowing 
 Doing so breaks certain symmetries (e.g., an uncolored edges may no longer have the same value as another edge, necessitating an extra rotation), but the lane assignment is still correct-by-construction.
 Once again, this amounts to sacrificing optimality in exchange for compilation time: simply by increasing the time limit on finding the paths, we can avoid missing relations, and ensure that we never have to do this.
 
-\subsection{Duplicating Inputs}
+\subsection{Duplicating Inputs}\label{sec:duplicating-inputs}
+\subsection{Penalizing Rotates when choosing cliques}\label{sec:penalizing-rotates}\raghav{Name this section something different?}
