@@ -1,7 +1,9 @@
 \section{Implementation}\label{sec:implementation}
 \subsection{Code Generation}
-The output of the algorithm in Section~\ref{sec:design} is a vector schedule (i.e. a lane and time for each scalar, where the time determines the order in which instructions get executed). \raghav{Is `time' the right word for this? (like, what time step the instruction gets scheduled on)}\milind{You used ``schedule slot'' earlier ... just use that again.}
-This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction.\milind{Whoah: definitely explain what a blend instruction is here :-) No italicizing to say a word is important without explaining what the word means!}
+The output of the algorithm in Section~\ref{sec:design} is a vector schedule (i.e. a lane and schedule slot for each scalar, where the schedule slot determines the order in which instructions get executed).
+This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction.
+A blend instruction does no data movement, but takes several vectors and ``blends'' them together by choosing specific lanes to take from each one.
+In practice, this is implemented as a series of plaintext/ciphertext multiplies (where each ciphertext vector is multiplied by a plaintext ``bitmask'' to hide certain lanes), followed by several ciphertext/ciphertext adds, where each of the masked vectors is added together.
 
 Throughout the compilation, we keep a lookup table that maps a (scalar, lane) pair to the name of the vector register containing it.
 In particular, there may be several vector registers that contain a particular scalar, but on separate lanes (this results from a rotation of the original register where the instruction was produced).
@@ -20,18 +22,32 @@ This is a very straightforward process, and essentially consists of transliterat
 SEAL does not support a built-in blend instruction, though, so each of these generate several ctxt/ptxt multiplies followed by a single ctxt add.
 While lowering to C++, we also precompute all the blending masks, so that we can encode all of them into the plaintext space once at the beginning of the program and just look up the appropriate one to use each time.
 
-\begin{enumerate}
-    \item Generate arithmetic circuit within python, pass it to the compiler which tags it and produces scalar code
-    \item Take compiler object (mostly contains metadata + scalar code) and pass it to vectorization function, which goes through the algorithm described in section~\ref{sec:design} and uses it to produce a vector schedule (this consists of assigning a lane and a time to each scalar instruction).
-    \item Given a vector schedule, we compile it into the actual vector IR that consists of loads, vector adds/subtracts/multiplies, and rotations.
-    \item The vector IR as well as the original scalar code are both translated into C++ code for SEAL and put into the appropriate place in a pre-configured CMake project.
-    \item Building the CMake project links the generated C++ against our test harness, which runs both the vector and scalar C++ code a specified number of times, collects timing information, and dumps it to a CSV.
-\end{enumerate}
+% \begin{enumerate}
+%     \item Generate arithmetic circuit within python, pass it to the compiler which tags it and produces scalar code
+%     \item Take compiler object (mostly contains metadata + scalar code) and pass it to vectorization function, which goes through the algorithm described in section~\ref{sec:design} and uses it to produce a vector schedule (this consists of assigning a lane and a time to each scalar instruction).
+%     \item Given a vector schedule, we compile it into the actual vector IR that consists of loads, vector adds/subtracts/multiplies, and rotations.
+%     \item The vector IR as well as the original scalar code are both translated into C++ code for SEAL and put into the appropriate place in a pre-configured CMake project.
+%     \item Building the CMake project links the generated C++ against our test harness, which runs both the vector and scalar C++ code a specified number of times, collects timing information, and dumps it to a CSV.
+% \end{enumerate}
 
 \subsection{Optimality Tradeoffs}
 Because each of the compilation steps quickly blows up when given larger programs, we make a number of tradeoffs that sacrifice some optimality in exchange for faster compilation times.
 \subsubsection*{Finding maximal cliques/synthesizing alignment}
-\raghav{Instead of asking the solver to optimize, just ask it to find any solution, and then recursively constrain the next solution to be strictly better until we hit either UNSAT or a timeout. This allows for varying the timeout to trade between the best possible solution }
+In many cases, we want a certain optimal solution to the problem we are passing to the solver; for instance, we want the clique with the largest sum of edge weights, or we want the vector schedule that uses the fewest schedule slots.
+One way to accomplish this is to pass an objective function to the solver; however, this technique often takes a long time, since before returning a solution the solver must first prove that no better one exists.
+Instead of supplying an objective function, we first find any legal solution (e.g. any clique, or any schedule that respects instructions and dependences).
+We then add a constraint that require the next solution to be strictly better than the first one, and query the solver again, until eventually it returns ``unsatisfiable'', meaning that no better solution to be found.
+We can then set a time limit so that if no better solution is found within it, we use the best one we have so far.
+By varying the time limit, we can trade off between optimality and compilation time.
+
 \subsubsection*{Computing graph paths}
+To build the hypergraph described in Section~\ref{sec:lane-placement}, we first need to compute all paths through the dependence graph.
+This is accomplished by starting with all paths of length one (edges) and inductively computing transitive closures, keeping track of all the cycles we find along the way. \raghav{Did I say that right?}
+However, for very large or complicated dependence graphs, this can take a very long time, so we once again set a time limit after which we stop looking for paths (in practice, this amounts to choosing a maximum length of path to look for).
+This means that when the time limit is hit, we miss some relations, meaning that even a properly colored hypergraph may produce an unsolvable integer program.
+In these cases, the solver produces an ``unsat core'', witnessing the unsatisfiability as a set of paths through the dependence graph that start and end on the same epoch, but sum to the wrong thing (e.g. a cycle that sums to a nonzero value).
+When we encounter this, we ``uncolor'' all the edges along such paths, allowing the solver to assign them whatever values it needs to in order to make the program satisfiable.
+Doing so breaks certain symmetries (e.g. an uncolored edges may no longer have the same value as another edge, necessitating an extra rotation), but the lane assignment is still correct-by-construction.
+Once again, this amounts to sacrificing optimality in exchange for compilation time: simply by increasing the time limit on finding the paths, we can avoid missing relations, and ensure that we never have to do this.
 
 \subsection{Duplicating Inputs}
