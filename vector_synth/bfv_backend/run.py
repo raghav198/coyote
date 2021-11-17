@@ -25,11 +25,11 @@ def collect_data(benchmark):
     main.write(new_file_contents)
     main.close()
 
-    os.system("/usr/local/bin/cmake --build /Users/kabirsheth/efficient-FHE-compiler/vector_synth/bfv_backend/build --config Debug --target all -j 10 --")
+    os.system("/usr/local/bin/cmake --build /Users/kabirsheth/efficient-FHE-compiler/vector_synth/bfv_backend/build --config Release --target all -j 10 --")
     os.system("/Users/kabirsheth/efficient-FHE-compiler/vector_synth/bfv_backend/build/CoyoteBFVBackend")
 
-collect_data("mat_mul_det2x2")
-collect_data("mat_mul_det3x3")
+# collect_data("mat_mul_det2x2")
+# collect_data("mat_mul_det3x3")
 collect_data("mat_convol4x4x2x2")
 collect_data("mat_convol4x4x3x3")
 collect_data("pairwise_dist2x2")
