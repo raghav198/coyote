@@ -1,0 +1,45 @@
+@inproceedings{Porcupine,
+author = {Cowan, Meghan and Dangwal, Deeksha and Alaghi, Armin and Trippel, Caroline and Lee, Vincent T. and Reagen, Brandon},
+title = {Porcupine: A Synthesizing Compiler for Vectorized Homomorphic Encryption},
+year = {2021},
+isbn = {9781450383912},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3453483.3454050},
+doi = {10.1145/3453483.3454050},
+abstract = {Homomorphic encryption (HE) is a privacy-preserving technique that enables computation directly on encrypted data. Despite its promise, HE has seen limited use due to performance overheads and compilation challenges. Recent work has made significant advances to address the performance overheads but automatic compilation of efficient HE kernels remains relatively unexplored. This paper presents Porcupine, an optimizing compiler that generates vectorized HE code using program synthesis. HE poses three major compilation challenges: it only supports a limited set of SIMD-like operators, it uses long-vector operands, and decryption can fail if ciphertext noise growth is not managed properly. Porcupine captures the underlying HE operator behavior so that it can automatically reason about the complex trade-offs imposed by these challenges to generate optimized, verified HE kernels. To improve synthesis time, we propose a series of optimizations including a sketch design tailored to HE to narrow the program search space. We evaluate Porcupine using a set of kernels and show speedups of up to 52% (25% geometric mean) compared to heuristic-driven hand-optimized kernels. Analysis of Porcupine’s synthesized code reveals that optimal solutions are not always intuitive, underscoring the utility of automated reasoning in this domain.},
+booktitle = {Proceedings of the 42nd ACM SIGPLAN International Conference on Programming Language Design and Implementation},
+pages = {375–389},
+numpages = {15},
+keywords = {homomorphic encryption, program synthesis, vectorization},
+location = {Virtual, Canada},
+series = {PLDI 2021}
+}
+
+@misc{seal,
+        title = {{M}icrosoft {SEAL} (release 3.7)},
+        howpublished = {\url{https://github.com/Microsoft/SEAL}},
+        month = sep,
+        year = 2021,
+        note = {Microsoft Research, Redmond, WA.},
+        key = {SEAL}
+    }
+
+
+@inproceedings{CHET,
+author = {Dathathri, Roshan and Saarikivi, Olli and Chen, Hao and Laine, Kim and Lauter, Kristin and Maleki, Saeed and Musuvathi, Madanlal and Mytkowicz, Todd},
+title = {CHET: An Optimizing Compiler for Fully-Homomorphic Neural-Network Inferencing},
+year = {2019},
+isbn = {9781450367127},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3314221.3314628},
+doi = {10.1145/3314221.3314628},
+abstract = {Fully Homomorphic Encryption (FHE) refers to a set of encryption schemes that allow computations on encrypted data without requiring a secret key. Recent cryptographic advances have pushed FHE into the realm of practical applications. However, programming these applications remains a huge challenge, as it requires cryptographic domain expertise to ensure correctness, security, and performance.  CHET is a domain-specific optimizing compiler designed to make the task of programming FHE applications easier. Motivated by the need to perform neural network inference on encrypted medical and financial data, CHET supports a domain-specific language for specifying tensor circuits. It automates many of the laborious and error prone tasks of encoding such circuits homomorphically, including encryption parameter selection to guarantee security and accuracy of the computation, determining efficient tensor layouts, and performing scheme-specific optimizations.  Our evaluation on a collection of popular neural networks shows that CHET generates homomorphic circuits that outperform expert-tuned circuits and makes it easy to switch across different encryption schemes. We demonstrate its scalability by evaluating it on a version of SqueezeNet, which to the best of our knowledge, is the deepest neural network to be evaluated homomorphically.},
+booktitle = {Proceedings of the 40th ACM SIGPLAN Conference on Programming Language Design and Implementation},
+pages = {142–156},
+numpages = {15},
+keywords = {Homomorphic encryption, domain-specific compiler, privacy-preserving machine learning, neural networks},
+location = {Phoenix, AZ, USA},
+series = {PLDI 2019}
+}
