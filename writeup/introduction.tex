@@ -5,6 +5,23 @@
     \item Contributions
     \item Layout of the paper
 \end{itemize}
+
+%% Motivation
+% What's the big picture problem?
+Fully Homomorphic Encryption (FHE) refers to any encryption scheme that allows for homomorphically adding and multiplying ciphertexts, so that the sum of the encryptions of two integers is an encryption of their sum, and similarly the product of the encryptions of two integers is an encryption of their product.
+While FHE is an incredibly powerful technique for carrying out privacy-preserving computations on encrypted data, it has a major downside: its slow.
+Homomorphic computations over ciphertexts are often orders of magnitude slower than their plaintext counterparts.
+\raghav{I wonder if reviewers will read this and think ``hmm there was a PLDI paper last year that said the same thing''}
+Many FHE cryptosystems support packing large numbers of ciphertexts into {\em ciphertext vectors}, essentially compensating for the inherent slowness of FHE by enabling SIMD-style computation.
+To properly take advantage of ciphertext packing, we need a compiler that can vectorize arbitrary FHE programs.
+
+% Who has tried to solve this problem before?
+Vectorizing compilers for FHE are nothing new \cite{CHET, Porcupine}.
+
+%% Contributions
+
+%% Results
+
 \subsection{Related Work} % limit this to basically a couple sentences, not a whole subsection
 % "These are approaches people have tried that don't work"
 \subsubsection{Vectorizing FHE} \raghav{CHET and Porcupine: not general}
