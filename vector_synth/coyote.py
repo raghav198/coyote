@@ -14,7 +14,7 @@ from numberTreeGenerator import *
 
 if __name__ == '__main__':
     ### Change name to whatever you want the directory name to be
-    directory = "pairwise_dist4x4"
+    directory = "dot_product6x6"
     ###
     path = os.path.join("outputs/", directory)
     shutil.rmtree(path)
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     
     ## Matrix Multiply Determinant Benchmark
     # input_groups = get_mmd_input_groups('a', 'b', 2, 2)
-    # c = Compiler({}, input_groups, allow_replicating = [0])
+    # c = Compiler({}, input_groups, allow_replicating = [0, 1])
 
     # tag_list = []
     # tree = (mat_mul_det_benchmark(2, 2)).a
@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
     ## Matrix Multiply Determinant Benchmark
     # input_groups = get_mmd_input_groups('a', 'b', 3, 3)
-    # c = Compiler({}, input_groups, allow_replicating = [0])
+    # c = Compiler({}, input_groups, allow_replicating = [0, 1])
 
     # tag_list = []
     # tree = (mat_mul_det_benchmark(3, 3)).a
@@ -70,20 +70,20 @@ if __name__ == '__main__':
     ######################################################
 
     ## Matrix Convolution Benchmark
-    input_groups = get_mc_input_groups('a', 'b', 4, 4, 2, 2)
-    c = Compiler({}, input_groups, allow_replicating = [1])
+    # input_groups = get_mc_input_groups('a', 'b', 4, 4, 2, 2)
+    # c = Compiler({}, input_groups, allow_replicating = [0, 1])
 
-    tag_list = []
-    for i in mat_convol_benchmark(4, 2):
-        for j in range(4 - 2 + 1):
-            tree = i[j].a
-            print(tree)
-            tag_list.append(c.compile(tree))
+    # tag_list = []
+    # for i in mat_convol_benchmark(4, 2):
+    #     for j in range(4 - 2 + 1):
+    #         tree = i[j].a
+    #         print(tree)
+    #         tag_list.append(c.compile(tree))
     ## End Matrix Convolution Benchmark
 
     ## Matrix Convolution Benchmark
     # input_groups = get_mc_input_groups('a', 'b', 4, 4, 3, 3)
-    # c = Compiler({}, input_groups, allow_replicating = [1])
+    # c = Compiler({}, input_groups, allow_replicating = [0, 1])
 
     # tag_list = []
     # for i in mat_convol_benchmark(4, 3):
@@ -107,26 +107,21 @@ if __name__ == '__main__':
     ## End Pairwise Distance Benchmark
 
     ## Pairwise Distance Benchmark
-<<<<<<< HEAD
-    input_groups = get_pd_input_groups('a', 'b', 'c', 'd', 4, 4)
-    c = Compiler({}, input_groups, allow_replicating = [0, 1])
-=======
-    # input_groups = get_pd_input_groups('a', 'b', 'c', 'd', 4, 4)
+    # input_groups = get_pd_input_groups('a', 'b', 'c', 'd', 3, 3)
     # c = Compiler({}, input_groups, allow_replicating = [0, 1, 2, 3])
->>>>>>> bc6a8ee152dde1056af57fe8924c288359fa6a0f
 
-    tag_list = []
-    for i in pairwise_dist_benchmark(4, 4):
-        tree = i.a
-        print(tree)
-        tag_list.append(c.compile(tree))
+    # tag_list = []
+    # for i in pairwise_dist_benchmark(3, 3):
+    #     tree = i.a
+    #     print(tree)
+    #     tag_list.append(c.compile(tree))
     ## End Pairwise Distance Benchmark
 
     ######################################################
 
     ## Matrix Multiply Benchmark
     # input_groups = get_mm_input_groups('a', 'b', 2, 2)
-    # c = Compiler({}, input_groups, allow_replicating = [0])
+    # c = Compiler({}, input_groups, allow_replicating = [0, 1])
 
     # tag_list = []
     # for i in mat_mult_benchmark(2, 2):
@@ -138,7 +133,7 @@ if __name__ == '__main__':
 
     ## Matrix Multiply Benchmark
     # input_groups = get_mm_input_groups('a', 'b', 3, 3)
-    # c = Compiler({}, input_groups, allow_replicating = [0])
+    # c = Compiler({}, input_groups, allow_replicating = [0, 1])
 
     # tag_list = []
     # for i in mat_mult_benchmark(3, 3):
@@ -152,7 +147,7 @@ if __name__ == '__main__':
 
     ## Dot Product Benchmark
     # input_groups = get_dp_input_groups('a', 'b', 3, 3)
-    # c = Compiler({}, input_groups, allow_replicating = [0])
+    # c = Compiler({}, input_groups, allow_replicating = [0, 1])
 
     # tag_list = []
     # tree = dot_product_benchmark(3, 3).a
@@ -161,13 +156,13 @@ if __name__ == '__main__':
     ## End Dot Prodcut Benchmark
 
     ## Dot Product Benchmark
-    # input_groups = get_dp_input_groups('a', 'b', 6, 6)
-    # c = Compiler({}, input_groups, allow_replicating = [0])
+    input_groups = get_dp_input_groups('a', 'b', 6, 6)
+    c = Compiler({}, input_groups, allow_replicating = [0, 1])
 
-    # tag_list = []
-    # tree = dot_product_benchmark(6, 6).a
-    # print(tree)
-    # tag_list.append(c.compile(tree))
+    tag_list = []
+    tree = dot_product_benchmark(6, 6).a
+    print(tree)
+    tag_list.append(c.compile(tree))
     ## End Dot Prodcut Benchmark
 
     ######################################################

@@ -14,7 +14,7 @@ int main()
 { 
 std::ofstream myfile("dot_product6x6.csv");
 myfile << "VEC,ENC,RUN,ENC + RUN,SCAL,ENC,RUN,ENC + RUN,\n";
-for (int runs = 0; runs < 100; runs++) {
+for (int runs = 0; runs < 50; runs++) {
     seal::EncryptionParameters params(seal::scheme_type::bfv);
     size_t poly_modulus_degree = 8192;
     params.set_poly_modulus_degree(poly_modulus_degree);
