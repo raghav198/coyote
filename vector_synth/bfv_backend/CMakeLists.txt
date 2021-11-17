@@ -9,8 +9,8 @@ set(CMAKE_BUILD_TYPE Debug)
 enable_testing()
 
 add_executable(CoyoteBFVBackend main.cpp util.cpp
-	dot_product6x6/scalar.cpp
-	dot_product6x6/vector.cpp
+			dot_product6x6/scalar.cpp
+			dot_product6x6/vector.cpp
 )
 
 find_package(SEAL 3.7 REQUIRED)
