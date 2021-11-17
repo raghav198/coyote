@@ -9,7 +9,7 @@ Data movement is actually impossible to avoid: in an arithmetic circuit that com
 Here we have two extremes: on one end of the spectrum is SLP, which packs aggressively without considering data movement; the other end avoids data movement entirely, precluding any vectorization within individual expressions.
 The key idea of our approach is to balance between these two extremes, by finding highly vectorizable subexpressions and evaluating them together with each one on its own lane.
 % don't be specific about trees here
-\subsection{Selecting Vectorizable Subexpressions} 
+\subsection{Selecting Vectorizable Subexpressions}\label{sec:selecting-subexpressions}
 \subsubsection*{Measuring subexpression vectorizability}
 We want to measure how well the instruction sequences corresponding to two arbitrary expressions line up.
 Given an arithmetic circuit, we can inductively compute the structural similarity between every pair $(t_1, t_2)$ of independent subcircuits (two circuits are independent if they have no overlap) as follows:
@@ -72,7 +72,7 @@ Since there are no subexpressions here that can be vectorized, \system chooses t
 % \raghav{To deal with point (2) more efficiently, I do a trick where I track all the pieces that make up the weight of an edge, so I can update the weights without having to recompute similarity. I originally tried to write this out, but its kind of confusing. Now that I think about it, though, it seems like more of an implementation detail than anything. Should I still write it out here, or just leave it?}\milind{What you wrote in this comment is sufficient, and it's short enough that it's worth including. It {\em is} sort of an implementation detail, but we can cut it for space if we need to.}
 Now, we can repeat the above process of finding a maximal clique and vectorizing it, until eventually all nontrivial cliques have a negative total weight, meaning that there are no more subexpressions that are vectorizable enough to make the rotation costs worth it, so we just emit scalar code for the rest of the program.
 
-\subsection{Instruction Packing}
+\subsection{Instruction Packing}\label{sec:instruction-packing}
 Given a set of subexpressions to compute in a single epoch of the program, we can align the instructions between subexpressions to actually produce a vector schedule.
 It may seem like the solution to this is just sequence alignment, but aligning circuits is actually more complicated than that.
 At each step, the number of available children that can be aligned roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
@@ -93,13 +93,12 @@ The bound is initially very loose but we iteratively tighten it until the solver
 % To prevent compilation from taking too long, we also set a timeout after which the solver simply returns the best available schedule.
 % Of course, this means that the vector schedule is no longer guaranteed to be optimal, but this timeout can be adjusted, allowing for a tradeoff between compilation time and optimality.
 % sequence of four figures: (a) dependency graph [2 stages] (b) written out list of constraints (c) colored hypergraph (d) colored dependency graph
-\subsection{Lane Placement} 
+\subsection{Lane Placement}\label{sec:lane-placement}
 % \milind{This subsection definitely needs a couple of figures: Fig 1: here's some expressions, here's what a ``dumb'' lane placement looks like, here's what a ``good'' lane placement looks like. Fig 2: Here's some expressions. Here's the set of constraints we need to use to capture lane placement constraints. Here's the hypergraph that we derive from those constraints. Here's what it looks like when colored. See how it looks like the ``good'' lane placement?} \raghav{``Correspond'' is also becoming an overused word}
-\raghav{TODO: write the bad vs the good lane placement for this example}
 \begin{figure*}
     \begin{subfigure}{0.24\textwidth}
         \includegraphics[width=0.9\textwidth]{figures/hypergraph_coloring/small_dependency_graph.drawio.png}
-        \caption{A depdendency graph for a simple 3-epoch computation}\label{fig:dependency-graph}
+        \caption{A depdendency graph for a simple 3-epoch computation}\label{fig:dependence-graph}
     \end{subfigure}
     \begin{subfigure}{0.24\textwidth}
         \includegraphics[width=0.9\textwidth]{figures/hypergraph_coloring/hypergraph_relations.drawio.png}
@@ -111,9 +110,10 @@ The bound is initially very loose but we iteratively tighten it until the solver
     \end{subfigure}
     \begin{subfigure}{0.24\textwidth}
         \includegraphics[width=0.9\textwidth]{figures/hypergraph_coloring/colored_dependency_graph.drawio.png}
-        \caption{The coloring applied to the original dependency graph. Edges with the same color correspond to the same rotation amount.}\label{fig:colored-dependency-graph}
+        \caption{The coloring applied to the original dependency graph. Edges with the same color correspond to the same rotation amount.}\label{fig:colored-dependence-graph}
     \end{subfigure}
     \caption{An example coloring the edges of a dependency graph to produce a good lane assignment}\label{fig:lane-assignment}
+    \Description{TODO: insert description}
 \end{figure*}
 
 Once the entire program is scheduled, each epoch produces a set of outputs which may feed into inputs of subsequent epochs.
@@ -124,8 +124,8 @@ This creates a dependence between the output of one epoch with the output of a l
 
 % Scheduling the program in the way described above amounts to splitting it into a number of {\em epochs}, where each epoch consists of a set of subexpressions to compute. \milind{again ``phase'' vs ``stage''. Also, what's important here isn't that you have the phases -- what's important is that each phase generates output operands in particular lanes, and those operands might need to hook up to one or more input operands in other phases, which means that either the lanes need to be set so everything lines up right, or you need to add rotations.}
 For a program that is split into $k$ epochs, we can represent these dependencies in a $k$-partite graph, where each partition corresponds to a epoch and each vertex in a partition corresponds to a subexpression computed in that epoch.
-Figure~\ref{fig:dependency-graph} shows an example 3-partite dependency graph for a particular 3-epoch program, where the first epoch had three subexpressions in it, the second had two, and the third had three.
-To assign lanes to the subexpressions, we need to assign a number to each vertex in this dependency graph so that no two vertices in the same epoch get the same number.
+Figure~\ref{fig:dependence-graph} shows an example 3-partite dependence graph for a particular 3-epoch program, where the first epoch had three subexpressions in it, the second had two, and the third had three.
+To assign lanes to the subexpressions, we need to assign a number to each vertex in this dependence graph so that no two vertices in the same epoch get the same number.
 Unfortunately, a naive approach to this can have very poor results: consider, for example, placing B, D, and G on lane 1, C, E, and F on lane 2, and A and H on the lane 3.
 This particular placement requires one rotation each to line up B with E, A with F, and C with H, an additional two rotations to line up D with H and F, and a final rotation to line up E with G.
 In the worst case, this incurs 6 rotations.
@@ -136,7 +136,7 @@ The goal of the algorithm described here is automatically determining the latter
 
 The heuristic approach is to place vertices on lanes while getting as many edges as possible to have the same rotation along them.
 It would be much easier to reason about this by assigning rotation values to edges instead of assigning lanes to vertices, but there is a subtlety we need to keep track of here: not every assignment of rotation values to edges comes from a consistent assignment of lanes to vertices.
-This consistency requirement be reworded as follows: for any path that starts and ends on the same epoch in the dependency graph, the {\em directed sum} of the rotation values along it should be zero if the path is a cycle, and nonzero otherwise.
+This consistency requirement be reworded as follows: for any path that starts and ends on the same epoch in the dependence graph, the {\em directed sum} of the rotation values along it should be zero if the path is a cycle, and nonzero otherwise.
 (In a directed sum, we assign a direction to each edge, and negate its value if we follow the edge backwards).
 Notice that this automatically enforces that two different paths between a pair of vertices should add up to the same value, since any two such paths also form a cycle by inverting one of them, and the cycle needs to add up to 0.
 % Instead, we try to assign lanes in a way that minimizes the number of {\em distinct} rotations required for each vector (for example, if multiple pieces of data on the same vector are produced two lanes away from where they are consumed, we can rotate the vector a single time to get them both to line up).
@@ -149,16 +149,14 @@ Notice that this automatically enforces that two different paths between a pair 
 
 Iterating over all the paths in the graph, we end up with a bunch of linear {\em path relations} as shown in Figure~\ref{fig:path-relations}, where initially all of the $X_i$s are unassigned.
 To assign a particular $X_i$, if it is part of a relation where it is the only unassigned variable, its value is fixed to be one that satisfies the relation; otherwise, it can be assigned freely.
-This data forms a hypergraph like the one in Figure~\ref{fig:colored-hypergraph}, where the vertices $1,\dots, 7$ correspond to edges in Figure~\ref{fig:dependency-graph}, and each path relation becomes a hyperedge connecting the associated vertices.
+This data forms a hypergraph like the one in Figure~\ref{fig:colored-hypergraph}, where the vertices $1,\dots, 7$ correspond to edges in Figure~\ref{fig:dependence-graph}, and each path relation becomes a hyperedge connecting the associated vertices.
 In order to find a consistent assignment of rotation values to edges we need to color this hypergraph in such a way that the last vertex to be colored on any hyperedge must be given a distinct color from the rest of the vertices on the hyperedge (this is equivalent to producing a fresh value for the last $X_i$ to be assigned in a path relation, so it can freely be assigned to satisfy the relation). \raghav{Better explanation?}
 To minimize the number of distinct rotations needed, we would like to use as few colors as possible.
 This is relatively straightforward to do: At each step we pick the vertex that is part of as few ``free'' hyperedges as possible and assign it the next available color, until all the vertices have been colored.
 In the example shown in Figure~\ref{fig:colored-hypergraph}, we first assign to $X_3, X_4$, and $X_7$, (hyperdegree 2), then to $X_2$ and $X_6$ (hyperdegree 3), and then to $X_1$ and $X_5$ (hyperdegree 4).
 Since $X_1$ is the last vertex to be assigned in the relation $X_2 - X_1 \neq 0$, it must be given a color other than blue, so it gets red, and since $X_5$ is the last to be assigned in the relation $X_3 - X_5 - X_1 \neq 0$, it cannot be red or blue, so it gets green.
 
-Once the vertices of the hypergraph are colored, we can use it to color the edges of the original dependency graph, like in Figure~\ref{fig:colored-dependency-graph}. 
+Once the vertices of the hypergraph are colored, we can use it to color the edges of the original dependence graph, like in Figure~\ref{fig:colored-dependence-graph}. 
 Now, all that remains is getting actual rotation for each color. 
-This can be formulated as a simple integer program, with a variable $c_i$ for each color, a variable  $v_j$ for each node in the dependency graph, and a constraint for each edge $(v, v')$ colored $c$ to assert $v - v' == c$.
+This can be formulated as a simple integer program, with a variable $c_i$ for each color, a variable  $v_j$ for each node in the dependence graph, and a constraint for each edge $(v, v')$ colored $c$ to assert $v - v' == c$.
 The way we colored the hypergraph ensures that this integer program is always solvable, and the solution tells us exactly which vector lane each instruction should go on.
-
-\raghav{I debated including the whole ``how do we calculate paths'' thing as well as the whole ``there's too many paths so we guess at a few and hope it works'' thing but decided against it for now, that may be the wrong decision though}\milind{The CEGIS-y approach to finding paths might be a nice thing to add to the implementation section.}
