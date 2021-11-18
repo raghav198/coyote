@@ -12,7 +12,7 @@ The key idea of our approach is to balance between these two extremes, by findin
 \subsection{Selecting Vectorizable Subexpressions}\label{sec:selecting-subexpressions}
 \subsubsection*{Measuring subexpression vectorizability}
 We want to measure how well the instruction sequences corresponding to two arbitrary expressions line up.
-Given an arithmetic circuit, we can inductively compute the structural similarity between every pair $(t_1, t_2)$ of independent subcircuits (two circuits are independent if they have no overlap) as follows: \milind{Hmmm... I guess here we're pretty tied to the expression tree representation of circuits, so forget what I said earlier about thinking in terms of dependence graphs. Maybe make clear in section 2.1.2 that we'll think of circuits as expression forests or expression DAGs, where leaves are data and interior nodes are operations}
+Given an arithmetic circuit, we can inductively compute the structural similarity between every pair $(t_1, t_2)$ of independent subcircuits (two circuits are independent if they have no overlap) as follows: %\milind{Hmmm... I guess here we're pretty tied to the expression tree representation of circuits, so forget what I said earlier about thinking in terms of dependence graphs. Maybe make clear in section 2.1.2 that we'll think of circuits as expression forests or expression DAGs, where leaves are data and interior nodes are operations}
 
 \begin{align*}
     sim(t_1, var) &= 0\\
@@ -29,7 +29,7 @@ Given an arithmetic circuit, we can inductively compute the structural similarit
 where $t_i.L$ and $t_i.R$ represent the left and right subcircuits\footnote{If $t_i$ is a DAG but not a tree, it is possible that $t_i.L = t_i.R$. This is fine.} of $t_i$, $var$ represents a leaf node, and $b = 1$ if $t_1.op = t_2.op$ and $0$ otherwise.
 
 Intuitively, this formula says that the similarity between any tree and a leaf node (which is an input variable) is $0$.
-To compute the similarity between two trees, we consider the best of all six possible ways of aligning them, adding to the similarity score if the roots align with the same operation. \raghav{Intuitive enough? I considered writing out the six possible ways of aligning them but that's what I had before and it sounded even more confusing.}
+To compute the similarity between two trees, we consider the best of all six possible ways of aligning them, adding to the similarity score if the roots align with the same operation. %\raghav{Intuitive enough? I considered writing out the six possible ways of aligning them but that's what I had before and it sounded even more confusing.}\milind{I think it's OK.}
 
 For example, in the circuit from Figure~\ref{fig:small-expr-circuit}, we have a similarity score of $2$ between $(ab + c)$ and $(xy + z)$. \raghav{Should I step through the induction here to show why that's the case?}
 
@@ -53,7 +53,8 @@ There is a subtlety here: if we just take the largest clique in the graph, we do
 To account for this, we have the choice\footnote{The details of how we make this choice are discussed in Section~\ref{sec:penalizing-rotates}} to penalize larger cliques by, for example, subtracting a fixed amount from every edge.
 % There is a subtlety here: we don't just want to take the largest clique in the graph, since this means vectorizing a lot of expressions, which will likely incur several rotates down the line. 
 % To account for this, we subtract a fixed \milind{Not fixed---based on size of the clique} amount from the weight of each edge; this penalizes large cliques, and ensures that we prioritize finding small cliques of highly vectorizable expressions to avoid doing too many rotations. 
-\milind{Be more vague about this subtraction bit, since we maybe don't do it exactly like that anymore :-) You can add something in implementation that's specifically about the weighting...}\raghav{Is that better now? Or should I not be saying subtract at all}
+%\milind{Be more vague about this subtraction bit, since we maybe don't do it exactly like that anymore :-) You can add something in implementation that's specifically about the weighting...}\raghav{Is that better now? Or should I not be saying subtract at all}
+%\milind{seems fine}
 % By simply subtracting a fixed amount from the weight of each edge we can penalize large cliques which would incur a much higher rotation overhead, unless the vectorizability of the clique is high enough to be worth it. \milind{Rephrase this: start by explaining why you don't want to just take super big cliques -- it doesn't take into account rotation -- and then explain how you adjust the weights to account for this}
 The problem of finding a set of subexpressions to vectorize together reduces to finding a maximal weight clique in this graph, which is easily packaged off to an SMT solver.
 
