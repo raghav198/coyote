@@ -28,7 +28,7 @@ While it is theoretically possible to encode arbitrary permutations as a series 
 This means that we need a new arbitrary vectorization strategy that is {\em FHE-aware}; i.e., it packs instructions without relying on regularity in the original computation, but still accounts for the high cost of data movement.
 
 %% Contributions
-In this paper, we present \system, the first vectorizing compiler for irregular programs that is FHE-aware.
+In this paper, we present \system, the first vectorizing FHE-aware compiler for irregular programs.
 Rather than incurring many expensive data shuffles by trying to vectorize across the whole program, \system first identifies compatible subprograms to vectorize, only introducing shuffles in between these subprograms.
 \system then analyzes the dependences between the subprograms, and uses an FHE-specific cost model to choose a data layout that allows the shuffles to be realized more efficiently.
 The specific contributions we make are:
