@@ -1,15 +1,63 @@
 \section{Background}\label{sec:background}
 \subsection{Fully Homomorphic Encryption}
 Fully Homomorphic Encryption (FHE) refers to any encryption scheme with the property that ciphertexts can be added and multiplied, and these operations commute with the encryption and decryption functions.
+Since addition and multiplication are complete, FHE can theoretically be used to realize arbitrary functions on encrypted data.
+
+The Brakerski/Fan-Vercauteren (BFV) \cite{BFV} cryptosystem, which is the particular FHE scheme that we use in the paper, is based on the Ring Learning With Errors (RLWE) problem.
+Ciphertexts in BFV are represented as high degree polynomials with an ``error term'', which is a small amount of noise added to the polynomial to make the scheme CPA secure (in other words, the same plaintext will not encrypt to the same ciphertext each time).
 \subsubsection{Limitations}
 % very slow
+While FHE is an attractive approach to performing privacy-preserving computation, it does present a few challenges.
+The first is that the polynomial encoding of ciphertexts incurs a huge overhead for any secure computation.
+To achieve a reasonable degree of security, the polynomials need to be quite large, so a single primitive ciphertext operation like an add or a multiply gets translated into notoriously expensive polynomial math.
+This means that all but the smallest FHE applications are often too slow to be run in an appreciable amount of time.
+
 % multiplicative depth
+Another main challenge of FHE computation is related to the noise added to ciphertexts.
+When setting up an FHE computation, the encryption parameters used determine a safe {\em noise margin} for ciphertexts, which describes the level of noise aboe which ciphertexts can no longer be decrypted.
+Freshly encrypted ciphertexts are well below this margin, but multiplying two ciphertexts increases the amount of noise present in the result.
+BFV does support {\em bootstrapping}, which is a technique for homomorphically computing a fresh encryption of a ciphertext to ``reset'' its noise level; however, bootstrapping is an expensive procedure.
+When designing an FHE computation, therefore, it becomes important to limit its multiplicative depth to avoid bootstrapping as much as possible.
+
 % no loops or branching
-\subsubsection{Arithmetic Circuits}
-% given that there's no loops or branching, you're forced to write combinatorial arithmetic circuits, where the entire computation happens in one shot.
-% For the rest of the paper, we'll assume we're given a program structured as an arithmetic circuit, and talk about how to map the computation encoded therein to vectors.
-\raghav{TODO: mention that these circuits are essentially DAGs or forests}
-\subsubsection{Vectorization}
+Finally, because of the nature of secure computation, FHE does not support branching over ciphertexts. 
+In particular, this precludes FHE computations from having any kind of control flow structures, including conditionals and loops.
+Instead, the computation needs to be encoded as a one-shot combinational {\em arithmetic circuit}.
+(In practice, this is not too great of a limitation, since any loop with known bounds can be unrolled, and any conditional can be converted into a ``mux'' by evaluating both branches and then selecting the correct output).
+
+\subsection{Arithmetic Circuits}\raghav{Should this be a subsection or a subsubsection?}
+Since FHE does not support loops or conditionals, computations have to be represented as combinatorial arithmetic circuits.
+In particular, these arithmetic circuits we work with look a lot like expression forests, where some of the trees may in fact be DAGs if any inputs are used in multiple places.
+For the rest of the paper, we assume that the programs we are compiling are already expressed in this way, and talk about how to map the computations encoded therein to vectors.
+In practice, this is not too great of a restriction, since any loop with known (plaintext) bounds can be fully unrolled, and any conditional branching on a ciphertext can be converted into a ``mux'' by first evaluating both branches and then selecting the correct output.
+In fact, the frontend DSL of \system does exactly that by staging away python programs to produce arithmetic circuits that can be compiled.
+\raghav{I know I repeat mysef between here and what I wrote above. I just don't know what the best place to put this stuff is.}
+
 \subsection{Vectorization}
-\raghav{So\dots this is weird, because I want to talk about vectorization as it pertains to FHE (i.e. ``a property of FHE schemes is they allow for packing a huge number of plaintexts into a single ciphertext'') but also give the background of vectorization terminology I'll be using (in particular the idea of lanes and how lining things up makes vectorization very different from parallelism). }
-\milind{I'd put this as part of background then. You can even move 2.1.3 into a "Background on vectorization" section, and call it "Vectorization in FHE" -- that would also let you discuss why it's different than traditional SIMD vectorization.}
+Single instruction, multiple data, or SIMD, is a way of amortizing the run-time complexity of a program by {\em vectorizing} it, or lifting its scalar computation to one that operates over packed vectors.
+To vectorize, we need to first find sets of isomorphic scalar instructions and then decide how to pack the scalar operands of those instructions into vectors before replacing all of them with a single vector instruction.
+In traditional SIMD, this process relies heavily on the presence of loops in the original program.
+Unrolling the loop by a few iterations (usually four or eight) produces a set of isomorphic instructions, one for each unrolled iteration.
+These are then packed into vectors, with one iteration per vector slot, and lifted into vector instructions.
+Thus, a loop that performs a scalar computation $N$ times can be lifted into one that performs a semantically equivalent vector computation $N/4$ times.
+
+
+Superword-Level Parallelism, or SLP, is a more general technique that does not rely on the presence of loop-based control flow structures in the program to find vectorizable instructions.
+\raghav{I'm worried I'm going to butcher the explanation of SLP, spot me?}
+SLP analyzes a whole sequence of scalar instructions at once, looking for sets of {\em available instructions} (instructions whose operands have already been scheduled) that are all isomorphic to each other.
+At each step, it picks such a set and packs its instructions together into a vector, scheduling them together.
+
+\subsubsection{Vectorization in FHE}
+The polynomial rings into which ciphertexts are encoded in BFV are isomorphic to the direct sum of several copies of their underlying coefficient rings.
+This means that BFV can abstractly represent large vectors of values as being encrypted into a single ciphertext, and in particular, homomorphic operations on such ciphertexts correspond to element-wise operations on the underlying packed vectors.
+These polynomial rings also have specific {\em automorphisms} that cyclically permute the ``slots'' into which elements are packed (hereafter called vector lanes). 
+In other words, ciphertext packing allows us to turn FHE into an abstract SIMD architecture with instructions for (ciphertext) vector addition and multiplication, as well as vector rotation.
+This style of vectorization has a few peculiarities that distinguish it from normal vectorization:
+\begin{enumerate}
+    \item The vectors are much larger than traditional hardware vector registers (e.g. several thousand slots wide, compared to the usual 4 or 8 slots). Utilizing this much space poses unique challenges.
+    \item Unlike with physical vector registers, there is no {\em indexing} primitive that can directly access a value in a particular slot of a ciphertext vector.
+    \item In general, the only way to move data between vector slots is by rotating the entire vector. This makes it much more important to assign vector lanes to packed instructions optimally, since performing arbitrary shuffles by composing several rotations quickly gets expensive.
+\end{enumerate}
+The challenges posed by points (2) and (3) in particular preclude us from simply using SLP-style vectorization, since it fails to take the high cost of data movement between lanes into account when deciding what instructions to pack together.
+% \raghav{So\dots this is weird, because I want to talk about vectorization as it pertains to FHE (i.e. ``a property of FHE schemes is they allow for packing a huge number of plaintexts into a single ciphertext'') but also give the background of vectorization terminology I'll be using (in particular the idea of lanes and how lining things up makes vectorization very different from parallelism). }
+% \milind{I'd put this as part of background then. You can even move 2.1.3 into a "Background on vectorization" section, and call it "Vectorization in FHE" -- that would also let you discuss why it's different than traditional SIMD vectorization.}
