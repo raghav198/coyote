@@ -14,7 +14,7 @@ from numberTreeGenerator import *
 
 if __name__ == '__main__':
     ### Change name to whatever you want the directory name to be
-    directory = "tree50,50-3_1"
+    directory = "tree100,100-6_5"
     ###
     path = os.path.join("outputs/", directory)
     shutil.rmtree(path)
@@ -167,22 +167,22 @@ if __name__ == '__main__':
 
     ######################################################
 
-    ## Tree Gen 50,50 Benchmark
-    c = Compiler({}, allow_replicating ='all')
-
-    tag_list = []
-    tree = treeGenerator(3, 28376).a
-    print(tree)
-    tag_list.append(c.compile(tree))
-    ## End Tree Gen 50,50 Benchmark
-
-    ## Tree Gen 50,50 Benchmark
+    ## Tree Gen Benchmark
     # c = Compiler({}, allow_replicating ='all')
 
     # tag_list = []
-    # tree = treeGenerator(6, 3).a
+    # tree = treeGenerator(3, 1660).a
     # print(tree)
     # tag_list.append(c.compile(tree))
+    ## End Tree Gen 50,50 Benchmark
+
+    ## Tree Gen Benchmark
+    c = Compiler({}, allow_replicating ='all')
+
+    tag_list = []
+    tree = treeGenerator(6, 13925).a
+    print(tree)
+    tag_list.append(c.compile(tree))
     ## End Tree Gen 50,50 Benchmark
 
     ######################################################
