@@ -44,6 +44,47 @@ For example, in the circuit from Figure~\ref{fig:small-expr-circuit}, we have a 
 % \raghav{This makes no sense even to me, and I was looking at the code when I wrote this.}\milind{Actually, now that I think about it, maybe write this as a set of recurrence relations, a la smith waterman}
 
 \subsubsection*{Choosing maximally vectorizable sets}%\raghav{TODO: add a running example $(ab+c)(xy+z)$}
+\begin{algorithm}
+    \SetKwFunction{vecgraph}{GetVectorizabilityGraph}
+    \SetKwFunction{getclique}{MaxClique}
+    \SetKwFunction{removenodes}{RemoveNodes}
+    \SetKwFunction{updateweights}{UpdateEdgeWeights}
+    \SetKwFunction{epochs}{FindEpochs}
+    \SetKwFunction{subexprs}{SubExprs}
+    \SetKwFunction{similarity}{Similarity}
+
+    \SetKw{Continue}{continue}
+
+    \SetKwProg{proc}{Procedure}{}{}
+    \SetKwProg{algo}{Algorithm}{}{}
+
+    \algo{\epochs{expr}}{
+        $graph \gets \vecgraph{expr}$\;
+        $epochs \gets []$\;
+        \While{clique $\gets$ \getclique{graph}}{
+            \removenodes{graph, clique}\;
+            \updateweights{graph, clique}\;
+            $epochs$.append($clique$)
+        }
+        \Return{epochs}\;
+    }
+
+    \proc{\vecgraph{expr}}{
+        $V \gets \emptyset$\;
+        $E \gets \emptyset$\;
+        $weights \gets \emptyset$\;
+        \ForEach{$e, e' \in $ \subexprs{expr}, $e\cap e' = \emptyset$}{
+            $V \gets V \cup \{e, e'\}$\;
+            $E \gets E \cup \{(e, e')\}$\;
+            $weights[e, e'] \gets \similarity(e, e')$\;
+        }
+        \Return{V, E, weights}
+    }
+    \caption{Identifying vectorizable epochs}\label{alg:find-epochs}
+\end{algorithm}
+
+
+Algorithm~\ref{alg:find-epochs} describes this formally. \raghav{$\leftarrow$Where do I put this sentence?}
 Not every pair of subexpressions is eligible to be vectorized together, since they have to be independent of each other.
 This data can be encoded in an undirected {\em vectorizability graph}, where each subexpression is a vertex, and there is an edge between two vertices if the corresponding subexpressions are independent (and thus vectorizable).
 Cliques in this graph correspond exactly to sets of expressions that can all be vectorized together. 
@@ -123,6 +164,51 @@ The bound is initially very loose but we iteratively tighten it until the solver
     \Description{TODO: insert description}
 \end{figure*}
 
+\begin{algorithm}
+    \SetKwFunction{hypergraph}{MakeHypergraph}
+    \SetKwFunction{colorhg}{ColorHypergraph}
+    \SetKwFunction{makeilp}{FormulateILP}
+    \SetKwFunction{solveilp}{SolveILP}
+    \SetKwFunction{placelanes}{PlaceLanes}
+    \SetKwFunction{paths}{Paths}
+    \SetKwFunction{edges}{Edges}
+    \SetKwFunction{startepoch}{StartEpoch}
+    \SetKwFunction{endepoch}{EndEpoch}
+    \SetKwFunction{hyperdegree}{Hyperdegree}
+    \SetKwFunction{nextcol}{GetColor}
+
+    \SetKwProg{proc}{Procedure}{}{}
+    \SetKwProg{algo}{Algorithm}{}{}
+
+    \algo{\placelanes{deps}}{
+        $rels \gets \hypergraph{deps}$\;
+        $coloring \gets \colorhg(rels)$\;
+        $ilp \gets \makeilp{deps, rels, coloring}$\;
+        $placement \gets \solveilp{ilp}$\;
+        \Return{placement}\;
+    }
+
+    \proc{\hypergraph{deps}}{
+        $V\gets \edges{deps}$\;
+        $E_{hyper}\gets\emptyset$\;
+        \ForEach{$p \in \paths{deps}$}{
+            \If{\startepoch{p} = \endepoch{p}}{
+                $E_{hyper}\gets E\cup \{\edges{p}\}$\;
+            }
+        }
+        \Return{V, $E_{hyper}$}
+    }
+    \proc{\colorhg{hypergraph}}{
+        $coloring \gets \emptyset$\;
+        \While{not fully colored}{
+            $e \gets\arg\min_{e'}\hyperdegree{e'}$\;
+            $coloring[e]\gets\nextcol{e, hypergraph}$\;
+        }
+        \Return{coloring}
+    }
+    \caption{Lane placement algorithm}\label{alg:lane-placement}
+\end{algorithm}
+
 Once the entire program is scheduled, each epoch produces a set of outputs which may feed into inputs of subsequent epochs.
 Since no rotation happens within an epoch, each input of an epoch must be on the same lane as the output of the epoch it eventually flows into.
 This creates a dependence between the output of one epoch with the output of a downstream epoch, in the sense that if these do not map to the same lane, we need to insert a rotation to line them up.
@@ -139,7 +225,7 @@ In the worst case, this incurs 6 rotations.
 In the best case, if the vector schedule happens to pack the outputs of B and C together into the same vector, the $B\rightarrow E$ and $C\rightarrow H$ rotations are the same (since they are both a rotation of 1); similarly, if D and E are packed into the same vector, the $D\rightarrow F$ and $E\rightarrow G$ rotations are the same, requiring a total of 4 rotations to line everything up. 
 % This particular placement requires one rotation to line B up with E, an additional two rotations to line D up with H and F, respectively, and a final rotation to line up E with G, incurring a total of four rotations. 
 But we can do better: if we instead place B, E, and G on lane 1, A, D and F on lane 2, and C and H on lane 3, we can align the epochs with only two rotations: one to line up B and D, and one to line up D and H. 
-The goal of the lane assignment algorithm is to automatically determine that optimal placement.
+The goal of lane assignment (Algorithm~\ref{alg:lane-placement}) is to automatically determine that optimal placement.
 
 The heuristic approach is to place vertices on lanes while getting as many edges as possible to have the same rotation along them.
 It would be much easier to reason about this by assigning rotation values to edges instead of assigning lanes to vertices: a positive value on the edge represents rotating the value to the right before continuing the computation, a negative value represents rotating the value to the left, and a zero represents no rotation.
