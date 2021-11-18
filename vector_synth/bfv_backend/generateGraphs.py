@@ -262,66 +262,66 @@ int39 = st.t.interval(alpha=0.95, df=len(vec_run10)-1, loc=np.mean(vec_run10), s
 pd3x3_scal_run_avg = average(scal_run10)
 int40 = st.t.interval(alpha=0.95, df=len(scal_run10)-1, loc=np.mean(scal_run10), scale=st.sem(scal_run10))
 
-plt.bar(1, height = float(dp3x3_vec_encrun_avg)/dp3x3_scal_encrun_avg, color = 'blue', yerr = (int1[1] - int1[0]) / (2 * dp3x3_scal_encrun_avg))
-plt.bar(2, height = 1, color = 'blue', yerr = (int2[1] - int2[0]) / (2 * dp3x3_scal_encrun_avg))
+plt.bar(1, height = float(dp3x3_vec_encrun_avg)/dp3x3_scal_encrun_avg, color = 'blue', yerr = (int1[1] - int1[0]) / (2 * dp3x3_scal_encrun_avg), ecolor = 'black')
+plt.bar(2, height = 1, color = 'blue', yerr = (int2[1] - int2[0]) / (2 * dp3x3_scal_encrun_avg), ecolor = 'black')
 
-plt.bar(4, height = float(dp6x6_vec_encrun_avg)/dp6x6_scal_encrun_avg, color = 'red', yerr = (int5[1] - int5[0]) / (2 * dp6x6_scal_encrun_avg))
-plt.bar(5, height = 1, color = 'red', yerr = (int6[1] - int6[0]) / (2 * dp6x6_scal_encrun_avg))
+plt.bar(4, height = float(dp6x6_vec_encrun_avg)/dp6x6_scal_encrun_avg, color = 'red', yerr = (int5[1] - int5[0]) / (2 * dp6x6_scal_encrun_avg), ecolor = 'black')
+plt.bar(5, height = 1, color = 'red', yerr = (int6[1] - int6[0]) / (2 * dp6x6_scal_encrun_avg), ecolor = 'black')
 
-plt.bar(7, height = float(mc4x4x2x2_vec_encrun_avg)/mc4x4x2x2_scal_encrun_avg, color = 'blue', yerr = (int9[1] - int9[0]) / (2 * mc4x4x2x2_scal_encrun_avg))
-plt.bar(8, height = 1, color = 'blue', yerr = (int10[1] - int10[0]) / (2 * mc4x4x2x2_scal_encrun_avg))
+plt.bar(7, height = float(mc4x4x2x2_vec_encrun_avg)/mc4x4x2x2_scal_encrun_avg, color = 'blue', yerr = (int9[1] - int9[0]) / (2 * mc4x4x2x2_scal_encrun_avg), ecolor = 'black')
+plt.bar(8, height = 1, color = 'blue', yerr = (int10[1] - int10[0]) / (2 * mc4x4x2x2_scal_encrun_avg), ecolor = 'black')
 
-plt.bar(10, height = float(mc4x4x3x3_vec_encrun_avg)/mc4x4x3x3_scal_encrun_avg, color = 'red', yerr = (int13[1] - int13[0]) / (2 * mc4x4x3x3_scal_encrun_avg))
-plt.bar(11, height = 1, color = 'red', yerr = (int14[1] - int14[0]) / (2 * mc4x4x3x3_scal_encrun_avg))
+plt.bar(10, height = float(mc4x4x3x3_vec_encrun_avg)/mc4x4x3x3_scal_encrun_avg, color = 'red', yerr = (int13[1] - int13[0]) / (2 * mc4x4x3x3_scal_encrun_avg), ecolor = 'black')
+plt.bar(11, height = 1, color = 'red', yerr = (int14[1] - int14[0]) / (2 * mc4x4x3x3_scal_encrun_avg), ecolor = 'black')
 
-plt.bar(13, height = float(mmd2x2_vec_encrun_avg)/mmd2x2_scal_encrun_avg, color = 'blue', yerr = (int17[1] - int17[0]) / (2 * mmd2x2_scal_encrun_avg))
-plt.bar(14, height = 1, color = 'blue', yerr = (int18[1] - int18[0]) / (2 * mmd2x2_scal_encrun_avg))
+plt.bar(13, height = float(mmd2x2_vec_encrun_avg)/mmd2x2_scal_encrun_avg, color = 'blue', yerr = (int17[1] - int17[0]) / (2 * mmd2x2_scal_encrun_avg), ecolor = 'black')
+plt.bar(14, height = 1, color = 'blue', yerr = (int18[1] - int18[0]) / (2 * mmd2x2_scal_encrun_avg), ecolor = 'black')
 
-plt.bar(16, height = float(mmd3x3_vec_encrun_avg)/mmd3x3_scal_encrun_avg, color = 'red', yerr = (int21[1] - int21[0]) / (2 * mmd3x3_scal_encrun_avg))
-plt.bar(17, height = 1, color = 'red', yerr = (int22[1] - int22[0]) / (2 * mmd3x3_scal_encrun_avg))
+plt.bar(16, height = float(mmd3x3_vec_encrun_avg)/mmd3x3_scal_encrun_avg, color = 'red', yerr = (int21[1] - int21[0]) / (2 * mmd3x3_scal_encrun_avg), ecolor = 'black')
+plt.bar(17, height = 1, color = 'red', yerr = (int22[1] - int22[0]) / (2 * mmd3x3_scal_encrun_avg), ecolor = 'black')
 
-plt.bar(19, height = float(mm2x2_vec_encrun_avg)/mm2x2_scal_encrun_avg, color = 'blue', yerr = (int25[1] - int25[0]) / (2 * mm2x2_scal_encrun_avg))
-plt.bar(20, height = 1, color = 'blue', yerr = (int26[1] - int26[0]) / (2 * mm2x2_scal_encrun_avg))
+plt.bar(19, height = float(mm2x2_vec_encrun_avg)/mm2x2_scal_encrun_avg, color = 'blue', yerr = (int25[1] - int25[0]) / (2 * mm2x2_scal_encrun_avg), ecolor = 'black')
+plt.bar(20, height = 1, color = 'blue', yerr = (int26[1] - int26[0]) / (2 * mm2x2_scal_encrun_avg), ecolor = 'black')
 
-plt.bar(22, height = float(mm3x3_vec_encrun_avg)/mm3x3_scal_encrun_avg, color = 'red', yerr = (int29[1] - int29[0]) / (2 * mm3x3_scal_encrun_avg))
-plt.bar(23, height = 1, color = 'red', yerr = (int30[1] - int30[0]) / (2 * mm3x3_scal_encrun_avg))
+plt.bar(22, height = float(mm3x3_vec_encrun_avg)/mm3x3_scal_encrun_avg, color = 'red', yerr = (int29[1] - int29[0]) / (2 * mm3x3_scal_encrun_avg), ecolor = 'black')
+plt.bar(23, height = 1, color = 'red', yerr = (int30[1] - int30[0]) / (2 * mm3x3_scal_encrun_avg), ecolor = 'black')
 
-plt.bar(25, height = float(pd2x2_vec_encrun_avg)/pd2x2_scal_encrun_avg, color = 'blue', yerr = (int33[1] - int33[0]) / (2 * pd2x2_scal_encrun_avg))
-plt.bar(26, height = 1, color = 'blue', yerr = (int34[1] - int34[0]) / (2 * pd2x2_scal_encrun_avg))
+plt.bar(25, height = float(pd2x2_vec_encrun_avg)/pd2x2_scal_encrun_avg, color = 'blue', yerr = (int33[1] - int33[0]) / (2 * pd2x2_scal_encrun_avg), ecolor = 'black')
+plt.bar(26, height = 1, color = 'blue', yerr = (int34[1] - int34[0]) / (2 * pd2x2_scal_encrun_avg), ecolor = 'black')
 
-plt.bar(28, height = float(pd3x3_vec_encrun_avg)/pd3x3_scal_encrun_avg, color = 'red', yerr = (int37[1] - int37[0]) / (2 * pd3x3_scal_encrun_avg))
-plt.bar(29, height = 1, color = 'red', yerr = (int38[1] - int38[0]) / (2 * pd3x3_scal_encrun_avg))
+plt.bar(28, height = float(pd3x3_vec_encrun_avg)/pd3x3_scal_encrun_avg, color = 'red', yerr = (int37[1] - int37[0]) / (2 * pd3x3_scal_encrun_avg), ecolor = 'black')
+plt.bar(29, height = 1, color = 'red', yerr = (int38[1] - int38[0]) / (2 * pd3x3_scal_encrun_avg), ecolor = 'black')
 plt.title("Vector vs Scalar ENC+RUN Time")
 plt.show()
 
-plt.bar(1, height = float(dp3x3_vec_run_avg)/dp3x3_scal_run_avg, color = 'blue', yerr = (int3[1] - int3[0]) / (2 * dp3x3_scal_run_avg))
-plt.bar(2, height = 1, color = 'blue', yerr = (int4[1] - int4[0]) / (2 * dp3x3_scal_run_avg))
+plt.bar(1, height = float(dp3x3_vec_run_avg)/dp3x3_scal_run_avg, color = 'blue', yerr = (int3[1] - int3[0]) / (2 * dp3x3_scal_run_avg), ecolor = 'black')
+plt.bar(2, height = 1, color = 'blue', yerr = (int4[1] - int4[0]) / (2 * dp3x3_scal_run_avg), ecolor = 'black')
 
-plt.bar(4, height = float(dp6x6_vec_run_avg)/dp6x6_scal_run_avg, color = 'red', yerr = (int7[1] - int7[0]) / (2 * dp6x6_scal_run_avg))
-plt.bar(5, height = 1, color = 'red', yerr = (int8[1] - int8[0]) / (2 * dp6x6_scal_run_avg))
+plt.bar(4, height = float(dp6x6_vec_run_avg)/dp6x6_scal_run_avg, color = 'red', yerr = (int7[1] - int7[0]) / (2 * dp6x6_scal_run_avg), ecolor = 'black')
+plt.bar(5, height = 1, color = 'red', yerr = (int8[1] - int8[0]) / (2 * dp6x6_scal_run_avg), ecolor = 'black')
 
-plt.bar(7, height = float(mc4x4x2x2_vec_run_avg)/mc4x4x2x2_scal_run_avg, color = 'blue', yerr = (int11[1] - int11[0]) / (2 * mc4x4x2x2_scal_run_avg))
-plt.bar(8, height = 1, color = 'blue', yerr = (int12[1] - int12[0]) / (2 * mc4x4x2x2_scal_run_avg))
+plt.bar(7, height = float(mc4x4x2x2_vec_run_avg)/mc4x4x2x2_scal_run_avg, color = 'blue', yerr = (int11[1] - int11[0]) / (2 * mc4x4x2x2_scal_run_avg), ecolor = 'black')
+plt.bar(8, height = 1, color = 'blue', yerr = (int12[1] - int12[0]) / (2 * mc4x4x2x2_scal_run_avg), ecolor = 'black')
 
-plt.bar(10, height = float(mc4x4x3x3_vec_run_avg)/mc4x4x3x3_scal_run_avg, color = 'red', yerr = (int15[1] - int15[0]) / (2 * mc4x4x3x3_scal_run_avg))
-plt.bar(11, height = 1, color = 'red', yerr = (int16[1] - int16[0]) / (2 * mc4x4x3x3_scal_run_avg))
+plt.bar(10, height = float(mc4x4x3x3_vec_run_avg)/mc4x4x3x3_scal_run_avg, color = 'red', yerr = (int15[1] - int15[0]) / (2 * mc4x4x3x3_scal_run_avg), ecolor = 'black')
+plt.bar(11, height = 1, color = 'red', yerr = (int16[1] - int16[0]) / (2 * mc4x4x3x3_scal_run_avg), ecolor = 'black')
 
-plt.bar(13, height = float(mmd2x2_vec_run_avg)/mmd2x2_scal_run_avg, color = 'blue', yerr = (int19[1] - int19[0]) / (2 * mmd2x2_scal_run_avg))
-plt.bar(14, height = 1, color = 'blue', yerr = (int20[1] - int20[0]) / (2 * mmd2x2_scal_run_avg))
+plt.bar(13, height = float(mmd2x2_vec_run_avg)/mmd2x2_scal_run_avg, color = 'blue', yerr = (int19[1] - int19[0]) / (2 * mmd2x2_scal_run_avg), ecolor = 'black')
+plt.bar(14, height = 1, color = 'blue', yerr = (int20[1] - int20[0]) / (2 * mmd2x2_scal_run_avg), ecolor = 'black')
 
-plt.bar(16, height = float(mmd3x3_vec_run_avg)/mmd3x3_scal_run_avg, color = 'red', yerr = (int23[1] - int23[0]) / (2 * mmd3x3_scal_run_avg))
-plt.bar(17, height = 1, color = 'red', yerr = (int24[1] - int24[0]) / (2 * mmd3x3_scal_run_avg))
+plt.bar(16, height = float(mmd3x3_vec_run_avg)/mmd3x3_scal_run_avg, color = 'red', yerr = (int23[1] - int23[0]) / (2 * mmd3x3_scal_run_avg), ecolor = 'black')
+plt.bar(17, height = 1, color = 'red', yerr = (int24[1] - int24[0]) / (2 * mmd3x3_scal_run_avg), ecolor = 'black')
 
-plt.bar(19, height = float(mm2x2_vec_run_avg)/mm2x2_scal_run_avg, color = 'blue', yerr = (int27[1] - int27[0]) / (2 * mm2x2_scal_run_avg))
-plt.bar(20, height = 1, color = 'blue', yerr = (int28[1] - int28[0]) / (2 * mm2x2_scal_run_avg))
+plt.bar(19, height = float(mm2x2_vec_run_avg)/mm2x2_scal_run_avg, color = 'blue', yerr = (int27[1] - int27[0]) / (2 * mm2x2_scal_run_avg), ecolor = 'black')
+plt.bar(20, height = 1, color = 'blue', yerr = (int28[1] - int28[0]) / (2 * mm2x2_scal_run_avg), ecolor = 'black')
 
-plt.bar(22, height = float(mm3x3_vec_run_avg)/mm3x3_scal_run_avg, color = 'red', yerr = (int31[1] - int31[0]) / (2 * mm3x3_scal_run_avg))
-plt.bar(23, height = 1, color = 'red', yerr = (int32[1] - int32[0]) / (2 * mm3x3_scal_run_avg))
+plt.bar(22, height = float(mm3x3_vec_run_avg)/mm3x3_scal_run_avg, color = 'red', yerr = (int31[1] - int31[0]) / (2 * mm3x3_scal_run_avg), ecolor = 'black')
+plt.bar(23, height = 1, color = 'red', yerr = (int32[1] - int32[0]) / (2 * mm3x3_scal_run_avg), ecolor = 'black')
 
-plt.bar(25, height = float(pd2x2_vec_run_avg)/pd2x2_scal_run_avg, color = 'blue', yerr = (int35[1] - int35[0]) / (2 * pd2x2_scal_run_avg))
-plt.bar(26, height = 1, color = 'blue', yerr = (int36[1] - int36[0]) / (2 * pd2x2_scal_run_avg))
+plt.bar(25, height = float(pd2x2_vec_run_avg)/pd2x2_scal_run_avg, color = 'blue', yerr = (int35[1] - int35[0]) / (2 * pd2x2_scal_run_avg), ecolor = 'black')
+plt.bar(26, height = 1, color = 'blue', yerr = (int36[1] - int36[0]) / (2 * pd2x2_scal_run_avg), ecolor = 'black')
 
-plt.bar(28, height = float(pd3x3_vec_run_avg)/pd3x3_scal_run_avg, color = 'red', yerr = (int39[1] - int39[0]) / (2 * pd3x3_scal_run_avg))
-plt.bar(29, height = 1, color = 'red', yerr = (int40[1] - int40[0]) / (2 * pd3x3_scal_run_avg))
+plt.bar(28, height = float(pd3x3_vec_run_avg)/pd3x3_scal_run_avg, color = 'red', yerr = (int39[1] - int39[0]) / (2 * pd3x3_scal_run_avg), ecolor = 'black')
+plt.bar(29, height = 1, color = 'red', yerr = (int40[1] - int40[0]) / (2 * pd3x3_scal_run_avg), ecolor = 'black')
 plt.title("Vector vs Scalar RUN Time")
 plt.show()
