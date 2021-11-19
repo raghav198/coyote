@@ -1,0 +1,152 @@
+
+# include "../scalar.hpp"
+int ScalarProgram::num_registers()
+{
+    return 105;
+}
+
+std::vector<std::string> ScalarProgram::vars_used()
+{
+    return {"b:0", "a:1", "c:1", "d:0", "d:1", "c:2", "b:1", "a:0", "b:2", "c:0", "a:2", "d:2"};
+}
+
+std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, RuntimeContext &info)
+{
+    seal::RelinKeys rk = info.keys->rk;
+    ctxt regs[num_registers()];
+    regs[0] = locs["a:0"];
+    regs[1] = locs["c:0"];
+    info.eval->sub(regs[0], regs[1], regs[2]);
+    regs[3] = locs["a:0"];
+    info.eval->sub(regs[3], regs[1], regs[4]);
+    info.eval->multiply(regs[2], regs[4], regs[5]);
+    info.eval->relinearize_inplace(regs[5], rk);
+    regs[6] = locs["b:0"];
+    regs[7] = locs["d:0"];
+    info.eval->sub(regs[6], regs[7], regs[8]);
+    regs[9] = locs["b:0"];
+    info.eval->sub(regs[9], regs[7], regs[10]);
+    info.eval->multiply(regs[8], regs[10], regs[11]);
+    info.eval->relinearize_inplace(regs[11], rk);
+    info.eval->add(regs[5], regs[11], regs[12]);
+    regs[13] = locs["a:0"];
+    regs[14] = locs["c:1"];
+    info.eval->sub(regs[13], regs[14], regs[15]);
+    regs[16] = locs["a:0"];
+    info.eval->sub(regs[16], regs[14], regs[17]);
+    info.eval->multiply(regs[15], regs[17], regs[18]);
+    info.eval->relinearize_inplace(regs[18], rk);
+    regs[19] = locs["b:0"];
+    regs[20] = locs["d:1"];
+    info.eval->sub(regs[19], regs[20], regs[21]);
+    regs[22] = locs["b:0"];
+    info.eval->sub(regs[22], regs[20], regs[23]);
+    info.eval->multiply(regs[21], regs[23], regs[24]);
+    info.eval->relinearize_inplace(regs[24], rk);
+    info.eval->add(regs[18], regs[24], regs[25]);
+    regs[26] = locs["a:0"];
+    regs[27] = locs["c:2"];
+    info.eval->sub(regs[26], regs[27], regs[28]);
+    regs[29] = locs["a:0"];
+    info.eval->sub(regs[29], regs[27], regs[30]);
+    info.eval->multiply(regs[28], regs[30], regs[31]);
+    info.eval->relinearize_inplace(regs[31], rk);
+    regs[32] = locs["b:0"];
+    regs[33] = locs["d:2"];
+    info.eval->sub(regs[32], regs[33], regs[34]);
+    regs[35] = locs["b:0"];
+    info.eval->sub(regs[35], regs[33], regs[36]);
+    info.eval->multiply(regs[34], regs[36], regs[37]);
+    info.eval->relinearize_inplace(regs[37], rk);
+    info.eval->add(regs[31], regs[37], regs[38]);
+    regs[39] = locs["a:1"];
+    info.eval->sub(regs[39], regs[1], regs[40]);
+    regs[41] = locs["a:1"];
+    info.eval->sub(regs[41], regs[1], regs[42]);
+    info.eval->multiply(regs[40], regs[42], regs[43]);
+    info.eval->relinearize_inplace(regs[43], rk);
+    regs[44] = locs["b:1"];
+    info.eval->sub(regs[44], regs[7], regs[45]);
+    regs[46] = locs["b:1"];
+    info.eval->sub(regs[46], regs[7], regs[47]);
+    info.eval->multiply(regs[45], regs[47], regs[48]);
+    info.eval->relinearize_inplace(regs[48], rk);
+    info.eval->add(regs[43], regs[48], regs[49]);
+    regs[50] = locs["a:1"];
+    info.eval->sub(regs[50], regs[14], regs[51]);
+    regs[52] = locs["a:1"];
+    info.eval->sub(regs[52], regs[14], regs[53]);
+    info.eval->multiply(regs[51], regs[53], regs[54]);
+    info.eval->relinearize_inplace(regs[54], rk);
+    regs[55] = locs["b:1"];
+    info.eval->sub(regs[55], regs[20], regs[56]);
+    regs[57] = locs["b:1"];
+    info.eval->sub(regs[57], regs[20], regs[58]);
+    info.eval->multiply(regs[56], regs[58], regs[59]);
+    info.eval->relinearize_inplace(regs[59], rk);
+    info.eval->add(regs[54], regs[59], regs[60]);
+    regs[61] = locs["a:1"];
+    info.eval->sub(regs[61], regs[27], regs[62]);
+    regs[63] = locs["a:1"];
+    info.eval->sub(regs[63], regs[27], regs[64]);
+    info.eval->multiply(regs[62], regs[64], regs[65]);
+    info.eval->relinearize_inplace(regs[65], rk);
+    regs[66] = locs["b:1"];
+    info.eval->sub(regs[66], regs[33], regs[67]);
+    regs[68] = locs["b:1"];
+    info.eval->sub(regs[68], regs[33], regs[69]);
+    info.eval->multiply(regs[67], regs[69], regs[70]);
+    info.eval->relinearize_inplace(regs[70], rk);
+    info.eval->add(regs[65], regs[70], regs[71]);
+    regs[72] = locs["a:2"];
+    info.eval->sub(regs[72], regs[1], regs[73]);
+    regs[74] = locs["a:2"];
+    info.eval->sub(regs[74], regs[1], regs[75]);
+    info.eval->multiply(regs[73], regs[75], regs[76]);
+    info.eval->relinearize_inplace(regs[76], rk);
+    regs[77] = locs["b:2"];
+    info.eval->sub(regs[77], regs[7], regs[78]);
+    regs[79] = locs["b:2"];
+    info.eval->sub(regs[79], regs[7], regs[80]);
+    info.eval->multiply(regs[78], regs[80], regs[81]);
+    info.eval->relinearize_inplace(regs[81], rk);
+    info.eval->add(regs[76], regs[81], regs[82]);
+    regs[83] = locs["a:2"];
+    info.eval->sub(regs[83], regs[14], regs[84]);
+    regs[85] = locs["a:2"];
+    info.eval->sub(regs[85], regs[14], regs[86]);
+    info.eval->multiply(regs[84], regs[86], regs[87]);
+    info.eval->relinearize_inplace(regs[87], rk);
+    regs[88] = locs["b:2"];
+    info.eval->sub(regs[88], regs[20], regs[89]);
+    regs[90] = locs["b:2"];
+    info.eval->sub(regs[90], regs[20], regs[91]);
+    info.eval->multiply(regs[89], regs[91], regs[92]);
+    info.eval->relinearize_inplace(regs[92], rk);
+    info.eval->add(regs[87], regs[92], regs[93]);
+    regs[94] = locs["a:2"];
+    info.eval->sub(regs[94], regs[27], regs[95]);
+    regs[96] = locs["a:2"];
+    info.eval->sub(regs[96], regs[27], regs[97]);
+    info.eval->multiply(regs[95], regs[97], regs[98]);
+    info.eval->relinearize_inplace(regs[98], rk);
+    regs[99] = locs["b:2"];
+    info.eval->sub(regs[99], regs[33], regs[100]);
+    regs[101] = locs["b:2"];
+    info.eval->sub(regs[101], regs[33], regs[102]);
+    info.eval->multiply(regs[100], regs[102], regs[103]);
+    info.eval->relinearize_inplace(regs[103], rk);
+    info.eval->add(regs[98], regs[103], regs[104]);
+    std::vector<ctxt> answer;
+    answer.push_back(regs[12]);
+    answer.push_back(regs[25]);
+    answer.push_back(regs[38]);
+    answer.push_back(regs[49]);
+    answer.push_back(regs[60]);
+    answer.push_back(regs[71]);
+    answer.push_back(regs[82]);
+    answer.push_back(regs[93]);
+    answer.push_back(regs[104]);
+    return answer;
+}
+    

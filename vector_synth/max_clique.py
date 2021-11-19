@@ -50,6 +50,7 @@ class BreaksetCalculator:
 
     def get_weight(self, con):
         # return len(self.weights[con])
+        # print(self.connections[con], self.match_scores[con])
         return int(self.match_scores[con].sum()) - self.rotate_penalty
 
     def update_connections(self):
@@ -103,7 +104,7 @@ class BreaksetCalculator:
             else:
                 self.opt.pop()
                 print(f'Breakset has {len(clique)} nodes', file=self.log)
-                return clique, value
+                return clique, (value.as_long() if isinstance(value, z3.IntNumRef) else value)
 
 
 def solve_MaxClique(connections, weights):

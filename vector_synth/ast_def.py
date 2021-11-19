@@ -42,6 +42,26 @@ class Op:
     def __eq__(self, o: object) -> bool:
         return isinstance(o, Op) and o.op == self.op and o.lhs == self.lhs and o.rhs == self.rhs
 
+class Tree:
+    def __init__(self, a):
+        if type(a) is str:
+            a = Var(a)
+        self.a = a
+    
+    def __add__(self, o):
+        if self.a == 0:
+            return Tree(o.a)
+        if o.a == 0:
+            return Tree(self.a)
+        return Tree(Op('+', self.a, o.a))
+    
+    def __mul__(self, o):
+        if (self.a == 0 or o.a == 0):
+            return Tree(0)
+        return Tree(Op('*', self.a, o.a))
+    
+    def __sub__(self, o):
+        return Tree(Op('-', self.a, o.a))
 
 def plus(a, b):
     if type(a) is str:
@@ -51,6 +71,13 @@ def plus(a, b):
 
     return Op('+', a, b)
 
+def minus(a, b):
+    if type(a) is str:
+        a = Var(a)
+    if type(b) is str:
+        b = Var(b)
+
+    return Op('-', a, b)
 
 def times(a, b):
     if type(a) is str:
@@ -117,11 +144,15 @@ class Compiler:
         self.loaded_regs: Dict[str, int] = {}
         self.input_groups = input_groups
         self.allow_duplicates: Set[str] = set()
-        for thing in allow_replicating:
-            if isinstance(thing, int):
-                self.allow_duplicates |= self.input_groups[thing]
-            else:
-                self.allow_duplicates.add(thing)
+        if allow_replicating == 'all':
+            self.replicate_all = True
+        else:
+            self.replicate_all = False
+            for thing in allow_replicating:
+                if isinstance(thing, int):
+                    self.allow_duplicates |= self.input_groups[thing]
+                else:
+                    self.allow_duplicates.add(thing)
 
     def compile(self, e: Expression, top=True) -> Atom:
         if isinstance(e, Var):
@@ -132,7 +163,7 @@ class Compiler:
             # return Atom(e.name)
 
             # if not self.allow_duplicates and (e.name in self.loaded_regs):
-            if e.name not in self.allow_duplicates and e.name in self.loaded_regs:
+            if not self.replicate_all and e.name not in self.allow_duplicates and e.name in self.loaded_regs:
                 print(f'Reusing {self.loaded_regs[e.name]} instead of reloading {e.name}')
                 e.tag = self.loaded_regs[e.name]
                 return Atom(self.loaded_regs[e.name])

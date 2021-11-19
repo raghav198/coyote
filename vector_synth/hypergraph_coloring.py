@@ -2,9 +2,11 @@ from collections import defaultdict
 from email.policy import default
 import enum
 from inspect import BoundArguments
+from math import sqrt
 from time import time
 
 from numpy import matrix
+from pyparsing import col
 from path_semiring import LangSemiring, Matrix, Path, adjacency_matrix_from_graph, is_zero
 from graph import Edge, Graph, Node, connect, edges_on_path
 from itertools import combinations
@@ -338,8 +340,7 @@ def quotient_by_zero_color(coloring: Dict[Edge, Color], graph: Graph[Node], zero
     return equivalence_classes
 
 
-def integrate_colored_edges(coloring: Dict[Edge, Color], graph: Graph[Node], stages: List[List[Node]], bound_lanes=None, force_zero=None):
-
+def integrate_colored_edges(coloring: Dict[Edge, Color], graph: Graph[Node], stages: List[List[Node]], bound_lanes=None, ignore=[]):
     if bound_lanes is None:
         bound_lanes = max(map(len, stages))
 
@@ -375,7 +376,9 @@ def integrate_colored_edges(coloring: Dict[Edge, Color], graph: Graph[Node], sta
                     deltas[color] = z3.Int(color)
                 # if color_multiplicities[color] == 1:
                 #     continue
-                opt.assert_and_track(nodes[v1] == nodes[v2] + deltas[color], f'{v1} == {v2} + {color}')
+                constraint_name = f'{v1} == {v2} + {color}'
+                if constraint_name not in ignore:
+                    opt.assert_and_track(nodes[v1] == nodes[v2] + deltas[color], f'{v1} == {v2} + {color}')
     
     # if force_zero is not None:
     #     opt.add(deltas[force_zero] == 0)
@@ -388,6 +391,7 @@ def integrate_colored_edges(coloring: Dict[Edge, Color], graph: Graph[Node], sta
     # opt.add(nodes['y2'] == 0)
     # opt.add(nodes['y3'] == 2)
 
+    new_bound = max(int(sqrt(sqrt(2)) * bound_lanes), bound_lanes + 1)
 
     print(f'Formulated with {len(opt.assertions())} constraints and {len(nodes), len(deltas)} variables')
     start = time()
@@ -397,9 +401,11 @@ def integrate_colored_edges(coloring: Dict[Edge, Color], graph: Graph[Node], sta
         print(unsat_core)
 
         if any(core.startswith('lane_bound') for core in unsat_core):
-            return integrate_colored_edges(coloring, graph, stages, bound_lanes=2 * bound_lanes)
+            print(f'Rebounding at {int(sqrt(sqrt(2)) * bound_lanes)}')
+            return integrate_colored_edges(coloring, graph, stages, bound_lanes=new_bound)
 
-        return cegis_edges(unsat_core)
+        # return cegis_edges(unsat_core)
+        return integrate_colored_edges(coloring, graph, stages, bound_lanes=bound_lanes, ignore=ignore + unsat_core)
         # for constraint in opt.unsat_core():
         #     print(str(constraint))
         # unsat_core = list(map(str, opt.unsat_core()))
@@ -407,7 +413,7 @@ def integrate_colored_edges(coloring: Dict[Edge, Color], graph: Graph[Node], sta
 
     elif result == z3.unknown and opt.reason_unknown() == 'canceled':
         print('Adding more lanes and trying again')
-        return integrate_colored_edges(coloring, graph, stages, bound_lanes=2 * bound_lanes)
+        return integrate_colored_edges(coloring, graph, stages, bound_lanes=new_bound)
         
     end = time()
     # print(f'Solving took {end - start} time')
@@ -446,8 +452,64 @@ def split_stage_graph_3():
 
 
 def place_lanes_hypergraph_method(dependencies: List[Dict[int, Set[int]]], max_warp: int):
+    graph, stages, renum_to_orig = build_dependency_graph(dependencies)
+
+    
+    # for stage1, stage2 in zip(stages[:-1], stages[1:]):
+    #     num_edges = sum(len(list(filter(lambda v2: v2 in stage2, graph[v1]))) for v1 in stage1)
+    #     print(len(stage1), len(stage2), num_edges)
+    # input()
+    
+
+    edges, hyperedges = build_hypergraph_with_path_semiring(graph, stages, timeout=5000)
+    while True:
+        coloring = color_hypergraph((edges, hyperedges), colors)
+
+
+        avg_color_density = []
+        for i in range(len(stages)):
+            first_half = sum(stages[:i], [])
+            second_half = sum(stages[i:], [])
+
+            colors_used = set()
+            num_edges = 0
+            for v1 in first_half:
+                cross_edges = list(filter(lambda v2: v2 in second_half, graph[v1]))
+                num_edges += len(cross_edges)
+                if len(cross_edges):
+                    colors_used.update({coloring[Edge(v1, v2)] for v2 in cross_edges})
+
+            if num_edges > 0:
+                avg_color_density.append(num_edges / len(colors_used))
+
+        print(avg_color_density)
+
+                
+            
+
+
+            # num_edges = sum(len(list(filter(lambda v2: v2 in second_half, graph[v1]))) for v1 in first_half)
+            # print(sum(map(len, stages[:i])), sum(map(len, stages[i:])), num_edges)
+
+        # print(Counter(coloring.values()))
+
+        # print(quotient_by_zero_color(coloring, graph, Counter(coloring.values()).most_common()[0][0]))
+        # raise SystemExit()
+
+        # color_mode = Counter(coloring.values()).most_common()[0][0]
+        result = integrate_colored_edges(coloring, graph, stages)
+        if type(result) is defaultdict:
+            print('Unsat!')
+            _, new_relations = build_hypergraph_with_path_semiring(result, stages)
+            hyperedges += new_relations
+            continue
+        break
+
+    return {renum_to_orig[k]: v for k, v in result.items()}
+
+def build_dependency_graph(dependencies):
     graph: Graph[str] = defaultdict(list)
-    stages = []
+    stages: List[List] = []
 
     orig_to_renum: Dict[int, str] = {}
     renum_to_orig: Dict[str, int] = {}
@@ -467,27 +529,8 @@ def place_lanes_hypergraph_method(dependencies: List[Dict[int, Set[int]]], max_w
 
     for k in graph:
         graph[k].sort()
-    
 
-    edges, hyperedges = build_hypergraph_with_path_semiring(graph, stages, timeout=5000)
-    while True:
-        coloring = color_hypergraph((edges, hyperedges), colors)
-
-        # print(Counter(coloring.values()))
-
-        # print(quotient_by_zero_color(coloring, graph, Counter(coloring.values()).most_common()[0][0]))
-        # raise SystemExit()
-
-        color_mode = Counter(coloring.values()).most_common()[0][0]
-        result = integrate_colored_edges(coloring, graph, stages, force_zero=color_mode)
-        if type(result) is defaultdict:
-            print('Unsat!')
-            _, new_relations = build_hypergraph_with_path_semiring(result, stages)
-            hyperedges += new_relations
-            continue
-        break
-
-    return {renum_to_orig[k]: v for k, v in result.items()}
+    return graph, stages, renum_to_orig
 
 
 
