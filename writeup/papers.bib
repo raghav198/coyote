@@ -90,3 +90,21 @@ series = {PLDI '00}
   volume={2012},
   pages={144}
 }
+
+@inproceedings{VeGen,
+author = {Chen, Yishen and Mendis, Charith and Carbin, Michael and Amarasinghe, Saman},
+title = {VeGen: A Vectorizer Generator for SIMD and Beyond},
+year = {2021},
+isbn = {9781450383172},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3445814.3446692},
+doi = {10.1145/3445814.3446692},
+abstract = {Vector instructions are ubiquitous in modern processors. Traditional compiler auto-vectorization techniques have focused on targeting single instruction multiple data (SIMD) instructions. However, these auto-vectorization techniques are not sufficiently powerful to model non-SIMD vector instructions, which can accelerate applications in domains such as image processing, digital signal processing, and machine learning. To target non-SIMD instruction, compiler developers have resorted to complicated, ad hoc peephole optimizations, expending significant development time while still coming up short. As vector instruction sets continue to rapidly evolve, compilers cannot keep up with these new hardware capabilities.  In this paper, we introduce Lane Level Parallelism (LLP), which captures the model of parallelism implemented by both SIMD and non-SIMD vector instructions. We present VeGen, a vectorizer generator that automatically generates a vectorization pass to uncover target-architecture-specific LLP in programs while using only instruction semantics as input. VeGen decouples, yet coordinates automatically generated target-specific vectorization utilities with its target-independent vectorization algorithm. This design enables us to systematically target non-SIMD vector instructions that until now require ad hoc coordination between different compiler stages. We show that VeGen can use non-SIMD vector instructions effectively, for example, getting speedup 3\texttimes{} (compared to LLVM’s vectorizer) on x265’s idct4 kernel.},
+booktitle = {Proceedings of the 26th ACM International Conference on Architectural Support for Programming Languages and Operating Systems},
+pages = {902–914},
+numpages = {13},
+keywords = {auto-vectorization, non-SIMD, optimization},
+location = {Virtual, USA},
+series = {ASPLOS 2021}
+}

@@ -8,7 +8,7 @@ Python code that manipulates these symbolic variables produces an arithmetic cir
 % \milind{This whole section will benefit from having a running example :-)}
  
 \subsection*{Compilation Steps}
-\begin{figure}
+\begin{figure*}
     \begin{subfigure}{0.45\columnwidth}
         \includegraphics[scale=0.25]{figures/compilation_overview/small_expression_circuit.drawio.png}
         \caption{Arithmetic circuit computing $$(ab+c)(xy+z)$$ with vectorizable subcircuits highlighted}
@@ -31,7 +31,7 @@ Python code that manipulates these symbolic variables produces an arithmetic cir
     \end{subfigure}
     \caption{A running example of how \system vectorizes arbitrary arithmetic circuits}
     \label{fig:toy-running-example}
-\end{figure}
+\end{figure*}
 
 In this section, we give a brief overview of the steps \system takes to vectorize an arbitrary arithmetic circuit.
 We will use the circuit in Figure~\ref{fig:small-expr-circuit} that computes $(ab+c)(xy+z)$ as a running example.

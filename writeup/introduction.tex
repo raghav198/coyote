@@ -9,24 +9,34 @@
 %% Motivation
 % What's the big picture problem?
 Fully Homomorphic Encryption (FHE) refers to any encryption scheme that allows for homomorphically adding and multiplying ciphertexts, so that the sum of the encryptions of two integers is an encryption of their sum, and similarly the product of the encryptions of two integers is an encryption of their product.
-While FHE is an powerful technique for carrying out privacy-preserving computations on encrypted data, it has a major downside: it is slow.
+While FHE is a powerful technique for carrying out privacy-preserving computations on encrypted data, it has a major downside: it is slow.
 Homomorphic computations over ciphertexts are often orders of magnitude slower than a corresponding plaintext computation.
 %\raghav{I wonder if reviewers will read this and think ``hmm there was a PLDI paper last year that said the same thing''}
 Many FHE cryptosystems support packing large numbers of ciphertexts into {\em ciphertext vectors}, essentially compensating for the inherent slowness of FHE by enabling SIMD-style computation.
 To properly take advantage of ciphertext packing, we need a compiler that can vectorize arbitrary FHE programs.
 \raghav{It feels like I should mention ``all FHE programs are arithmetic circuits'' here, but I'm not sure where. One idea is it can go as part of the ``you can't do normal vectorization'' bit, since there are no loops and stuff to take advantage of. But I'm not sure.}\milind{I think what you've written here seems good.}
 % Who has tried to solve this problem before?
-Vectorizing compilers for FHE are nothing new \cite{CHET, Porcupine}.
-However, these prior approaches are optimized for highly regular computations over packed tensors (such as neural networks in the case of CHET), and often don't take into account how expensive rotations can be in more irregular applications.
-\milind{You might want to be a little more explicit about the comparisons here: CHET does X, which means it doesn't do Y. Porcupine does A, which means it has drawback B.}
-A lot of FHE computations do not deal with regular data structures like tensors, which makes it much harder to take advantage of vectorization opportunities.
+Vectorizing compilers for FHE are nothing new, as seen in CHET and Porcupine \cite{CHET, Porcupine}.
+However, neither of these approaches meets the need for a vectorizing compiler for arbitrary FHE programs.
+While CHET is optimized for highly regular computations over packed tensors (such as neural network), it does not generalize well to more irregular programs that are not already vectorized. 
+Porcupine, which uses a synthesis-based approach to generate vectorized code for arbitrary kernels, does work for am more general class of programs.
+However, it often cannot properly account for the high rotation costs in more irregular applications. \raghav{Is there a better/more correct/more effective way to say this?}
 
-Other approaches to vectorizing arbitrary, non-loop-based code, such as SLP \cite{SLP}, also fail here.
+% However, these prior approaches are optimized for highly regular computations over packed tensors (such as neural networks in the case of CHET), and often don't take into account how expensive rotations can be in more irregular applications.
+% \milind{You might want to be a little more explicit about the comparisons here: CHET does X, which means it doesn't do Y. Porcupine does A, which means it has drawback B.}
+% A lot of FHE computations do not deal with regular data structures like tensors, which makes it much harder to take advantage of vectorization opportunities.
+
+Other approaches to vectorizing arbitrary, non-loop-based code, such as Superword-Level Parallelism \cite{SLP}, also fail here.
 SLP aggressively packs isomorphic instructions into vectors, because it assumes that shuffling vector lanes around or indexing into a vector is relatively cheap.
 In FHE, however, the vectors are not physical vector registers with slots for data, but rather {\em abstract mathematical objects} which only {\em encode} several ciphertexts.
 The only way to move data between vector lanes in FHE is by performing a cyclic rotation of the entire vector.
 While it is theoretically possible to encode arbitrary permutations as a series of masks and rotates, realizing the shuffles incurred by SLP in this way can quickly outweigh any benefits from vectorizing in the first place.
-This means that we need a new arbitrary vectorization strategy that is {\em FHE-aware}; i.e., it packs instructions without relying on regularity in the original computation, but still accounts for the high cost of data movement.
+
+More recent takes on SLP, such as VeGen \cite{VeGen}, are somewhat better at this.
+VeGen is capable of incorporating reasoning about data movement into its vectorization, and can make the decision to not pack certain instructions together because the data movement cost incurred is not worth it.
+However, VeGen does all its reasoning {\em locally}; that is, it cannot reason about the effect packing instructions together may have on shuffling costs much later in the program. \raghav{Is that the right direction?}
+
+This means that we need a new arbitrary vectorization strategy that is {\em FHE-aware}; i.e., it packs instructions without relying on regularity in the original computation, and can still account for the high cost of data movement throughout the program.
 
 %% Contributions
 In this paper, we present \system, the first vectorizing FHE-aware compiler for irregular programs.
@@ -36,7 +46,7 @@ The specific contributions we make are:
 \begin{enumerate}
     \item An algorithm for automatically identifying vectorizable structures in a program
     \item An algorithm for optimally choosing data layout to minimize the total cost of moving data around
-    \item A lightweight Python eDSL called \system, with a compiler that implements these algorithms to generate efficient FHE code for arbitrary programs \raghav{I'm going ahead and calling \system a DSL because it technically is with the overloaded dunder methods, even if its not as pretty as I want it to be}
+    \item A lightweight Python embedded DSL called \system, with a compiler that implements these algorithms to generate efficient FHE code for arbitrary programs \raghav{I'm going ahead and calling \system a DSL because it technically is with the overloaded dunder methods, even if its not as pretty as I want it to be}
 \end{enumerate}
 
 %% Results
