@@ -40,7 +40,7 @@ where $t_i.L$ and $t_i.R$ represent the left and right subcircuits\footnote{If $
 Intuitively, this formula says that the similarity between any tree and a leaf node (which is an input variable) is $0$.
 To compute the similarity between two trees, we consider the best of all six possible ways of aligning them, adding to the similarity score if the roots align with the same operation. %\raghav{Intuitive enough? I considered writing out the six possible ways of aligning them but that's what I had before and it sounded even more confusing.}\milind{I think it's OK.}
 
-For example, in the circuit from Figure~\ref{fig:small-expr-circuit}, we have a similarity score of $2$ between $(ab + c)$ and $(xy + z)$. \raghav{Should I step through the induction here to show why that's the case?}
+For example, in the circuit from Figure~\ref{fig:small-expr-circuit}, we have a similarity score of $2$ between $(ab + c)$ and $(xy + z)$. \raghav{Should I step through the induction here to show why that's the case?}\milind{If there's space, sure...}
 
 % The base case is comparing any tree to a leaf node (a single variable with no operations), in which case the similarity is $0$, as there are no operations that can be packed together.
 
