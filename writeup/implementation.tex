@@ -51,4 +51,28 @@ Doing so breaks certain symmetries (e.g., an uncolored edges may no longer have 
 Once again, this amounts to sacrificing optimality in exchange for compilation time: simply by increasing the time limit on finding the paths, we can avoid missing relations, and ensure that we never have to do this.
 
 \subsection{Duplicating Inputs}\label{sec:duplicating-inputs}
+The arithmetic circuits input to \system are DAGs, which fail to be trees exactly when values are used as inputs to multiple computations (for instance, in the expression $ab + ac$, the value $a$ is used as an input to both multiplies).
+Any such DAG can be turned into a tree, however, simply by creating copies of each repeated value, in a ``reverse-CSE'' process.
+Applying this to the example expression yields $a_1b + a_2c$ where $a_1$ and $a_2$ are fresh input variables that both have the same value passed into them.
+By duplicating the data this way, the new circuit, while strictly bigger, may have better rotation characteristics.
+This is because if $a$ was to be used on two different lanes it would have incurred at least one rotation, but by having two copies of $a$ we can avoid this rotation entirely.
+
+One downside to this transformation is it makes vectorized computations harder to compose.
+If $a$ is not an input to the whole program but rather the output of some other kernel, then duplicating $a$ in the circuit requires the preceding kernel to also duplicate its output, which incurs more rotation costs and potentially outweighs any savings.
+Rather than automatically trying to balance these factors, \system leaves it up to the programmer.
+The frontend DSL for \system exposes an API by which the programmer can specify which of the input variables to their computaton can be duplicated, and which ones cannot.
+When running benchmarks in Section~\ref{sec:eval} we compile three versions of each benchmark: duplicating nothing, duplicating both inputs, and only duplicating one of the two inputs.
+We discuss the specific performance tradeoffs of this choice. \raghav{Should I include those last two sentences or just save it for eval?} 
+
+
 \subsection{Penalizing Rotates when choosing cliques}\label{sec:penalizing-rotates}\raghav{Name this section something different?}
+When choosing cliques to form epochs as discussed in Section~\ref{sec:selecting-subexpressions}, we have the option to penalize the rotation overhead of choosing large cliques by subtracting a fixed amount from the weight of each edge (since a larger clique has more edges, it incurs a higher penalty).
+However, doing so often grossly overestimates the rotation overhead, particularly in highly regular programs, where many of the rotations are mostly independent and can easily be folded into a single rotate instruction.
+This overestimation can lead to picking conservatively small cliques that don't have as much vectorizability, even though a larger clique would have been more vectorizable without incurring too many rotations.
+To detect this, we find two sets of epochs: one with rotation penalties applied to the vectorizability graph, and one with no penalties.
+Compilation proceeds as normal, creating two dependence graphs and then two hypergraphs, and coloring them both.
+At this point, by inspecting the two colorings, we can determine how much worse the rotations are in the non-penalized case, and compare this to the increased vectorizability from using larger cliques.
+The better of the two options is then used for the rest of compilation.
+
+This does add the overhead of longer compile times, since now the clique finding and hypergraph coloring needs to happen twice instead of just once; fortunately, most of the heavy lifting occurs while determining instruction packing and actual lane placement, both of which only happen once.
+\raghav{Should I add a sentence like ``Furthermore, since you should only be compiling once and then running a bunch of times, we think this is justified''?}
