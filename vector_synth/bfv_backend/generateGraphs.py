@@ -293,7 +293,7 @@ plt.bar(28, height = float(pd3x3_vec_encrun_avg)/pd3x3_scal_encrun_avg, color = 
 plt.bar(29, height = 1, color = 'red', yerr = (int38[1] - int38[0]) / (2 * pd3x3_scal_encrun_avg), ecolor = 'black')
 plt.title("Vector vs Scalar ENC+RUN Time")
 ax = plt.gca()
-ax.set_xticklabels(["dot_prod3x3", "dot_prod6x6", "mat_convol4x4x2x2", "mat_convol4x4x3x3", "mat_mul_det2x2", "mat_mul_det3x3", "mat_mul2x2", "mat_mul3x3", "pairwise_dist2x2", "pairwise_dist3x3"])
+ax.set_xticklabels(["dot_prod3x3", "dot_prod6x6", "mat_convol4x4x2x2", "mat_convol4x4x3x3", "mat_mul_det2x2", "mat_mul_det3x3", "mat_mul2x2", "mat_mul3x3", "pairwise_dist2x2", "pairwise_dist3x3"], rotation = 90, fontsize = 8)
 plt.show()
 
 plt.bar(1, height = float(dp3x3_vec_run_avg)/dp3x3_scal_run_avg, color = 'blue', yerr = (int3[1] - int3[0]) / (2 * dp3x3_scal_run_avg), ecolor = 'black')
