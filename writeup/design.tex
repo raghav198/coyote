@@ -92,8 +92,8 @@ For example, in the circuit from Figure~\ref{fig:small-expr-circuit}, we have a 
     \caption{Identifying vectorizable epochs}\label{alg:find-epochs}
 \end{algorithm}
 
-Not every pair of subexpressions is eligible to be vectorized together, since they have to be independent of each other: if one subexpression is contained in another, or two subexpressions share a common subcircuit, they must be handled separately.
-This dependence information can be encoded in an undirected {\em vectorizability graph}, where each subexpression is a vertex, and there is an edge between two vertices if the corresponding subexpressions are independent (and thus vectorizable). Note that there are as many vertices in this graph as there are operations in the arithmetic circuit (each operation is the root of a subexpression), and that a {\em specific} operation may be part of more than one subexpression (those subexpressions are necessarily {\em not} independent).
+%Not every pair of subexpressions is eligible to be vectorized together, since they have to be independent of each other: if one subexpression is contained in another, or two subexpressions share a common subcircuit, they must be handled separately.
+Information about which subexpressions are independent of one another can be encoded in an undirected {\em vectorizability graph}, where each subexpression is a vertex, and there is an edge between two vertices if the corresponding subexpressions are independent (and thus vectorizable). Note that there are as many vertices in this graph as there are operations in the arithmetic circuit (each operation is the root of a subexpression), and that a {\em specific} operation may be part of more than one subexpression (those subexpressions are necessarily {\em not} independent).
 
 Cliques in this graph correspond exactly to sets of expressions that can all be vectorized together. 
 We can further label each edge with the similarity score of the two subexpressions it connects.
