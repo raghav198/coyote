@@ -1,21 +1,22 @@
 \section{Design}\label{sec:design}
 Naively vectorizing arbitrary arithmetic circuits looks a lot like SLP: we start by serializing the circuit into a sequence of scalar three-address instructions.
 At each step, we look at all available scalar instructions (i.e. instructions whose source operands have all already been scheduled), pick the largest set with the same operation, and schedule them together.
-The problem with this naive strategy is it makes no guarantees about values being computed and used on the same lane; in other words, it incurs arbitrarily many shuffles to make the computation line up.
+The problem with this naive strategy is it makes no guarantees about values being computed and used on the same lane; in other words, it incurs arbitrarily many shuffles to make the computation line up on the correct lanes.
 Unlike in normal vectorization, where applying arbitrary permutations to the lanes is relatively cheap, in FHE we are only allowed to rotate the entire vector by a fixed number of slots, and this rotation operation is expensive.
 Hence, the cost of bookkeeping quickly outweighs whatever benefit we might get from vectorization, making this approach not worth it.
 
 Data movement is actually impossible to avoid: in an arithmetic circuit that computes a single expression, all the intermediate nodes eventually feed into the root, meaning that without data movement every instruction must be on the same lane; in other words, no vectorization can take place.
 Here we have two extremes: on one end of the spectrum is SLP, which packs aggressively without considering data movement; the other end avoids data movement entirely, precluding any vectorization within individual expressions.
-The key idea of our approach is to balance between these two extremes, by finding highly vectorizable groups of {\em subexpressions} and evaluating those subexpressions together with each one on its own lane.
+The key idea of our approach is to balance between these two extremes by finding highly vectorizable groups of {\em subexpressions} and evaluating those subexpressions together with each one on its own lane.
 % don't be specific about trees here
 \subsection{Selecting Vectorizable Subexpressions}\label{sec:selecting-subexpressions}
 
+\raghav{This sounds kind of convoluted, I wonder if there's a shorter way to say it}
 The unit of vectorization in \system is \textit{subexpressions}: a subexpression is a downward-closed subcircuit rooted at a particular operation in the program extending backwards all the way to the input operands to that operation---in other words, a subtree rooted at a particular operation. In the circuit of Figure~\ref{fig:small-expr-circuit}, there are five subexpressions, rooted at each of the five arithmetic operations. Note that this means that subexpressions are not necessarily disjoint: one can be contained within another, or, in the case of circuits that are DAGs, two subexpression may share common sub-subexpressions.
 
 \system's goal is to find several independent (disjoint) subexpressions that have some commonality---similar structure that allows one or more of the operations within those subexpressions to be performed as a single vector operation. By considering entire subexpressions to group together, rather than individual operations, \system can place all the operations of a given subexpression into a single lane, avoiding rotations for all of them.
 
-\system finds a group of similar subexpressions and schedules them together into a vector {\em epoch}. It them quotients the subexpressions out of the circuit, meaning that several subtrees in the original circuit get collapsed into single nodes that represent the output of that subtree. For example, after quotientinng out the two shaded subexpressions in Figure~\ref{fig:small-expr-circuit}, what remains is a tree with a single multiplication operation, whose operands are the results of the two shaded subexpresions. \system then repeats the process for the remainder circuit. Algorithm~\ref{alg:find-epochs} shows this process formally. 
+\system finds a group of similar subexpressions and schedules them together into a vector {\em epoch}. It then quotients the subexpressions out of the circuit, meaning that several subtrees in the original circuit get collapsed into single nodes that represent the output of that subtree. For example, after quotienting out the two shaded subexpressions in Figure~\ref{fig:small-expr-circuit}, what remains is a tree with a single multiplication operation, whose operands are the results of the two shaded subexpresions. \system then repeats the process for the remainder circuit. Algorithm~\ref{alg:find-epochs} shows this process formally. 
 
 The key questions \system must address are: (i) How does it determine how similar two subexpressions are? (ii) How does it determine which subexpressions to place into an epoch?
 
@@ -150,7 +151,7 @@ Instead of wrangling so many subproblems, we can formulate this as an ILP.
 We create a variable for each scalar instruction representing its {\em schedule slot}, or the time at which it executes.
 We add constraints to require that each instruction be scheduled after all of its dependences have been scheduled, and also to require that two instructions with different operations never be scheduled at the same time. 
 Finally, to speed up the search for a solution, we place a bound on the total length of the schedule (in other words, an upper bound on the value of the schedule slot for any scalar instruction).
-The bound is initially very loose but we iteratively tighten it until the solver returns UNSAT, meaning no smaller schedule could be found, so the most recent one was the smallest.
+The bound is initially very loose but we iteratively tighten it until the solver returns ``unsatisfiable'', meaning no smaller schedule could be found, so the most recent one was the smallest.
 
 % Instead of wrangling so many subproblems, we can easily pass this off to an SMT solver. \milind{Maybe say that you formulate this as an ILP? "pass to an SMT solver" is an implementation decision -- the {\em design} is that you create a bunch of ILP constraints}
 % The encoding consists of a variable for each instruction representing when it gets scheduled, as well as constraints that require two instructions scheduled at the same time to have the same operation, and constraints that require the two dependencies of each instruction to be scheduled before it.
@@ -236,11 +237,11 @@ This creates a dependence between the output of one epoch with the output of a d
 % Scheduling the program in the way described above amounts to splitting it into a number of {\em epochs}, where each epoch consists of a set of subexpressions to compute. \milind{again ``phase'' vs ``stage''. Also, what's important here isn't that you have the phases -- what's important is that each phase generates output operands in particular lanes, and those operands might need to hook up to one or more input operands in other phases, which means that either the lanes need to be set so everything lines up right, or you need to add rotations.}
 For a program that is split into $k$ epochs, we can represent these dependencies in a $k$-partite graph, where each partition corresponds to a epoch and each vertex in a partition corresponds to a subexpression computed in that epoch.
 Figure~\ref{fig:dependence-graph} shows an example 3-partite dependence graph for a particular 3-epoch program, where the first epoch had three subexpressions in it, the second had two, and the third had three.
-To assign lanes to the subexpressions, we need to assign a number to each vertex in this dependence graph so that no two vertices in the same epoch get the same number.
+To assign lanes to the subexpressions, we need to assign a number to each vertex in this dependence graph such that no two vertices in the same epoch get the same number.
 Unfortunately, a naive approach to this can have very poor results: consider, for example, placing B, D, and G on lane 1; C, E, and F on lane 2; and A and H on the lane 3.
 This particular placement requires one rotation each to line up B with E, A with F, and C with H, an additional two rotations to line up D with H and F, and a final rotation to line up E with G.
-In the worst case, this incurs 6 rotations.
-In the best case, if the vector schedule happens to pack the outputs of B and C together into the same vector, the $B\rightarrow E$ and $C\rightarrow H$ rotations are the same (since they are both a rotation of 1); similarly, if D and E are packed into the same vector, the $D\rightarrow F$ and $E\rightarrow G$ rotations are the same, requiring a total of 4 rotations to line everything up. 
+In the worst case, this incurs six rotations.
+In the best case, if the vector schedule happens to pack the outputs of B and C together into the same vector, the $B\rightarrow E$ and $C\rightarrow H$ rotations are the same (since they are both a rotation of 1); similarly, if D and E are packed into the same vector, the $D\rightarrow F$ and $E\rightarrow G$ rotations are the same, requiring a total of four rotations to line everything up. 
 % This particular placement requires one rotation to line B up with E, an additional two rotations to line D up with H and F, respectively, and a final rotation to line up E with G, incurring a total of four rotations. 
 But we can do better: if we instead place B, E, and G on lane 1, A, D and F on lane 2, and C and H on lane 3, we can align the epochs with only two rotations: one to line up B and D, and one to line up D and H. 
 The goal of lane assignment (Algorithm~\ref{alg:lane-placement}) is to automatically determine that optimal placement.
@@ -258,7 +259,7 @@ If edges 5 and 6 both get assigned a value of 0, then $D$ must be on the same la
 This means that $H$ and $F$ must be on the same lane, which violates the first consistency constraint.
 %\raghav{I think the consistency requirements written above are too weak, but maybe its sufficient for intuition?}
 
-The consistency requirements can be reworded as follows: for any path that starts and ends on the same epoch in the dependence graph, the {\em directed sum} of the rotation values along it should be zero if the path is a cycle, and nonzero otherwise.
+The consistency requirements can be reinterpreted as follows: for any path that starts and ends on the same epoch in the dependence graph, the {\em directed sum} of the rotation values along it should be zero if the path is a cycle, and nonzero otherwise.
 (In a directed sum, we assign a direction to each edge, and negate its value if we follow the edge backwards).
 Notice that this automatically enforces that two different paths between a pair of vertices should add up to the same value, since any two such paths also form a cycle by inverting one of them, and the cycle needs to add up to 0. 
 % Instead, we try to assign lanes in a way that minimizes the number of {\em distinct} rotations required for each vector (for example, if multiple pieces of data on the same vector are produced two lanes away from where they are consumed, we can rotate the vector a single time to get them both to line up).
@@ -269,7 +270,7 @@ Notice that this automatically enforces that two different paths between a pair 
 % (Notice that this automatically enforces the condition that two different paths between a pair of vertices on the same partition must add up to the same value, since concatenating one path with the reversal of the other produces a cycle, which must sum to 0).
 % \raghav{If only I could figure out a neat and tidy way to describe this whole process mathematically\dots}
 
-Iterating over all the paths in the graph, we end up with a bunch of linear {\em path relations} as shown in Figure~\ref{fig:path-relations}, where initially all of the $X_i$s are unassigned.
+Iterating over all the paths in the graph, we end up with a set of linear {\em path relations} as shown in Figure~\ref{fig:path-relations}, where initially all of the $X_i$s are unassigned.
 To assign a particular $X_i$, if it is part of a relation where it is the only unassigned variable, its value is fixed to be one that satisfies the relation; otherwise, it can be assigned freely.
 These constraints form a hypergraph like the one in Figure~\ref{fig:colored-hypergraph}, where the vertices $1,\dots, 7$ correspond to edges in Figure~\ref{fig:dependence-graph}, and each path relation becomes a hyperedge connecting the associated vertices.
 In order to find a consistent assignment of rotation values to edges we need to color this hypergraph in such a way that the last vertex to be colored on any hyperedge must be given a distinct color from the rest of the vertices on the hyperedge (this is equivalent to producing a fresh value for the last $X_i$ to be assigned in a path relation, so it can freely be assigned to satisfy the relation).
