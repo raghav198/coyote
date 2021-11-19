@@ -61,8 +61,6 @@ One downside to this transformation is it makes vectorized computations harder t
 If $a$ is not an input to the whole program but rather the output of some other kernel, then duplicating $a$ in the circuit requires the preceding kernel to also duplicate its output, which incurs more rotation costs and potentially outweighs any savings.
 Rather than automatically trying to balance these factors, \system leaves it up to the programmer.
 The frontend DSL for \system exposes an API by which the programmer can specify which of the input variables to the computation should be duplicated, and which ones should not.
-When running benchmarks in Section~\ref{sec:eval} we compile three versions of each benchmark: duplicating nothing, duplicating both inputs, and only duplicating one of the two inputs.
-We discuss the specific performance tradeoffs of this choice. \raghav{Should I include those last two sentences or just save it for eval?} \milind{move this to eval.}
 
 
 \subsection{Weighting Cliques for Epoch Selection}\label{sec:penalizing-rotates}%\raghav{Name this section something different?}
