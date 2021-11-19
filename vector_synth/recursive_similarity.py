@@ -2,7 +2,7 @@ from sys import stdout
 from ast_def import Expression, Var
 from typing import Dict, List, Tuple
 
-MATCH_MUL = 1
+MATCH_MUL = 10
 MATCH_ADD = 1
 
 class SimilarityCache:

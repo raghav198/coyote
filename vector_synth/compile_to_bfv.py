@@ -61,12 +61,30 @@ std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, R
 
 
 def compile_vector(lines):
+
+    # v_lines = [line.split(' ')[0] for line in lines if line.startswith('__v')]
+    # t_lines = [line.split(' ')[0] for line in lines if line.startswith('__t')]
+    # s_lines = [line.split(' ')[0] for line in lines if line.startswith('__s')]
+
+    # line_lookup = {'v': v_lines, 't': t_lines, 's': s_lines}
+
     def convert(name):
+        # return f'{name[2]}s[{line_lookup[name[2]].index(name)}]'
         return f'{name[2]}s[{name[3:]}]'
+
+    def max_index(lines, prefix):
+        return max(map(lambda line: int(line.split(' ')[0][len(prefix):]), 
+                        filter(lambda line: line.startswith(prefix), lines)), default=-1) + 1
+    
     mask_set = set()
-    num_ts = sum(map(lambda line: line.startswith('__t'), lines))
-    num_vs = sum(map(lambda line: line.startswith('__v'), lines))
-    num_ss = sum(map(lambda line: line.startswith('__s'), lines))
+    
+    num_ts = max_index(lines, '__t')
+    num_vs = max_index(lines, '__v')
+    num_ss = max_index(lines, '__s')
+
+    # num_ts = sum(map(lambda line: line.startswith('__t'), lines))
+    # num_vs = sum(map(lambda line: line.startswith('__v'), lines))
+    # num_ss = sum(map(lambda line: line.startswith('__s'), lines))
 
     prep_temps = [f'std::vector<ctxt> ts({num_ts});']
     prep_masks = ['std::map<std::string, ptxt> bits;']

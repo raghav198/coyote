@@ -9,35 +9,28 @@ import random as rand
 from typing import List, Union
 from ast_def import *
 
-seed=1000;
-Expression = Union['Var', 'Op'];
+Expression = Union['Var', 'Op']
 
-def treeGenerator(maxDepth) -> Expression:
-    global seed
-    rand.seed(seed);
-    localString = "";
+def treeGenerator(maxDepth, inputSeed) -> Expression:
+    global seed 
+    seed = inputSeed
+    rand.seed(seed)
+    localString = ""
     if (maxDepth > 0):
-        randomNum = rand.randrange(0,3);
-        seed+=1;
-        print("randomNum", randomNum)
-        if (randomNum == 0):
-            localString+=str(rand.randrange(0,1024));
-            seed+=1;
-            print("localString", localString);
-            return Var(localString);
+        randomNum = rand.randrange(0,1)
+        seed+=1
+        if (randomNum == 2):
+            localString+=str(rand.randrange(0,1024))
+            seed+=1
+            return Tree(Var(localString))
         else:
-            lhs = treeGenerator(maxDepth-1);
-            print("lhs", lhs)
-            rhs = treeGenerator(maxDepth-1);
-            print("rhs", rhs)
-            
+            lhs = treeGenerator(maxDepth-1, seed)
+            rhs = treeGenerator(maxDepth-1, seed)
             if (randomNum == 1):
-                print(plus(lhs,rhs))
-                return(plus(lhs,rhs))
-            elif (randomNum == 2):
-                print(times(lhs,rhs))
-                return(times(lhs,rhs))
+                return(lhs + rhs)
+            elif (randomNum == 0):
+                return(lhs * rhs)
     else:
-        endNode = str(rand.randrange(0,1024));
-        seed+=1;
-        return Var(endNode);
+        endNode = str(rand.randrange(0,1024))
+        seed+=1
+        return Tree(Var(endNode))
