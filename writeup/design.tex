@@ -7,9 +7,18 @@ Hence, the cost of bookkeeping quickly outweighs whatever benefit we might get f
 
 Data movement is actually impossible to avoid: in an arithmetic circuit that computes a single expression, all the intermediate nodes eventually feed into the root, meaning that without data movement every instruction must be on the same lane; in other words, no vectorization can take place.
 Here we have two extremes: on one end of the spectrum is SLP, which packs aggressively without considering data movement; the other end avoids data movement entirely, precluding any vectorization within individual expressions.
-The key idea of our approach is to balance between these two extremes, by finding highly vectorizable groups of subexpressions and evaluating those subexpressions together with each one on its own lane.
+The key idea of our approach is to balance between these two extremes, by finding highly vectorizable groups of {\em subexpressions} and evaluating those subexpressions together with each one on its own lane.
 % don't be specific about trees here
 \subsection{Selecting Vectorizable Subexpressions}\label{sec:selecting-subexpressions}
+
+The unit of vectorization in \system is \textit{subexpressions}: a subexpression is a downward-closed subcircuit rooted at a particular operation in the program extending backwards all the way to the input operands to that operation---in other words, a subtree rooted at a particular operation. In the circuit of Figure~\ref{fig:small-expr-circuit}, there are five subexpressions, rooted at each of the five arithmetic operations. Note that this means that subexpressions are not necessarily disjoint: one can be contained within another, or, in the case of circuits that are DAGs, two subexpression may share common sub-subexpressions.
+
+\system's goal is to find several independent (disjoint) subexpressions that have some commonality---similar structure that allows one or more of the operations within those subexpressions to be performed as a single vector operation. By considering entire subexpressions to group together, rather than individual operations, \system can place all the operations of a given subexpression into a single lane, avoiding rotations for all of them.
+
+\system finds a group of similar subexpressions and schedules them together into a vector {\em epoch}. It them quotients the subexpressions out of the circuit, meaning that several subtrees in the original circuit get collapsed into single nodes that represent the output of that subtree. For example, after quotientinng out the two shaded subexpressions in Figure~\ref{fig:small-expr-circuit}, what remains is a tree with a single multiplication operation, whose operands are the results of the two shaded subexpresions. \system then repeats the process for the remainder circuit. Algorithm~\ref{alg:find-epochs} shows this process formally. 
+
+The key questions \system must address are: (i) How does it determine how similar two subexpressions are? (ii) How does it determine which subexpressions to place into an epoch?
+
 \subsubsection*{Measuring subexpression vectorizability}
 We want to measure how well the instruction sequences corresponding to two arbitrary expressions line up.
 Given an arithmetic circuit, we can inductively compute the structural similarity between every pair $(t_1, t_2)$ of independent subcircuits (two circuits are independent if they have no overlap) as follows: %\milind{Hmmm... I guess here we're pretty tied to the expression tree representation of circuits, so forget what I said earlier about thinking in terms of dependence graphs. Maybe make clear in section 2.1.2 that we'll think of circuits as expression forests or expression DAGs, where leaves are data and interior nodes are operations}
@@ -83,10 +92,9 @@ For example, in the circuit from Figure~\ref{fig:small-expr-circuit}, we have a 
     \caption{Identifying vectorizable epochs}\label{alg:find-epochs}
 \end{algorithm}
 
+Not every pair of subexpressions is eligible to be vectorized together, since they have to be independent of each other: if one subexpression is contained in another, or two subexpressions share a common subcircuit, they must be handled separately.
+This dependence information can be encoded in an undirected {\em vectorizability graph}, where each subexpression is a vertex, and there is an edge between two vertices if the corresponding subexpressions are independent (and thus vectorizable). Note that there are as many vertices in this graph as there are operations in the arithmetic circuit (each operation is the root of a subexpression), and that a {\em specific} operation may be part of more than one subexpression (those subexpressions are necessarily {\em not} independent).
 
-Algorithm~\ref{alg:find-epochs} describes this formally. \raghav{$\leftarrow$Where do I put this sentence?}
-Not every pair of subexpressions is eligible to be vectorized together, since they have to be independent of each other.
-This data can be encoded in an undirected {\em vectorizability graph}, where each subexpression is a vertex, and there is an edge between two vertices if the corresponding subexpressions are independent (and thus vectorizable).
 Cliques in this graph correspond exactly to sets of expressions that can all be vectorized together. 
 We can further label each edge with the similarity score of the two subexpressions it connects.
 Since each similarity score roughly corresponds to the number of instructions that could be packed together, the total weight of a clique represents the total number of operations we save by vectorizing together all the subexpressions contained within. 
@@ -99,12 +107,12 @@ To account for this, we have the choice\footnote{The details of how we make this
 % By simply subtracting a fixed amount from the weight of each edge we can penalize large cliques which would incur a much higher rotation overhead, unless the vectorizability of the clique is high enough to be worth it. \milind{Rephrase this: start by explaining why you don't want to just take super big cliques -- it doesn't take into account rotation -- and then explain how you adjust the weights to account for this}
 The problem of finding a set of subexpressions to vectorize together reduces to finding a maximal weight clique in this graph, which is easily packaged off to an SMT solver.
 
-This effectively greedily selects a set of expressions to vectorize, which amounts to scheduling the first {\em epoch} of the program. We want to repeat the process until the entire program has been scheduled.
+This approach greedily selects a set of expressions to vectorize, which amounts to scheduling the first {\em epoch} of the program. We want to repeat the process until the entire program has been scheduled.
 Repeating the process requires some extra work: whenever a set of subexpressions is selected, each one needs to be ``quotiented out'' of the original program (i.e. collapsed to a new leaf node in the circuit).
 Doing so requires that we make two changes to the vectorizability graph:
 \begin{enumerate}
     \item All the nodes that were cut out of the circuit (the {\em sub}-subexpressions) need to be eliminated, since they have already been scheduled.
-    \item Removing certain subexpressions changes the structure of the larger expressions containing them, and hence changes the similarity of those larger  expressions in the overall circuit. \footnote{This is in contrast to what one might expect when vectorizing at the level of instructions instead of subexpressions. The reason we vectorize at the level of subexpressions is to reduce the total number of epochs, and hence the total number of rotations.} These changes need to be reflected by updating the weights of the vectorizability graph. To handle this more efficiently, we track all the pieces that make up the weight of an edge when computing similarities. These weights can then be updated without having to recompute everything each time. 
+    \item Removing certain subexpressions changes the structure of the larger expressions containing them, and hence changes the similarity of those larger  expressions in the overall circuit. \footnote{This is in contrast to what one might expect when vectorizing at the level of instructions instead of subexpressions.} These changes need to be reflected by updating the weights of the vectorizability graph. To handle this more efficiently, we track all the pieces that make up the weight of an edge when computing similarities. These weights can then be updated without having to recompute everything each time. 
 \end{enumerate}
 
 Using the circuit from Figure~\ref{fig:small-expr-circuit} as a running example, the maximal weight clique in its vectorizability graph is just the edge connecting $(ab + c)$ and $(xy + z)$ (which from earlier has a weight of 2), so \system selects them to vectorize in the first epoch.
@@ -119,6 +127,16 @@ Since there are no subexpressions here that can be vectorized, \system chooses t
 % Each time a node is quotiented out, it is removed from each list that contains it; doing so automatically updates all the edge weights to account for its removal.
 % \raghav{To deal with point (2) more efficiently, I do a trick where I track all the pieces that make up the weight of an edge, so I can update the weights without having to recompute similarity. I originally tried to write this out, but its kind of confusing. Now that I think about it, though, it seems like more of an implementation detail than anything. Should I still write it out here, or just leave it?}\milind{What you wrote in this comment is sufficient, and it's short enough that it's worth including. It {\em is} sort of an implementation detail, but we can cut it for space if we need to.}
 Now, we can repeat the above process of finding a maximal clique and vectorizing it, until eventually all nontrivial cliques have a negative total weight, meaning that there are no more subexpressions that are vectorizable enough to make the rotation costs worth it, so we just emit scalar code for the rest of the program.
+
+\paragraph{Discussion} Because {\em all} subexpressions in a given circuit appear in the vectorizability graph, \system naturally handles more complex vectorization scenarios, such as when a set of {\em interior} nodes of the original circuit align nicely, but their descendent nodes do not. 
+A greedy, fully-bottom up, instruction-by-instruction schedule may not find this vectorization opportunity: because the lower-level nodes are not vectorized together, the higher level nodes may not even appear to be candidates for vectorization: their inputs are calculated at different times, and placed into different vector registers (or even in scalar registers).
+\system, on the other hand, will find the opportunity: even though the lower-level subexpressions are not similar, the similarity score of the larger sub-expressions can still be high due to the similarity of the interior nodes, so the large sub-expressions can still be placed into a vector epoch.
+
+On the other hand, a Vegen-style {\em top down} scheduling approach\footnote{Terminology between papers can be confusing: Vegen considers vectorizing from the bottom of the dependence graph, or the instructions closest to the output. In \system, those operations are closest to the top of the arithmetic circuit.} can also miss vectorization opportunities by not sufficiently considering whether subexpressions closer to the leaves will be able to vectorize well.
+
+\system's subexpression-based approach means that it can take a global view of vectorization decisions. 
+It can consider the similarity of small subexpressions when deciding what larger subexpressions to pack together. 
+And it can consider whether larger subexpressions should be vectorized even if their component pieces may not play nicely together.
 
 \subsection{Instruction Packing}\label{sec:instruction-packing}
 Given a set of subexpressions to compute in a single epoch of the program, we can align the instructions between subexpressions to actually produce a vector schedule.
@@ -232,13 +250,13 @@ It would be much easier to reason about this by assigning rotation values to edg
 But note that there is a subtlety we need to keep track of here: not every assignment of rotation values to edges comes from a consistent assignment of lanes to vertices. 
 
 There are three consistency requirements: If the same input value (which is in a particular lane) flows through different operations to the same output value (which is in a particular, possibly different, lane), then all the rotations along the two sequences of operations should eventually place the results on the same lane to generate the output. 
-On the other hand, if the same input value flows to two {\em different} outputs, then the rotations along those two paths {\em must} place the final results in different lanes. \milind{does the preceding explanation of the consistency requirements make sense?} \milind{Maybe give an example of what an inconsistent rotation set looks like.}
+On the other hand, if the same input value flows to two {\em different} outputs, then the rotations along those two paths {\em must} place the final results in different lanes. %\milind{does the preceding explanation of the consistency requirements make sense?} \milind{Maybe give an example of what an inconsistent rotation set looks like.}
 Dually, if two different input values flow to the same output, then both paths should still agree on which lane to place the output.
-\raghav{That's the third constraint. I think being vague enough about `path' makes it okay?}
+%\raghav{That's the third constraint. I think being vague enough about `path' makes it okay?}
 For an example of an inconsistent assignment, consider the dependence graph in Figure~\ref{fig:dependence-graph}.
 If edges 5 and 6 both get assigned a value of 0, then $D$ must be on the same lane as both $H$ and $F$.
 This means that $H$ and $F$ must be on the same lane, which violates the first consistency constraint.
-\raghav{I think the consistency requirements written above are too weak, but maybe its sufficient for intuition?}
+%\raghav{I think the consistency requirements written above are too weak, but maybe its sufficient for intuition?}
 
 The consistency requirements can be reworded as follows: for any path that starts and ends on the same epoch in the dependence graph, the {\em directed sum} of the rotation values along it should be zero if the path is a cycle, and nonzero otherwise.
 (In a directed sum, we assign a direction to each edge, and negate its value if we follow the edge backwards).
