@@ -1,18 +1,47 @@
 \section{Evaluation}\label{sec:eval}
-When running benchmarks we compile three versions of each benchmark: duplicating nothing, duplicating both inputs, and only duplicating one of the two inputs.
-We discuss the specific performance tradeoffs of this choice.
+\subsection{ML-Adjacent Kernels}
 \begin{figure*}
     \begin{subfigure}{0.3\textwidth}
         \includegraphics[width=0.95\textwidth]{figures/graphs/DataUnreplicatedENC+RUN.png}
-        \caption{Scalar vs. Vector comparison for unreplicated inputs}
+        \caption{Scalar vs. Vector comparison for unreplicated inputs}\label{fig:ml-kernels-unrepl}
     \end{subfigure}
     \begin{subfigure}{0.3\textwidth}
         \includegraphics[width=0.95\textwidth]{figures/graphs/DataPartiallyReplicatedENC+RUN.png}
-        \caption{Scalar vs. Vector comparison for partially replicated inputs}
+        \caption{Scalar vs. Vector comparison for partially replicated inputs}\label{fig:ml-kernels-part-repl}
     \end{subfigure}
     \begin{subfigure}{0.3\textwidth}
         \includegraphics[width=0.95\textwidth]{figures/graphs/DataReplicatedENC+RUN.png}
-        \caption{Scalar vs. Vector comparison for fully replicated inputs}
+        \caption{Scalar vs. Vector comparison for fully replicated inputs}\label{fig:ml-kernels-repl}
     \end{subfigure}
-    \caption{Scalar vs. Vector encryption + run time comparisons for various replication regimes. Scalar run time is normalized to 1, so a smaller vector bar is better.}
+    \caption{Scalar vs. Vector encryption + run time comparisons for various replication regimes. The scalar run times (in the red bars) are normalized to 1, so a smaller (blue) vector bar represents more speedup.}\label{fig:ml-kernels}
 \end{figure*}
+
+We evaluate \system by compiling several ML-adjacent kernels and comparing their vectorized performance against an unvectorized (scalar) baseline implementation.
+Each kernel is used in two benchmarks with differently sized inputs to measure how well they scale with \system's vectorization.
+Finally, we compile three versions of each benchmark: once with both inputs replicated, once with only one input replicated, and once with neither input duplicated. 
+The exact benchmarks used are:
+\begin{itemize}
+    \item Matrix/Matrix multiply ($2\times 2$ and $3\times 3$)
+    \item Matrix/Matrix multiply followed by determinant ($2\times 2$ and $3\times 3$)
+    \item Pairwise distance computation (2 points and 3 points)
+    \item Vector dot product (vector size of 3 and 6)
+    \item Matrix convolution ($4\times 4$ matrix with $2\times 2$ kernel and $3\times 3$ kernel)
+\end{itemize}
+
+Figure~\ref{fig:ml-kernels} shows the performance results for these benchmarks.
+The red bars represent scalar execution time (normalized to 1), and the blue bars represent the relative vector execution time (a smaller blue bar is better).
+Most of our benchmarks see a greater speedup from vectorization as we move from unreplicated inputs to fully replicated inputs.
+This is what we expect, because as discussed in Section~\ref{sec:duplicating-inputs}, replicating a set of inputs leads to fewer rotations necessary to get each of them to the correct lanes.
+When fully replicated, all of the vectorized benchmarks are much faster than their scalar counterparts, ranging from a 5$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\_mul\_det3x3}
+
+In the unreplicated runs, we see some of the vectorized kernels (in particular, \texttt{mat\_convol\_4x4x2x2}, \texttt{mat\_mul\_det3x3}, and \texttt{pairwise\_dist2x2}) actually {\em slower} than the scalar baseline.
+This is because the overhead of all the rotations these benchmarks incur outweighs any benefits gained from vectorization.
+In fact, it makes sense that these benchmarks would behave like that: convolution is a computation in which the values in the kernel get reused over and over, leading to a high number of rotations to move them into place each time.
+The $2\times 2$ pairwise distance benchmark is small enough that even the scalar computation doesn't take very long, but the dependence graph is fully connected, essentially leading to the worst case scenario for vectorization.
+And computing the determinant at the end of \texttt{mat\_mul\_det3x3} requires a reduction of 9 values, with no symmetries between them to exploit.
+However, even in these examples, the vectorized code is no more than 20\% worse than scalar, showing that despite the high rotation costs, \system is still able to properly take advantage of vectorization opportunities.
+\raghav{This all kind of seems like a jumble but I hope I'm getting the point across}
+
+\raghav{I also would like to mention somewhere that \system automagically figures out that the best place to split the matmuldet computations is right before the determinant, but I'm not sure where that goes.}
+
+From these results, we see that it is almost always better to fully replicate inputs when vectorizing, unless specifically compiling several composable kernels separately.

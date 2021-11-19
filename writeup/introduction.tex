@@ -14,13 +14,15 @@ Homomorphic computations over ciphertexts are often orders of magnitude slower t
 %\raghav{I wonder if reviewers will read this and think ``hmm there was a PLDI paper last year that said the same thing''}
 Many FHE cryptosystems support packing large numbers of ciphertexts into {\em ciphertext vectors}, essentially compensating for the inherent slowness of FHE by enabling SIMD-style computation.
 To properly take advantage of ciphertext packing, we need a compiler that can vectorize arbitrary FHE programs.
-\raghav{It feels like I should mention ``all FHE programs are arithmetic circuits'' here, but I'm not sure where. One idea is it can go as part of the ``you can't do normal vectorization'' bit, since there are no loops and stuff to take advantage of. But I'm not sure.}\milind{I think what you've written here seems good.}
+% \raghav{It feels like I should mention ``all FHE programs are arithmetic circuits'' here, but I'm not sure where. One idea is it can go as part of the ``you can't do normal vectorization'' bit, since there are no loops and stuff to take advantage of. But I'm not sure.}\milind{I think what you've written here seems good.}
+
 % Who has tried to solve this problem before?
 Vectorizing compilers for FHE are nothing new, as seen in CHET and Porcupine \cite{CHET, Porcupine}.
 However, neither of these approaches meets the need for a vectorizing compiler for arbitrary FHE programs.
 While CHET is optimized for highly regular computations over packed tensors (such as neural network), it does not generalize well to more irregular programs that are not already vectorized. 
 Porcupine, which uses a synthesis-based approach to generate vectorized code for arbitrary kernels, does work for a more general class of programs.
-However, it often cannot properly account for the high rotation costs in more irregular applications. \raghav{Is there a better/more correct/more effective way to say this?}\milind{It also relies on loops as its source of vectorization, right? Or am I misemembering?}
+However, it often cannot properly account for the high rotation costs in more irregular applications. 
+%\raghav{Is there a better/more correct/more effective way to say this?}\milind{It also relies on loops as its source of vectorization, right? Or am I misemembering?}
 
 % However, these prior approaches are optimized for highly regular computations over packed tensors (such as neural networks in the case of CHET), and often don't take into account how expensive rotations can be in more irregular applications.
 % \milind{You might want to be a little more explicit about the comparisons here: CHET does X, which means it doesn't do Y. Porcupine does A, which means it has drawback B.}
@@ -34,7 +36,7 @@ While it is theoretically possible to encode arbitrary permutations as a series 
 
 More recent takes on SLP, such as VeGen \cite{VeGen}, are somewhat better at this.
 VeGen is capable of incorporating reasoning about data movement into its vectorization, and can make the decision to not pack certain instructions together because the data movement cost incurred is not worth it.
-However, VeGen does all its reasoning {\em locally}; that is, it cannot reason about the effect packing instructions together may have on shuffling costs much later in the program. This tradeoff is generally fine in circumstances when shuffling is relatively cheap; it is less appropriate in an FHE context, where shuffling is very expensive.\raghav{Is that the right direction?}\milind{Added a little bit, but generally seems good.}
+However, VeGen does all its reasoning {\em locally}; that is, it cannot reason about the effect packing instructions together may have on shuffling costs much later in the program. This tradeoff is generally fine in circumstances when shuffling is relatively cheap; it is less appropriate in an FHE context, where shuffling is very expensive.
 
 This means that we need a new arbitrary vectorization strategy that is {\em FHE-aware}; i.e., it packs instructions without relying on regularity in the original computation, and can still account for the high cost of data movement throughout the program.
 
@@ -46,15 +48,10 @@ The specific contributions we make are:
 \begin{enumerate}
     \item An algorithm for automatically identifying vectorizable structures in a program
     \item An algorithm for optimally choosing data layout to minimize the total cost of moving data around
-    \item A lightweight Python embedded DSL called \system, with a compiler that implements these algorithms to generate efficient FHE code for arbitrary programs \raghav{I'm going ahead and calling \system a DSL because it technically is with the overloaded dunder methods, even if its not as pretty as I want it to be}
+    \item A lightweight Python embedded DSL called \system, with a compiler that implements these algorithms to generate efficient FHE code for arbitrary programs
 \end{enumerate}
 
 %% Results
 We tested \system by using it to compile five computational kernels (matrix multiply, matrix multiply followed by determinant, nearest neighbor, matrix convolution, and dot product), and compared the performance of the vectorized code to to the original unvectorized code.
 We also randomly fuzzed several irregular programs to measure the effect of things like operation density on \system's ability to vectorize. \raghav{Have we done this yet? Is this the right purpose for it?}
 The results are \raghav{uhhhhhh\dots}
-\milind{Kill the RW section here, since you're already talking CHET, Porcupine, and SLP in the intro. But give longer RW explanations in the section at the end of the paper.}
-\subsection{Related Work} % limit this to basically a couple sentences, not a whole subsection
-% "These are approaches people have tried that don't work"
-\subsubsection{Vectorizing FHE} \raghav{CHET and Porcupine: not general}
-\subsubsection{SLP} \raghav{Assumes shuffling data between lanes is cheap}
