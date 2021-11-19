@@ -73,4 +73,4 @@ At this point, by inspecting the two colorings, we can determine how much worse 
 The better of the two options is then used for the rest of compilation.
 
 This does add the overhead of longer compile times, since now the clique finding and hypergraph coloring needs to happen twice instead of just once; fortunately, most of the heavy lifting occurs while determining instruction packing and actual lane placement, both of which only happen once.
-\raghav{Should I add a sentence like ``Furthermore, since you should only be compiling once and then running a bunch of times, we think this is justified''?}\milind{Nah, that's implied, and we can always say it in a rebuttal if we need to.}
+%\raghav{Should I add a sentence like ``Furthermore, since you should only be compiling once and then running a bunch of times, we think this is justified''?}\milind{Nah, that's implied, and we can always say it in a rebuttal if we need to.}

@@ -11,8 +11,8 @@ The key idea of our approach is to balance between these two extremes by finding
 % don't be specific about trees here
 \subsection{Selecting Vectorizable Subexpressions}\label{sec:selecting-subexpressions}
 
-\raghav{This sounds kind of convoluted, I wonder if there's a shorter way to say it}
-The unit of vectorization in \system is \textit{subexpressions}: a subexpression is a downward-closed subcircuit rooted at a particular operation in the program extending backwards all the way to the input operands to that operation---in other words, a subtree rooted at a particular operation. In the circuit of Figure~\ref{fig:small-expr-circuit}, there are five subexpressions, rooted at each of the five arithmetic operations. Note that this means that subexpressions are not necessarily disjoint: one can be contained within another, or, in the case of circuits that are DAGs, two subexpression may share common sub-subexpressions.
+%\raghav{This sounds kind of convoluted, I wonder if there's a shorter way to say it}
+The unit of vectorization in \system is a \textit{subexpression}: a backwards slice through the circuit rooted at a particular operation and extending back all the way to the input---in other words, a subtree rooted at a particular operation. In the circuit of Figure~\ref{fig:small-expr-circuit}, there are five subexpressions, rooted at each of the five arithmetic operations. Note that this means that subexpressions are not necessarily disjoint: one can be contained within another, or, in the case of circuits that are DAGs, two subexpression may share common sub-subexpressions.
 
 \system's goal is to find several independent (disjoint) subexpressions that have some commonality---similar structure that allows one or more of the operations within those subexpressions to be performed as a single vector operation. By considering entire subexpressions to group together, rather than individual operations, \system can place all the operations of a given subexpression into a single lane, avoiding rotations for all of them.
 
