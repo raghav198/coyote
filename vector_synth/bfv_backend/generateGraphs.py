@@ -7,7 +7,7 @@ import numpy as np
 import scipy.stats as st
 from matplotlib.pyplot import figure
 
-folder = 'DataPartiallyReplicated'
+folder = 'DataUnreplicated'
 
 vec_run1 = []
 scal_run1 = []
@@ -264,7 +264,7 @@ int39 = st.t.interval(alpha=0.95, df=len(vec_run10)-1, loc=np.mean(vec_run10), s
 pd3x3_scal_run_avg = average(scal_run10)
 int40 = st.t.interval(alpha=0.95, df=len(scal_run10)-1, loc=np.mean(scal_run10), scale=st.sem(scal_run10))
 
-figure(figsize=(10, 9), dpi=80)
+figure(figsize=(10, 10), dpi=80)
 plt.bar(1, height = float(dp3x3_vec_encrun_avg)/dp3x3_scal_encrun_avg, color = 'blue', yerr = (int1[1] - int1[0]) / (2 * dp3x3_scal_encrun_avg), ecolor = 'black', label = 'vector')
 plt.bar(2, height = 1, color = 'red', yerr = (int2[1] - int2[0]) / (2 * dp3x3_scal_encrun_avg), ecolor = 'black', label = 'scalar')
 
@@ -295,11 +295,11 @@ plt.bar(26, height = 1, color = 'red', yerr = (int34[1] - int34[0]) / (2 * pd2x2
 plt.bar(28, height = float(pd3x3_vec_encrun_avg)/pd3x3_scal_encrun_avg, color = 'blue', yerr = (int37[1] - int37[0]) / (2 * pd3x3_scal_encrun_avg), ecolor = 'black')
 plt.bar(29, height = 1, color = 'red', yerr = (int38[1] - int38[0]) / (2 * pd3x3_scal_encrun_avg), ecolor = 'black')
 ax = plt.gca()
-plt.xticks([1,4,7,10,13,16,19,22,25,28],["dot_prod3x3", "dot_prod6x6", "mat_convol4x4x2x2", "mat_convol4x4x3x3", "mat_mul_det2x2", "mat_mul_det3x3", "mat_mul2x2", "mat_mul3x3", "pairwise_dist2x2", "pairwise_dist3x3"], rotation = 45, fontsize = 8)
+plt.xticks([1,4,7,10,13,16,19,22,25,28],["dot_prod3x3", "dot_prod6x6", "mat_convol4x4x2x2", "mat_convol4x4x3x3", "mat_mul_det2x2", "mat_mul_det3x3", "mat_mul2x2", "mat_mul3x3", "pairwise_dist2x2", "pairwise_dist3x3"], rotation = 35, fontsize = 10)
 #leg = ax.legend(loc = 'upper left')
 plt.show()
 
-figure(figsize=(10, 9), dpi=80)
+figure(figsize=(10, 10), dpi=80)
 plt.bar(1, height = float(dp3x3_vec_run_avg)/dp3x3_scal_run_avg, color = 'blue', yerr = (int3[1] - int3[0]) / (2 * dp3x3_scal_run_avg), ecolor = 'black', label = 'vector')
 plt.bar(2, height = 1, color = 'red', yerr = (int4[1] - int4[0]) / (2 * dp3x3_scal_run_avg), ecolor = 'black', label = 'scalar')
 
@@ -330,6 +330,6 @@ plt.bar(26, height = 1, color = 'red', yerr = (int36[1] - int36[0]) / (2 * pd2x2
 plt.bar(28, height = float(pd3x3_vec_run_avg)/pd3x3_scal_run_avg, color = 'blue', yerr = (int39[1] - int39[0]) / (2 * pd3x3_scal_run_avg), ecolor = 'black')
 plt.bar(29, height = 1, color = 'red', yerr = (int40[1] - int40[0]) / (2 * pd3x3_scal_run_avg), ecolor = 'black')
 ax = plt.gca()
-plt.xticks([1,4,7,10,13,16,19,22,25,28],["dot_prod3x3", "dot_prod6x6", "mat_convol4x4x2x2", "mat_convol4x4x3x3", "mat_mul_det2x2", "mat_mul_det3x3", "mat_mul2x2", "mat_mul3x3", "pairwise_dist2x2", "pairwise_dist3x3"], rotation = 45, fontsize = 8)
+plt.xticks([1,4,7,10,13,16,19,22,25,28],["dot_prod3x3", "dot_prod6x6", "mat_convol4x4x2x2", "mat_convol4x4x3x3", "mat_mul_det2x2", "mat_mul_det3x3", "mat_mul2x2", "mat_mul3x3", "pairwise_dist2x2", "pairwise_dist3x3"], rotation = 35, fontsize = 10)
 #leg = ax.legend(loc = 'upper left')
 plt.show()
