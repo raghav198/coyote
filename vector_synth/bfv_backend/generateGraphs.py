@@ -296,7 +296,7 @@ plt.bar(28, height = float(pd3x3_vec_encrun_avg)/pd3x3_scal_encrun_avg, color = 
 plt.bar(29, height = 1, color = 'red', yerr = (int38[1] - int38[0]) / (2 * pd3x3_scal_encrun_avg), ecolor = 'black')
 ax = plt.gca()
 plt.xticks([1,4,7,10,13,16,19,22,25,28],["dot_prod3x3", "dot_prod6x6", "mat_convol4x4x2x2", "mat_convol4x4x3x3", "mat_mul_det2x2", "mat_mul_det3x3", "mat_mul2x2", "mat_mul3x3", "pairwise_dist2x2", "pairwise_dist3x3"], rotation = 45, fontsize = 8)
-leg = ax.legend(loc = 'upper left')
+#leg = ax.legend(loc = 'upper left')
 plt.show()
 
 figure(figsize=(10, 9), dpi=80)
@@ -331,5 +331,5 @@ plt.bar(28, height = float(pd3x3_vec_run_avg)/pd3x3_scal_run_avg, color = 'blue'
 plt.bar(29, height = 1, color = 'red', yerr = (int40[1] - int40[0]) / (2 * pd3x3_scal_run_avg), ecolor = 'black')
 ax = plt.gca()
 plt.xticks([1,4,7,10,13,16,19,22,25,28],["dot_prod3x3", "dot_prod6x6", "mat_convol4x4x2x2", "mat_convol4x4x3x3", "mat_mul_det2x2", "mat_mul_det3x3", "mat_mul2x2", "mat_mul3x3", "pairwise_dist2x2", "pairwise_dist3x3"], rotation = 45, fontsize = 8)
-leg = ax.legend(loc = 'upper left')
+#leg = ax.legend(loc = 'upper left')
 plt.show()
