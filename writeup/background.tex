@@ -1,6 +1,7 @@
 \section{Background}\label{sec:background}
 \subsection{Fully Homomorphic Encryption}
-Fully Homomorphic Encryption (FHE) refers to any encryption scheme with the property that ciphertexts can be added and multiplied, and these operations commute with the encryption and decryption functions. In other words, encrypting inputs, computing over them, then decrypting the result is equivalent to computing over the un-encrypted inputs. FHE is hence useful for computing on encrypted data, improving privacy in situations such as computation offloading.
+Fully Homomorphic Encryption (FHE) refers to any encryption scheme with the property that ciphertexts can be added and multiplied, and these operations commute with the encryption and decryption functions. \cite{Gentry}
+In other words, encrypting inputs, computing over them, then decrypting the result is equivalent to computing over the un-encrypted inputs. FHE is hence useful for computing on encrypted data, improving privacy in situations such as computation offloading.
 Since addition and multiplication are complete, FHE can theoretically be used to realize arbitrary functions on encrypted data.
 
 The Brakerski/Fan-Vercauteren (BFV) \cite{BFV} cryptosystem, which is the particular FHE scheme that we use in this paper, is based on the Ring Learning With Errors (RLWE) problem.

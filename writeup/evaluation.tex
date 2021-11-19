@@ -45,3 +45,9 @@ However, even in these examples, the vectorized code is no more than 20\% worse 
 \raghav{I also would like to mention somewhere that \system automagically figures out that the best place to split the matmuldet computations is right before the determinant, but I'm not sure where that goes.}
 
 From these results, we see that it is almost always better to fully replicate inputs when vectorizing, unless specifically compiling several composable kernels separately.
+
+\subsection{Fuzzed Microbenchmarks}
+\begin{figure}
+    \includegraphics[width=0.9\columnwidth]{figures/graphs/TreeGraph.png}
+    \caption{Tree graph}
+\end{figure}
