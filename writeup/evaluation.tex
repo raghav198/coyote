@@ -83,7 +83,9 @@ In the \texttt{mat\_mul\_det} kernels, \system first identifies the the highly v
 % \milind{Add a discussion here about visually inspecting the generated code, and point out where and whether coyote does especially cool stuff, or where it breaks down.}
 
 \subsubsection*{Ideal Speedups}
+
 \begin{table}
+    \caption{Speedups from vectorization (ideal speedup by instruction count, and observed speedup by execution time)}\label{tab:ideal-speedup}
     \begin{tabular}{lcccc}
         \toprule    
          & Ideal & Observed\\
@@ -99,7 +101,6 @@ In the \texttt{mat\_mul\_det} kernels, \system first identifies the the highly v
         \texttt{mat\_mul2x2} & 7.636 & 6.184\\
         \texttt{mat\_mul\_det3x3} & 1.799 & 1.153\\\bottomrule
     \end{tabular}
-    \caption{Speedups from vectorization (ideal speedup by instruction count, and observed speedup by execution time)}\label{tab:ideal-speedup}
 \end{table}
 
 In addition to collecting data about execution time, we also model the ideal speedup of each benchmark (i.e., how much faster vectorization would be if data shuffling were free).
