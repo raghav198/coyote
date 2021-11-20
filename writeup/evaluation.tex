@@ -52,7 +52,7 @@ Almost all benchmarks have substantially faster execution times with vectorizati
 % Most of our benchmarks see a greater speedup from vectorization as we move from unreplicated inputs to fully replicated inputs.
 % This is what we expect, because, as discussed in Section~\ref{sec:duplicating-inputs}, replicating a set of inputs leads to fewer rotations necessary to get each of them to the correct lanes.
 Performing full replication ameliorates both of these, as discussed in Section~\ref{sec:duplicating-inputs}, and is uniformly faster.
-When fully replicated, all of the vectorized benchmarks are much faster than their scalar counterparts, ranging from a 5$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\_mul\_det3x3}
+When fully replicated, all of the vectorized benchmarks are much faster than their scalar counterparts, ranging from a 6.2$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\_mul\_det3x3}
 
 In the unreplicated runs, we see some of the vectorized kernels (\texttt{mat\_convol\_4x4x2x2}, \texttt{mat\_mul\_det3x3}, and \texttt{pairwise\_dist2x2}) actually {\em slower} than the scalar baseline.
 This is because the overhead of all the rotations these benchmarks incur outweighs any benefits gained from vectorization.
@@ -62,7 +62,7 @@ And computing the determinant at the end of \texttt{mat\_mul\_det3x3} requires a
 However, even in these examples, the vectorized code is no more than 20\% worse than scalar, showing that despite the high rotation costs, \system is still able to properly take advantage of vectorization opportunities.
 \raghav{This all kind of seems like a jumble but I hope I'm getting the point across}
 
-\raghav{I also would like to mention somewhere that \system automagically figures out that the best place to split the matmuldet computations is right before the determinant, but I'm not sure where that goes.}\milind{see note below}
+% \raghav{I also would like to mention somewhere that \system automagically figures out that the best place to split the matmuldet computations is right before the determinant, but I'm not sure where that goes.}\milind{see note below}
 
 From these results, we see that it is almost always better to fully replicate inputs when vectorizing, unless specifically compiling several composable kernels separately.
 
@@ -74,12 +74,12 @@ In the \texttt{mat\_mul\_det} kernels, \system first identifies the the highly v
 
 \subsubsection*{Ideal Speedups}
 In addition to collecting data about execution time, we also compute the ideal speedup of each benchmark (i.e. how much faster vectorization would be if data shuffling were free).
-We do this by counting the instructions in both the fully replicated vector schedule and the baseline scalar code, treating a ciphertext multiply as being roughly 10$\times$ as expensive as a ciphertext add or plaintext multiply, and treating each rotation as a no-op. \milind{Add a footnote here about why we picked 10X.}
+We do this by counting the instructions in both the fully replicated vector schedule and the baseline scalar code, treating a ciphertext multiply as being roughly 10$\times$ as expensive\footnote{This is also the ratio \system uses in its internal cost model.} as a ciphertext add or plaintext multiply, and treating each rotation as a no-op.
 This data is shown in Table~\ref{tab:ideal-speedup}.
 The most vectorizable benchmarks are \texttt{mat\_mul2x2} and \texttt{dot\_product6x6}, with ideal speedups of 7.6 and 5.0 respectively, and the least vectorizable benchmark is \texttt{pairwise\_dist2x2}, with an ideal speedup of approximately 1.3.
 This tracks with what we expect, given that the first two are very regular computations and the pairwise distance benchmark represents a worst case scenario for vectorization, being highly irregular with a dense dependence structure.
 However, all of these ideal speedups are very close to the actual speedup in execution time as shown in Figure~\ref{fig:ml-kernels-repl}, suggesting that \system is capable of finding highly optimized schedules even in the presence of high data movement costs.
-\milind{Remove the scalar and vector columns from the table, and add an ``observed speedup'' column to the table so people can see that we get pretty close to the ideal speedup}
+% \milind{Remove the scalar and vector columns from the table, and add an ``observed speedup'' column to the table so people can see that we get pretty close to the ideal speedup}
 
 
 \begin{table}
@@ -103,8 +103,18 @@ However, all of these ideal speedups are very close to the actual speedup in exe
 
 
 \subsection{Fuzzed Microbenchmarks}
+To investigate how various aspects of program structure affect \system's ability to vectorize, we randomly generate several expression trees according to three regimes:
+\begin{enumerate}
+    \item {\em Sparse} -- Many operations have one leaf node input, the tree is not very balanced
+    \item {\em Dense, homogeneous} -- The expression tree is both full and complete, and all the operations are isomorphic
+    \item {\em Dense, nonhomogeneous} -- The expression tree is both full and complete, each operation has a 50/50 chance of being an add or a multiply.
+\end{enumerate}
+We generate ten trees for each regime: five with a maximum depth of 3, and five with a maximum depth of 6.
+The relative speedups for these trees are shown in Figure~\ref{fig:fuzzed-trees}.
+We see that aside from the sparse trees of depth 3, all the rest show speedups when vectorizing, which makes sense since the sparse computations tend to be much more linear and have fewer opportunities for vectorization.
+The depth 3 trees show on average less speedup than the depth 6 trees, since they also have less work available to vectorize. \raghav{Is this true? I'm basically trying to say that the scalar is already not bad for a tiny tree so what's the point in vectorizing it}
 
 \begin{figure}
     \includegraphics[width=0.9\columnwidth]{figures/graphs/TreeGraphwithNumbers.png}
-    \caption{Tree graph}
+    \caption{Vectorization speedups on microbenchmarks. Blue/green bars represent vector time, and red/yellow bars represent (normalized) scalar time, with a smaller blue/green bar being better. Bars are split between time execution time and encryption time, with execution time on the bottom (green and yellow) and encryption time on top (blue and red). The numbers on top of the bars represent the speedup of vector over scalar, with the first one including encryption time and the second one excluding it.}\label{fig:fuzzed-trees}
 \end{figure}
