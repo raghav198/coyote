@@ -165,7 +165,8 @@ tree100_100_6_vec_run_avg = average(vec_run6)
 int23 = st.t.interval(alpha=0.95, df=len(vec_run6)-1, loc=np.mean(vec_run6), scale=st.sem(vec_run6))
 tree100_100_6_scal_run_avg = average(scal_run6)
 int24 = st.t.interval(alpha=0.95, df=len(scal_run6)-1, loc=np.mean(scal_run6), scale=st.sem(scal_run6))
-
+print((tree100_100_6_scal_enc_avg + tree100_100_6_scal_run_avg)/float((tree100_100_6_vec_enc_avg + tree100_100_6_vec_run_avg)))
+print(tree100_100_6_scal_run_avg/float(tree100_100_6_vec_run_avg))
 
 figure(figsize=(10, 10), dpi=80)
 norm_tree50_50_3_vec_enc = float(tree50_50_3_vec_enc_avg)/(tree50_50_3_scal_enc_avg + tree50_50_3_scal_run_avg)
@@ -229,5 +230,4 @@ plt.bar(17, norm_tree100_100_6_scal_run, color = 'yellow', yerr = (int24[1] - in
 plt.bar(17, norm_tree100_100_6_scal_enc, color = 'red', yerr = (int22[1] - int22[0]) / (2 * (tree100_100_6_scal_enc_avg + tree100_100_6_scal_run_avg)), ecolor = 'black', bottom = norm_tree100_100_6_scal_run)
 
 plt.xticks([1,4,7,10,13,16],["tree50_50_3", "tree50_50_6", "tree100_50_3", "tree100_50_6", "tree100_100_3", "tree100_100_6"], rotation = 35, fontsize = 12)
-
-plt.show()
+#plt.show()
