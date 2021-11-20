@@ -1,5 +1,7 @@
 \section{Related Work}\label{sec:related-work}
-\subsection{FHE}\raghav{Do I need to talk about e.g. the Gentry paper, and the BFV paper and stuff? It doesn't seem to fit the spirit of this related work section but I had it written down in the notes from our meeting.}\milind{You don't -- just cite those papers in the intro/background where relevant.}
+There are two main categories of work related to \system. This section first discusses work on vectorizing programs that use fully homomorphic encryption, and then discusses more general approaches to vectorizing (plaintext) programs.
+
+
 \subsection{Vectorization in FHE}
 Prior work has been done on building vectorizing compilers for FHE applications \cite{CHET, Porcupine}.
 CHET \cite{CHET} is a vectorizing compiler for homomorphic tensor programs that automatically selects encryption parameters, and chooses optimal data layout strategies.

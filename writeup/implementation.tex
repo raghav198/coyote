@@ -1,9 +1,15 @@
 \section{Implementation}\label{sec:implementation}
 
-\milind{need an intro paragraph here -- you should never dive right into subsections.
-Some suggestions:
-1. What is this section going to talk about?
-2. Explain that we implement \system using an edsl in python to express computations, stage it down to circuits, evaluate the circuits, create C, etc. It's basically a recap of the first paragraph of overview... In fact, you could change the first paragraph of Overview to instead basically be ``Coyote is an eDSL and compiler for converting arithmetic expressions written in a high level language into arithmetic circuits, and then compiling those arithmetic circuits into vectorized FHE code.'' and put the more detailed paragraph here.}
+This section discusses the implementation details of \system: how programmers write \system programs, how the code is generated, and several design decisions that allow the system, and the programmer, to trade off optimality for other considerations.
+
+\subsection{An eDSL and compiler for FHE programs}
+\system provides an embedded DSL (eDSL) in Python for expressing FHE programs. \system provides a \texttt{CoyoteVar} datatype which represents a symbolic encrypted value, and supports addition, subtraction, and multiplication. Executing a program that uses \texttt{CoyoteVar}s stages the execution into an arithmetic circuit (e.g., adding together two \texttt{CoyoteVar}s produces a \texttt{CoyoteExpr} that captures an abstract syntax tree representing the addition). 
+
+Programs written in Python can use {\em non}-{\tt CoyoteVar} variables in conditional statements or as induction variables for loops, and these have the effect of selecting from subcircuits to build (in the case of conditionals) or unrolling a sequence of subcircuits (in the case of loops). Note that FHE limitations mean that {\tt CoyoteVar}s cannot be used in conditionals or as induction variables for loops.
+
+Once the Python program is executed, the generated arithmetic circuit is passed to \system's back end, which vectorizes the computation as described in the previous sections, yielding a set of vector primitives that can be further lowered into C++ code that targets Microsoft's SEAL backend for BFV~\cite{seal}.
+
+
 
 \subsection{Code Generation}\label{sec:codegen}
 The output of the algorithm in Section~\ref{sec:design} is a vector schedule (i.e. a lane and schedule slot for each scalar, where the schedule slot determines the order in which instructions get executed).

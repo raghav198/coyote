@@ -1,7 +1,6 @@
 \section{\system Overview}\label{sec:overview}
-\system is a staging compiler for Python.
-The runtime provides a \texttt{CoyoteVar} datatype which represents a symbolic encrypted value, and supports addition, subtraction, and multiplication.
-Python code that manipulates these symbolic variables produces an arithmetic circuit representation of the program, which \system then compiles into a set of vector primitives that can be further lowered into C++ code that targets Microsoft's SEAL backend for BFV \cite{seal}.
+
+\system provides an embedded DSL (eDSL) that allows programmers to use a high level language to express computations in FHE. This computation is translated into an arithmetic circuit representing the computation, which is then compiled into vectorized FHE code. The process of compiling a circuit into vectorized code is as follows:
 
 % \milind{You should put the step-by-step procedure for coyote here, then describe them in more detail: break the computation down into aligned subgraphs, assigning scheduling slots, choosing lanes. This is also a good place for a picture explaining these steps: show a tree, show picking bits of a tree, show moving when the computations happen around, show lane assignment}
 
