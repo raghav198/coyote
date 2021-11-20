@@ -179,6 +179,7 @@ The bound is initially very loose but we iteratively tighten it until the solver
         \includegraphics[width=0.9\textwidth]{figures/hypergraph_coloring/colored_dependency_graph.drawio.png}
         \caption{The coloring applied to the original dependency graph. Edges with the same color correspond to the same rotation amount.}\label{fig:colored-dependence-graph}
     \end{subfigure}
+    \vspace{-1em}
     \caption{An example coloring the edges of a dependency graph to produce a good lane assignment}\label{fig:lane-assignment}
     \Description{TODO: insert description}
 \end{figure*}
@@ -270,11 +271,11 @@ Notice that this automatically enforces that two different paths between a pair 
 % (Notice that this automatically enforces the condition that two different paths between a pair of vertices on the same partition must add up to the same value, since concatenating one path with the reversal of the other produces a cycle, which must sum to 0).
 % \raghav{If only I could figure out a neat and tidy way to describe this whole process mathematically\dots}
 
-Iterating over all the paths in the graph, we end up with a set of linear {\em path relations} as shown in Figure~\ref{fig:path-relations}, where initially all of the $X_i$s are unassigned.
+Iterating over all the paths in the graph yields a set of linear {\em path relations} as shown in Figure~\ref{fig:path-relations}, where initially all of the $X_i$s are unassigned.
 To assign a particular $X_i$, if it is part of a relation where it is the only unassigned variable, its value is fixed to be one that satisfies the relation; otherwise, it can be assigned freely.
 These constraints form a hypergraph like the one in Figure~\ref{fig:colored-hypergraph}, where the vertices $1,\dots, 7$ correspond to edges in Figure~\ref{fig:dependence-graph}, and each path relation becomes a hyperedge connecting the associated vertices.
 
-In order to find a consistent assignment of rotation values to edges we need to color this hypergraph in such a way that the last vertex to be colored on any hyperedge must be given a distinct color from the rest of the vertices on the hyperedge (this is equivalent to producing a fresh value for the last $X_i$ to be assigned in a path relation, so it can freely be assigned to satisfy the relation).
+To find a consistent assignment of rotation values to edges we must color this hypergraph such that the last vertex to be colored on any hyperedge is given a distinct color from the rest of the vertices on the hyperedge (this is equivalent to producing a fresh value for the last $X_i$ to be assigned in a path relation, so it can freely be assigned to satisfy the relation).
 To minimize the number of distinct rotations needed, we would like to use as few colors as possible.
 This is relatively straightforward to do: At each step we pick the vertex that is part of as few ``free'' hyperedges as possible and assign it the next available color, until all the vertices have been colored.
 In the example shown in Figure~\ref{fig:colored-hypergraph}, we first assign to $X_3, X_4$, and $X_7$, (hyperdegree 2), then to $X_2$ and $X_6$ (hyperdegree 3), and then to $X_1$ and $X_5$ (hyperdegree 4).

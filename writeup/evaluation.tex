@@ -14,10 +14,10 @@ All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. %\r
 
 \subsection{Computational Kernels}
 \begin{figure}
-	\vspace{-3em}
+	\vspace{-4em}
     \begin{subfigure}{\linewidth}
         \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataUnreplicatedENC+RUN.png}
-        \vspace{-3em}
+        \vspace{-3.5em}
         \caption{Scalar vs. Vector comparison for unreplicated inputs}\label{fig:ml-kernels-unrepl}
     \end{subfigure}
     
@@ -29,14 +29,14 @@ All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. %\r
         \caption{Scalar vs. Vector comparison for partially replicated inputs}\label{fig:ml-kernels-part-repl}
     \end{subfigure}
     
-     \vspace{-2.5em}
+     \vspace{-3em}
      
     \begin{subfigure}{\linewidth}
         \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataReplicatedENC+RUN.png}
-            \vspace{-3em}
+            \vspace{-3.5em}
         \caption{Scalar vs. Vector comparison for fully replicated inputs}\label{fig:ml-kernels-repl}
     \end{subfigure}
-    \caption{Scalar vs. Vector encryption + run time comparisons for various replication regimes. The scalar run times (in the red bars) are normalized to 1, so a smaller (blue) vector bar represents more speedup.}\label{fig:ml-kernels}
+    \caption{Scalar vs. Vector encryption + run time comparisons for various replication regimes. Scalar times (red) are normalized to 1, and a smaller (blue) vector bar is better.}\label{fig:ml-kernels}
 \end{figure}
 
 We evaluate \system by compiling several computational kernels, of the sort that might be found in machine-learning code, and comparing their vectorized performance against an unvectorized (scalar) baseline implementation. Both the scalar and vector versions use the same FHE backend.
@@ -54,16 +54,16 @@ The exact benchmarks used are:
 \end{itemize}
 
 Figure~\ref{fig:ml-kernels} shows the performance results for these benchmarks.
-The red bars represent scalar execution time (normalized to 1), and the blue bars represent the relative vector execution time (a smaller blue bar is better).
+The red bars show the scalar execution time (normalized to 1), and the blue bars, the relative vector execution time (a smaller blue bar is better).
 Vector execution ranges from 0.77 to 6.2 times faster than scalar execution.
-Almost all benchmarks have substantially faster execution times with vectorization, except those with very dense dependence graphs (such as pairwise distance) or a lot of input reuse (such as matrix convolution), both of which contribute to requiring a lot of data shuffling.
+Almost all benchmarks are substantially faster with vectorization, except those with lots of dependences (such as pairwise distance) or lots of reuse (such as matrix convolution), both of which result in a lot of data shuffling.
 
 % \milind{Start with the punchline -- don't keep people in suspense: vector execution ranges from $0.xxx$ to $y$ times faster than scalar execution. Almost all benchmarks, except those with ... have substantially faster vector than scalar runtimes, and performing full replication, which means less rotation is needed, is uniformly faster -- up to 5 times faster. Once you give them the punchline, then you can explain the rest of the details.}
 
 % Most of our benchmarks see a greater speedup from vectorization as we move from unreplicated inputs to fully replicated inputs.
 % This is what we expect, because, as discussed in Section~\ref{sec:duplicating-inputs}, replicating a set of inputs leads to fewer rotations necessary to get each of them to the correct lanes.
-Performing full replication ameliorates both of these, as discussed in Section~\ref{sec:duplicating-inputs}, and is uniformly faster.
-When fully replicated, all of the vectorized benchmarks are much faster than their scalar counterparts, ranging from a 6.2$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\-\_mul\-\_det3x3}
+Performing full replication ameliorates these problems (Section~\ref{sec:duplicating-inputs}), and is uniformly faster.
+Fully-replicated vector benchmarks range from a 6.2$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\-\_mul\-\_det3x3}
 
 In the unreplicated runs, we see some of the vectorized kernels (\texttt{mat\-\_convol\-\_4x4x2x2}, \texttt{mat\-\_mul\-\_det3x3}, and \texttt{pair\-wise\-\_dist2x2}) are actually {\em slower} than the scalar baseline.
 This is because the overhead of all the rotations these benchmarks incur outweighs any benefits gained from vectorization.
@@ -106,7 +106,7 @@ In addition to collecting data about execution time, we also model the ideal spe
 We do this by counting the instructions in both the fully replicated vector schedule and the baseline scalar code, treating a ciphertext multiply as being roughly 10$\times$ as expensive\footnote{This is also the ratio \system uses in its internal cost model.} as a ciphertext add or plaintext multiply, and treating each rotation as a no-op.
 This data is shown in Table~\ref{tab:ideal-speedup}.
 The most vectorizable benchmarks are \texttt{mat\_mul2x2} and \texttt{dot\_product6x6}, with ideal speedups of 7.6 and 5.0 respectively, and the least vectorizable benchmark is \texttt{pairwise\_dist2x2}, with an ideal speedup of approximately 1.3.
-This tracks with what we expect, given that the first two are very regular computations and the pairwise distance benchmark represents a worst case scenario for vectorization, being highly irregular with a dense dependence structure.
+This is as expected: the first two are very regular computations, and the pairwise distance benchmark represents a worst case scenario for vectorization, due to its dense dependence structure.
 However, all of these ideal speedups are close to the actual speedup in execution time as shown in the table, suggesting that \system is capable of finding highly optimized schedules even in the presence of high data movement costs. (Note that for \texttt{pairwise\_dist2x2}, the observed speedup is actually {\em higher} than the ideal speedup; this discrepancy is because the cost model used to calculate ideal speedups is an approximation.)
 %\milind{Remove the scalar and vector columns from the table, and add an ``observed speedup'' column to the table so people can see that we get pretty close to the ideal speedup}
 
