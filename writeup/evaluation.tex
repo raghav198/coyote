@@ -40,8 +40,8 @@ All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. %\r
 \end{figure}
 
 We evaluate \system by compiling several computational kernels, of the sort that might be found in machine-learning code, and comparing their vectorized performance against an unvectorized (scalar) baseline implementation. Both the scalar and vector versions use the same FHE backend.
-For consistency, each of the matrix or vector inputs to the kernels are grouped into their own vectors as described in Section~\ref{sec:duplicating-inputs}.
-Although this can lead to worse schedules than if we didn't force groupings, we expect this to be the most common use case. \raghav{Is that what I wanna say? Or should I just combine it with the previous sentence and say ``yeah we force packings, yeah we know its not optimal.''}
+Each of the matrix or vector inputs to the kernels are grouped into their own vectors as described in Section~\ref{sec:duplicating-inputs}.
+%Although this can lead to worse schedules than if we didn't force groupings, we expect this to be the most common use case. \raghav{Is that what I wanna say? Or should I just combine it with the previous sentence and say ``yeah we force packings, yeah we know its not optimal.''}
 
 Each kernel is used in two benchmarks with differently sized inputs to measure how well they scale with \system's vectorization.
 Finally, we compile three versions of each benchmark: once with both inputs replicated, once with only one input replicated, and once with neither input duplicated. 
@@ -64,7 +64,7 @@ Almost all benchmarks have substantially faster execution times with vectorizati
 % Most of our benchmarks see a greater speedup from vectorization as we move from unreplicated inputs to fully replicated inputs.
 % This is what we expect, because, as discussed in Section~\ref{sec:duplicating-inputs}, replicating a set of inputs leads to fewer rotations necessary to get each of them to the correct lanes.
 Performing full replication ameliorates both of these, as discussed in Section~\ref{sec:duplicating-inputs}, and is uniformly faster.
-When fully replicated, all of the vectorized benchmarks are much faster than their scalar counterparts, ranging from a 6.2$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\_mul\_det3x3}
+When fully replicated, all of the vectorized benchmarks are much faster than their scalar counterparts, ranging from a 6.2$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\-\_mul\-\_det3x3}
 
 In the unreplicated runs, we see some of the vectorized kernels (\texttt{mat\-\_convol\-\_4x4x2x2}, \texttt{mat\-\_mul\-\_det3x3}, and \texttt{pair\-wise\-\_dist2x2}) are actually {\em slower} than the scalar baseline.
 This is because the overhead of all the rotations these benchmarks incur outweighs any benefits gained from vectorization.
