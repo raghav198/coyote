@@ -25,8 +25,13 @@ When computing vector packs, SLP does not account for how expensive rotations ar
 VeGen \cite{VeGen} is a recent variant of SLP that carries out a more sophisticated analysis when building vector packs by introducing {\em lane level parallelism} that reasons about which lanes are performing which computations.
 For example, VeGen can reason about the rotation costs to pack together operands for an instruction into a temporary vector, and can use this to decide whether or not packing those instructions is worth it.
 However, this reasoning only happens locally, and VeGen does not incorporate information about how instruction packing might affect rotations much later in the program.
+
+goSLP \cite{goSLP} is another variant of SLP that reasons about globally optimal packing, and tries to find lane placements that minimize data shuffling costs.
+However, its lane placement algorithm only looks backwards, essentially using previous lane placements to determine the best placement for the current vector pack.
+It does not try to reduce the number of places where data shuffling is necessary, and cannot look ahead to determine the affects of specific placements on later rotations. \raghav{Is this accurate? And a good way of saying it?}
+
 By reasoning globally about the entire dependence graph of the program at once, \system can identify such phenomena when making vector packs.
-\system can also automatically find vector schedules that are amenable to more efficient data movement, and can even propagate this information back through the program this to identify more optimal data layouts.
+\system can also automatically find vector schedules that are amenable to more efficient data movement, and can propagate this information back through the program this to identify more optimal data layouts.
 
 % Talk about SLP
 % Talk about FHE (Gentry paper)

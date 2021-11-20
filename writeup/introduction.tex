@@ -6,7 +6,7 @@ Fully Homomorphic Encryption (FHE) refers to any encryption scheme that allows f
 While FHE is a powerful technique for carrying out privacy-preserving computations on encrypted data, it has a major downside: it is slow.
 Homomorphic computations over ciphertexts are often orders of magnitude slower than a corresponding plaintext computation.
 %\raghav{I wonder if reviewers will read this and think ``hmm there was a PLDI paper last year that said the same thing''}
-Many FHE cryptosystems support packing large numbers of ciphertexts into {\em ciphertext vectors}, essentially compensating for the inherent slowness of FHE by enabling SIMD-style computation.
+Many FHE cryptosystems support packing large numbers of ciphertexts into {\em ciphertext vectors}, essentially compensating for the inherent slowness of FHE by enabling SIMD-style computation \cite{BrakerskiPacking,SmartPacking}.
 To properly take advantage of ciphertext packing, we need a compiler that can vectorize arbitrary FHE programs.
 % \raghav{It feels like I should mention ``all FHE programs are arithmetic circuits'' here, but I'm not sure where. One idea is it can go as part of the ``you can't do normal vectorization'' bit, since there are no loops and stuff to take advantage of. But I'm not sure.}\milind{I think what you've written here seems good.}
 
@@ -28,9 +28,10 @@ In FHE, however, the vectors are not physical vector registers with slots for da
 The only way to move data between vector lanes in FHE is by performing a cyclic rotation of the entire vector.
 While it is theoretically possible to encode arbitrary permutations as a series of masks and rotates, realizing the shuffles incurred by SLP in this way can quickly outweigh any benefits from vectorizing in the first place.
 
-More recent takes on SLP, such as VeGen \cite{VeGen}, are somewhat better at this.
+More recent takes on SLP, such as VeGen \cite{VeGen} and goSLP \cite{goSLP} are somewhat better at this.
 VeGen is capable of incorporating reasoning about data movement into its vectorization, and can make the decision to not pack certain instructions together because the data movement cost incurred is not worth it.
 However, VeGen does all its reasoning {\em locally}; that is, it cannot reason about the effect packing instructions together may have on shuffling costs much later in the program. This tradeoff is generally fine in circumstances when shuffling is relatively cheap; it is less appropriate in an FHE context, where shuffling is very expensive.
+While goSLP does reason about globally optimal packing, the dynamic programming-based algorithm it uses to find good data layouts can miss the effects that one layout can have on the shuffling needed to produce subsequent expressions. \raghav{How's that?} 
 
 This means that we need a new arbitrary vectorization strategy that is {\em FHE-aware}; i.e., it packs instructions without relying on regularity in the original computation, and can still account for the high cost of data movement throughout the program.
 
