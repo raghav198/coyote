@@ -1,5 +1,12 @@
 \section{Evaluation}\label{sec:eval}
-\subsection{ML-Adjacent Kernels}
+
+\milind{Need to intro evaluation here: 
+1. what research questions we're trying to answer
+2. high level overview of what we're going to evaluate to answer those questions
+3. what platforms we're using to do the evaluation
+}
+
+\subsection{Computational Kernels}
 \begin{figure*}
     \begin{subfigure}{0.3\textwidth}
         \includegraphics[width=0.95\textwidth]{figures/graphs/DataUnreplicatedENC+RUN.png}
@@ -16,22 +23,25 @@
     \caption{Scalar vs. Vector encryption + run time comparisons for various replication regimes. The scalar run times (in the red bars) are normalized to 1, so a smaller (blue) vector bar represents more speedup.}\label{fig:ml-kernels}
 \end{figure*}
 
-We evaluate \system by compiling several ML-adjacent kernels and comparing their vectorized performance against an unvectorized (scalar) baseline implementation.
+We evaluate \system by compiling several computational kernels, of the sort that might be found in machine-learning code, and comparing their vectorized performance against an unvectorized (scalar) baseline implementation. Both the scalar and vector versions use the same FHE backend.
+
 Each kernel is used in two benchmarks with differently sized inputs to measure how well they scale with \system's vectorization.
 Finally, we compile three versions of each benchmark: once with both inputs replicated, once with only one input replicated, and once with neither input duplicated. 
 The exact benchmarks used are:
 \begin{itemize}
-    \item Matrix/Matrix multiply ($2\times 2$ and $3\times 3$)
-    \item Matrix/Matrix multiply followed by determinant ($2\times 2$ and $3\times 3$)
+    \item Matrix/Matrix multiply ($2 \times 2$ and $3 \times 3$)
+    \item Matrix/Matrix multiply followed by determinant ($2 \times 2$ and $3 \times 3$)
     \item Pairwise distance computation (2 points and 3 points)
     \item Vector dot product (vector size of 3 and 6)
-    \item Matrix convolution ($4\times 4$ matrix with $2\times 2$ kernel and $3\times 3$ kernel)
+    \item Matrix convolution ($4 \times 4$ matrix with $2 \times 2$ kernel and $3 \times 3$ kernel)
 \end{itemize}
 
 Figure~\ref{fig:ml-kernels} shows the performance results for these benchmarks.
 The red bars represent scalar execution time (normalized to 1), and the blue bars represent the relative vector execution time (a smaller blue bar is better).
+\milind{Start with the punchline -- don't keep people in suspense: vector execution ranges from $0.xxx$ to $y$ times faster than scalar execution. Almost all benchmarks, except those with ... have substantially faster vector than scalar runtimes, and performing full replication, which means less rotation is needed, is uniformly faster -- up to 5 times faster. Once you give them the punchline, then you can explain the rest of the details.}
+
 Most of our benchmarks see a greater speedup from vectorization as we move from unreplicated inputs to fully replicated inputs.
-This is what we expect, because as discussed in Section~\ref{sec:duplicating-inputs}, replicating a set of inputs leads to fewer rotations necessary to get each of them to the correct lanes.
+This is what we expect, because, as discussed in Section~\ref{sec:duplicating-inputs}, replicating a set of inputs leads to fewer rotations necessary to get each of them to the correct lanes.
 When fully replicated, all of the vectorized benchmarks are much faster than their scalar counterparts, ranging from a 5$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\_mul\_det3x3}
 
 In the unreplicated runs, we see some of the vectorized kernels (in particular, \texttt{mat\_convol\_4x4x2x2}, \texttt{mat\_mul\_det3x3}, and \texttt{pairwise\_dist2x2}) actually {\em slower} than the scalar baseline.
@@ -42,23 +52,27 @@ And computing the determinant at the end of \texttt{mat\_mul\_det3x3} requires a
 However, even in these examples, the vectorized code is no more than 20\% worse than scalar, showing that despite the high rotation costs, \system is still able to properly take advantage of vectorization opportunities.
 \raghav{This all kind of seems like a jumble but I hope I'm getting the point across}
 
-\raghav{I also would like to mention somewhere that \system automagically figures out that the best place to split the matmuldet computations is right before the determinant, but I'm not sure where that goes.}
+\raghav{I also would like to mention somewhere that \system automagically figures out that the best place to split the matmuldet computations is right before the determinant, but I'm not sure where that goes.}\milind{see note below}
 
 From these results, we see that it is almost always better to fully replicate inputs when vectorizing, unless specifically compiling several composable kernels separately.
 
+\milind{Add a discussion here about visually inspecting the generated code, and point out where and whether coyote does especially cool stuff, or where it breaks down.}
+
 \subsubsection*{Ideal Speedups}
-In addition to collecting data about execution time, we also compute the ideal speedup of each benchmark (i.e. how much faster vectorization would be if data shuffling was free).
-We do this by counting the instructions in both the fully replicated vector schedule and the baseline scalar code, treating a ciphertext multiply as being roughly 10$\times$ as expensive as a ciphertext add or plaintext multiply, and treating each rotation as a no-op.
+In addition to collecting data about execution time, we also compute the ideal speedup of each benchmark (i.e. how much faster vectorization would be if data shuffling were free).
+We do this by counting the instructions in both the fully replicated vector schedule and the baseline scalar code, treating a ciphertext multiply as being roughly 10$\times$ as expensive as a ciphertext add or plaintext multiply, and treating each rotation as a no-op. \milind{Add a footnote here about why we picked 10X.}
 This data is shown in Table~\ref{tab:ideal-speedup}.
-The most vectorizable benchmarks are \texttt{mat\_mul2x2} and \texttt{dot\_product6x6}, with speedups of 7.6 and 5.0 respectively, and the least vectorizable benchmark is \texttt{pairwise\_dist2x2}, with a speedup of approximately 1.3.
+The most vectorizable benchmarks are \texttt{mat\_mul2x2} and \texttt{dot\_product6x6}, with ideal speedups of 7.6 and 5.0 respectively, and the least vectorizable benchmark is \texttt{pairwise\_dist2x2}, with an ideal speedup of approximately 1.3.
 This tracks with what we expect, given that the first two are very regular computations and the pairwise distance benchmark represents a worst case scenario for vectorization, being highly irregular with a dense dependence structure.
 However, all of these ideal speedups are very close to the actual speedup in execution time as shown in Figure~\ref{fig:ml-kernels-repl}, suggesting that \system is capable of finding highly optimized schedules even in the presence of high data movement costs.
+\milind{Remove the scalar and vector columns from the table, and add an ``observed speedup'' column to the table so people can see that we get pretty close to the ideal speedup}
 
 
 \begin{table}
-    \begin{tabular}{|l|c|c|c|}
+    \begin{tabular}{lcccc}
         \toprule    
-        Benchmark & Scalar & Vector & Speedup\\\midrule
+         & & & Ideal & Observed\\
+        Benchmark & Scalar & Vector & Speedup & Speedup\\\midrule
         \texttt{mat\_convol\_4x4x2x2} & 387 & 120 & 3.225\\
         \texttt{mat\_mul\_det2x2} & 105 & 23 & 4.565\\
         \texttt{mat\_mul3x3} & 288 & 59 & 4.881\\
