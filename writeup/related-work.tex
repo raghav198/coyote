@@ -12,8 +12,8 @@ Porcupine \cite{Porcupine} is another vectorizing compiler that uses a synthesis
 Porcupine is more general than CHET, but it is still mostly targeted towards regular, easily vectorizable computations.
 While Porcupine can, in theory, generate kernels for any computation, its treatment of rotations makes it harder to adapt to vectorizing irregular programs.
 Porcupine considers rotations directly as inputs to arithmetic expressions, and relies on a sketch to constrain the search space and a solver to find programs with optimal performance characteristics.
-Irregular applications without many apparent symmetries to exploit incur many asymmetric rotations, making it more difficult for the solver to reason about all of these when producing an optimal schedule. The search space becomes prohibitively large, and is not tuned towards finding minimal sets of rotations.
-In contrast, because \system focuses on irregular programs, it {\em automatically} adds constraints that limit the search space for rotations, and can often find and exploit hidden symmetries even in irregular code, enabling it to combine more rotations at once.
+Irregular applications without many apparent symmetries to exploit incur many asymmetric rotations, making it more difficult for the solver to produce an optimal schedule. The search space becomes prohibitively large, and is not tuned towards finding minimal sets of rotations.
+In contrast, because \system focuses on irregular programs, it {\em automatically} adds constraints that limit the search space for rotations, and can often find hidden symmetries even in irregular code, enabling it to combine more rotations at once.
 %\raghav{I think I explained that correctly?}\milind{Sounds good.}
 
 \subsection{Vectorization of Irregular Programs}
@@ -28,10 +28,10 @@ However, this reasoning only happens locally, and VeGen does not incorporate inf
 
 goSLP \cite{goSLP} is another variant of SLP that reasons about globally optimal packing, and tries to find lane placements that minimize data shuffling costs.
 However, its lane placement algorithm only looks backwards, essentially using previous lane placements to determine the best placement for the current vector pack.
-It does not try to reduce the number of places where data shuffling is necessary, and cannot look ahead to determine the affects of specific placements on later rotations. \raghav{Is this accurate? And a good way of saying it?}
+It does not try to reduce the number of places where data shuffling is necessary, and cannot look ahead to determine the effects of specific placements on later rotations.
 
-By reasoning globally about the entire dependence graph of the program at once, \system can identify such phenomena when making vector packs.
-\system can also automatically find vector schedules that are amenable to more efficient data movement, and can propagate this information back through the program this to identify more optimal data layouts.
+%By reasoning globally about the entire dependence graph of the program at once, \system can identify such phenomena when making vector packs.
+%\system can also automatically find vector schedules that are amenable to more efficient data movement, and can propagate this information back through the program this to identify more optimal data layouts.
 
 % Talk about SLP
 % Talk about FHE (Gentry paper)
