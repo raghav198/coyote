@@ -46,7 +46,36 @@ However, even in these examples, the vectorized code is no more than 20\% worse 
 
 From these results, we see that it is almost always better to fully replicate inputs when vectorizing, unless specifically compiling several composable kernels separately.
 
+\subsubsection*{Ideal Speedups}
+In addition to collecting data about execution time, we also compute the ideal speedup of each benchmark (i.e. how much faster vectorization would be if data shuffling was free).
+We do this by counting the instructions in both the fully replicated vector schedule and the baseline scalar code, treating a ciphertext multiply as being roughly 10$\times$ as expensive as a ciphertext add or plaintext multiply, and treating each rotation as a no-op.
+This data is shown in Table~\ref{tab:ideal-speedup}.
+The most vectorizable benchmarks are \texttt{mat\_mul2x2} and \texttt{dot\_product6x6}, with speedups of 7.6 and 5.0 respectively, and the least vectorizable benchmark is \texttt{pairwise\_dist2x2}, with a speedup of approximately 1.3.
+This tracks with what we expect, given that the first two are very regular computations and the pairwise distance benchmark represents a worst case scenario for vectorization, being highly irregular with a dense dependence structure.
+However, all of these ideal speedups are very close to the actual speedup in execution time as shown in Figure~\ref{fig:ml-kernels-repl}, suggesting that \system is capable of finding highly optimized schedules even in the presence of high data movement costs.
+
+
+\begin{table}
+    \begin{tabular}{|l|c|c|c|}
+        \toprule    
+        Benchmark & Scalar & Vector & Speedup\\\midrule
+        \texttt{mat\_convol\_4x4x2x2} & 387 & 120 & 3.225\\
+        \texttt{mat\_mul\_det2x2} & 105 & 23 & 4.565\\
+        \texttt{mat\_mul3x3} & 288 & 59 & 4.881\\
+        \texttt{pairwise\_dist3x3} & 189 & 96 & 1.969\\
+        \texttt{dot\_product3x3} & 32 & 12 & 2.667\\
+        \texttt{pairwise\_dist2x2} & 84 & 65 & 1.292\\
+        \texttt{dot\_product6x6} & 65 & 13 & 5.000\\
+        \texttt{mat\_convol4x4x3x3} & 392 & 89 & 4.404\\
+        \texttt{mat\_mul2x2} & 84 & 11 & 7.636\\
+        \texttt{mat\_mul\_det3x3} & 574 & 319 & 1.799\\\bottomrule
+    \end{tabular}
+    \caption{Ideal speedups from vectorization (in terms of instruction counts)}\label{tab:ideal-speedup}
+\end{table}
+
+
 \subsection{Fuzzed Microbenchmarks}
+
 \begin{figure}
     \includegraphics[width=0.9\columnwidth]{figures/graphs/TreeGraph.png}
     \caption{Tree graph}
