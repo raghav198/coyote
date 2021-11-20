@@ -7,7 +7,7 @@ import numpy as np
 import scipy.stats as st
 from matplotlib.pyplot import figure
 
-folder = 'DataUnreplicated'
+folder = 'DataReplicated'
 
 vec_run1 = []
 scal_run1 = []
@@ -274,7 +274,9 @@ pd3x3_scal_run_avg = average(scal_run10)
 print(float(pd3x3_scal_run_avg)/ pd3x3_vec_run_avg)
 int40 = st.t.interval(alpha=0.95, df=len(scal_run10)-1, loc=np.mean(scal_run10), scale=st.sem(scal_run10))
 
-figure(figsize=(10, 8), dpi=80)
+#figure(figsize=(10, 8), dpi=80)
+fig, ax = plt.subplots()
+ax.set_aspect(45.0/3)
 plt.bar(1, height = float(dp3x3_vec_encrun_avg)/dp3x3_scal_encrun_avg, color = 'blue', yerr = (int1[1] - int1[0]) / (2 * dp3x3_scal_encrun_avg), ecolor = 'black', label = 'vector')
 plt.bar(2, height = 1, color = 'red', yerr = (int2[1] - int2[0]) / (2 * dp3x3_scal_encrun_avg), ecolor = 'black', label = 'scalar')
 
@@ -309,7 +311,9 @@ plt.xticks([1,4,7,10,13,16,19,22,25,28],["dot_prod3x3", "dot_prod6x6", "mat_conv
 #leg = ax.legend(loc = 'upper left')
 plt.show()
 
-figure(figsize=(10, 8), dpi=80)
+#figure(figsize=(10, 8), dpi=80)
+fig, ax = plt.subplots()
+ax.set_aspect(45.0/3)
 plt.bar(1, height = float(dp3x3_vec_run_avg)/dp3x3_scal_run_avg, color = 'blue', yerr = (int3[1] - int3[0]) / (2 * dp3x3_scal_run_avg), ecolor = 'black', label = 'vector')
 plt.bar(2, height = 1, color = 'red', yerr = (int4[1] - int4[0]) / (2 * dp3x3_scal_run_avg), ecolor = 'black', label = 'scalar')
 
