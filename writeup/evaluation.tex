@@ -6,28 +6,38 @@
 % 3. what platforms we're using to do the evaluation
 % }
 
-\raghav{how's this?}
+%\raghav{how's this?}
 We would like to know whether \system's vectorization strategy actually leads to significant speedups on realistic applications, as well as what properties of a program affect \system's ability to vectorize it.
 To answer these questions, we evaluate \system on a number of benchmarks that cover many real-world applications and represent both regular and irregular computation.
-We also evaluate \system on a set of randomly fuzzed irregular microbenchmarks that vary aspects like computation density and homogeneity to investigate the effects of these properties on vectorizability. \raghav{Further explain what that means here? Or wait until the microbenchmarks section?}
-All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. \raghav{I don't need to say stuff about the cores etc. since nothing's being multithreaded, right?}
+We also evaluate \system on a set of randomly fuzzed irregular microbenchmarks that vary aspects like computation density and homogeneity to investigate the effects of these properties on vectorizability. %\raghav{Further explain what that means here? Or wait until the microbenchmarks section?}\milind{wait}
+All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. %\raghav{I don't need to say stuff about the cores etc. since nothing's being multithreaded, right?}\milind{Yeah, I think that's fine.}
 
 \subsection{Computational Kernels}
-\begin{figure*}
-    \begin{subfigure}{0.3\textwidth}
-        \includegraphics[width=0.95\textwidth]{figures/newAspectRatioGraphs/DataUnreplicatedENC+RUN.png}
+\begin{figure}
+	\vspace{-3em}
+    \begin{subfigure}{\linewidth}
+        \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataUnreplicatedENC+RUN.png}
+        \vspace{-3em}
         \caption{Scalar vs. Vector comparison for unreplicated inputs}\label{fig:ml-kernels-unrepl}
     \end{subfigure}
-    \begin{subfigure}{0.3\textwidth}
-        \includegraphics[width=0.95\textwidth]{figures/newAspectRatioGraphs/DataPartiallyReplicatedENC+RUN.png}
+    
+    \vspace{-2.5em}
+    
+    \begin{subfigure}{\linewidth}
+        \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataPartiallyReplicatedENC+RUN.png}
+                \vspace{-3em}
         \caption{Scalar vs. Vector comparison for partially replicated inputs}\label{fig:ml-kernels-part-repl}
     \end{subfigure}
-    \begin{subfigure}{0.3\textwidth}
-        \includegraphics[width=0.95\textwidth]{figures/newAspectRatioGraphs/DataReplicatedENC+RUN.png}
+    
+     \vspace{-2.5em}
+     
+    \begin{subfigure}{\linewidth}
+        \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataReplicatedENC+RUN.png}
+            \vspace{-3em}
         \caption{Scalar vs. Vector comparison for fully replicated inputs}\label{fig:ml-kernels-repl}
     \end{subfigure}
     \caption{Scalar vs. Vector encryption + run time comparisons for various replication regimes. The scalar run times (in the red bars) are normalized to 1, so a smaller (blue) vector bar represents more speedup.}\label{fig:ml-kernels}
-\end{figure*}
+\end{figure}
 
 We evaluate \system by compiling several computational kernels, of the sort that might be found in machine-learning code, and comparing their vectorized performance against an unvectorized (scalar) baseline implementation. Both the scalar and vector versions use the same FHE backend.
 
@@ -52,34 +62,42 @@ Almost all benchmarks have substantially faster execution times with vectorizati
 % Most of our benchmarks see a greater speedup from vectorization as we move from unreplicated inputs to fully replicated inputs.
 % This is what we expect, because, as discussed in Section~\ref{sec:duplicating-inputs}, replicating a set of inputs leads to fewer rotations necessary to get each of them to the correct lanes.
 Performing full replication ameliorates both of these, as discussed in Section~\ref{sec:duplicating-inputs}, and is uniformly faster.
+<<<<<<< HEAD
 When fully replicated, all of the vectorized benchmarks are much faster than their scalar counterparts, ranging from a 6.2$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\_mul\_det3x3}
+=======
+When fully replicated, all of the vectorized benchmarks are much faster than their scalar counterparts, ranging from a 5$\times$ speedup for \texttt{mat\-\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\-\_mul\-\_det3x3}
+>>>>>>> 8e37d2907ad380f5dc146e07c3708c18b04dbd86
 
-In the unreplicated runs, we see some of the vectorized kernels (\texttt{mat\_convol\_4x4x2x2}, \texttt{mat\_mul\_det3x3}, and \texttt{pairwise\_dist2x2}) actually {\em slower} than the scalar baseline.
+In the unreplicated runs, we see some of the vectorized kernels (\texttt{mat\-\_convol\-\_4x4x2x2}, \texttt{mat\-\_mul\-\_det3x3}, and \texttt{pair\-wise\-\_dist2x2}) are actually {\em slower} than the scalar baseline.
 This is because the overhead of all the rotations these benchmarks incur outweighs any benefits gained from vectorization.
 In fact, it makes sense that these benchmarks would behave like that: convolution is a computation in which the values in the kernel get reused over and over, leading to a high number of rotations to move them into place each time.
 The $2\times 2$ pairwise distance benchmark is small enough that even the scalar computation doesn't take very long, but the dependence graph is fully connected, essentially leading to the worst case scenario for vectorization.
 And computing the determinant at the end of \texttt{mat\_mul\_det3x3} requires a reduction of 9 values, with no symmetries between them to exploit.
 However, even in these examples, the vectorized code is no more than 20\% worse than scalar, showing that despite the high rotation costs, \system is still able to properly take advantage of vectorization opportunities.
-\raghav{This all kind of seems like a jumble but I hope I'm getting the point across}
+%\raghav{This all kind of seems like a jumble but I hope I'm getting the point across}
 
+<<<<<<< HEAD
 % \raghav{I also would like to mention somewhere that \system automagically figures out that the best place to split the matmuldet computations is right before the determinant, but I'm not sure where that goes.}\milind{see note below}
+=======
+%\raghav{I also would like to mention somewhere that \system automagically figures out that the best place to split the matmuldet computations is right before the determinant, but I'm not sure where that goes.}\milind{see note below}
+>>>>>>> 8e37d2907ad380f5dc146e07c3708c18b04dbd86
 
-From these results, we see that it is almost always better to fully replicate inputs when vectorizing, unless specifically compiling several composable kernels separately.
+Overall, we see that it is almost always better to fully replicate inputs when vectorizing, unless specifically compiling several composable kernels separately. While it may seem that replicating data could otherwise make a program more expensive (e.g., by requiring more time to encrypt the input, or by requiring larger vector widths), in practice it does not. Encryption is vectorized in the same way as computation so does not take appreciably longer if the same data is encrypted multiple times. And vector widths in FHE are very high to begin with, so there is ample lane space to accommodate the replicated data.
 
 Visually inspecting the vector code generated by \system, we see that it often automatically finds what are known to be the optimal schedules.
-In the dot product kernels, \system first packs all of the multiplications into a single vector operation, and then logarithmically reduces this down into the sum of all the entries. \raghav{Are these actual words?}
-In the \texttt{mat\_mul\_det} kernels, \system first identifies the the highly vectorizable matrix multiply part of the computation, and then essentially computes the irregular determinant on a single lane.
+For example, in the dot product kernels, \system first packs all of the multiplications into a single vector operation, then vectorizes the levels of the logarithmic reduction tree.\footnote{Note that the logarithmic reduction tree arises because the eDSL implementation of dot product uses a recursive sum operation---\system does not introduce new parallelism. Nevertheless, \system correctly exploits the parallelism that {\em does} exist in the circuit.}
+In the \texttt{mat\_mul\_det} kernels, \system first identifies the the highly vectorizable matrix multiply part of the computation, vectorizes that, and then essentially computes the highly irregular determinant on a single lane.
 
 % \milind{Add a discussion here about visually inspecting the generated code, and point out where and whether coyote does especially cool stuff, or where it breaks down.}
 
 \subsubsection*{Ideal Speedups}
-In addition to collecting data about execution time, we also compute the ideal speedup of each benchmark (i.e. how much faster vectorization would be if data shuffling were free).
+In addition to collecting data about execution time, we also model the ideal speedup of each benchmark (i.e., how much faster vectorization would be if data shuffling were free).
 We do this by counting the instructions in both the fully replicated vector schedule and the baseline scalar code, treating a ciphertext multiply as being roughly 10$\times$ as expensive\footnote{This is also the ratio \system uses in its internal cost model.} as a ciphertext add or plaintext multiply, and treating each rotation as a no-op.
 This data is shown in Table~\ref{tab:ideal-speedup}.
 The most vectorizable benchmarks are \texttt{mat\_mul2x2} and \texttt{dot\_product6x6}, with ideal speedups of 7.6 and 5.0 respectively, and the least vectorizable benchmark is \texttt{pairwise\_dist2x2}, with an ideal speedup of approximately 1.3.
 This tracks with what we expect, given that the first two are very regular computations and the pairwise distance benchmark represents a worst case scenario for vectorization, being highly irregular with a dense dependence structure.
-However, all of these ideal speedups are very close to the actual speedup in execution time as shown in Figure~\ref{fig:ml-kernels-repl}, suggesting that \system is capable of finding highly optimized schedules even in the presence of high data movement costs.
-% \milind{Remove the scalar and vector columns from the table, and add an ``observed speedup'' column to the table so people can see that we get pretty close to the ideal speedup}
+However, all of these ideal speedups are close to the actual speedup in execution time as shown in the table, suggesting that \system is capable of finding highly optimized schedules even in the presence of high data movement costs. (Note that for \texttt{pairwise\_dist2x2}, the observed speedup is actually {\em higher} than the ideal speedup; this discrepancy is because the cost model used to calculate ideal speedups is an approximation.)
+%\milind{Remove the scalar and vector columns from the table, and add an ``observed speedup'' column to the table so people can see that we get pretty close to the ideal speedup}
 
 
 \begin{table}
