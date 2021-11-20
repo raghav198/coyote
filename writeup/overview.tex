@@ -62,5 +62,5 @@ The compilation proceeds as follows:
 % Finally, \system computes and inserts these rotation instructions between stages and emits the vector code.
 
 \subsection{Backend}
-\system targets the BFV backend \footnote{We could have instead chosen to use the CKKS backend, but BFV's cost model is more amenable to general vectorization. In particular, an operation we use often is ``blending'' slots from several vectors into one; while this is almost free in BFV, the cost of doing this in CKKS is nontrivial. } for Microsoft SEAL \raghav{(citation needed)}.
+\system targets the BFV backend \footnote{We could have instead chosen to use the CKKS backend, but BFV's cost model is more amenable to general vectorization. In particular, an operation we use often is ``blending'' slots from several vectors into one; while this is almost free in BFV, the cost of doing this in CKKS is nontrivial. } for Microsoft SEAL\cite{seal}.
 The encryption parameters are hardcoded, and are chosen to allow for 8192 vector slots and a standard 128 bits of security.
