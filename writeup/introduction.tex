@@ -31,7 +31,7 @@ While it is theoretically possible to encode arbitrary permutations as a series 
 More recent takes on SLP, such as VeGen \cite{VeGen} and goSLP \cite{goSLP} are somewhat better at this.
 VeGen is capable of incorporating reasoning about data movement into its vectorization, and can make the decision to not pack certain instructions together because the data movement cost incurred is not worth it.
 However, VeGen does all its reasoning {\em locally}; that is, it cannot reason about the effect packing instructions together may have on shuffling costs much later in the program. This tradeoff is generally fine in circumstances when shuffling is relatively cheap; it is less appropriate in an FHE context, where shuffling is very expensive.
-While goSLP does reason about globally optimal packing, the dynamic programming-based algorithm it uses to find good data layouts can miss the effects that one layout can have on the shuffling needed to produce subsequent expressions. \raghav{How's that?} 
+While goSLP does reason about globally optimal packing, the dynamic programming-based algorithm it uses to find good data layouts can miss the effects that one layout can have on the shuffling needed to produce subsequent expressions. %\raghav{How's that?} 
 
 This means that we need a new arbitrary vectorization strategy that is {\em FHE-aware}; i.e., it packs instructions without relying on regularity in the original computation, and can still account for the high cost of data movement throughout the program.
 
