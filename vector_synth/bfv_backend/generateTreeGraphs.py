@@ -169,7 +169,7 @@ int24 = st.t.interval(alpha=0.95, df=len(scal_run6)-1, loc=np.mean(scal_run6), s
 
 #figure(figsize=(10, 8), dpi=80)
 fig, ax = plt.subplots()
-ax.set_aspect(27.0/3)
+ax.set_aspect(7)
 norm_tree50_50_3_vec_enc = float(tree50_50_3_vec_enc_avg)/(tree50_50_3_scal_enc_avg + tree50_50_3_scal_run_avg)
 norm_tree50_50_3_vec_run = float(tree50_50_3_vec_run_avg)/(tree50_50_3_scal_enc_avg + tree50_50_3_scal_run_avg)
 plt.bar(1, norm_tree50_50_3_vec_run, color = 'green', yerr = (int3[1] - int3[0]) / (2 * (tree50_50_3_scal_enc_avg + tree50_50_3_scal_run_avg)), ecolor = 'black', label = 'scalar')
@@ -231,4 +231,4 @@ plt.bar(17, norm_tree100_100_6_scal_run, color = 'yellow', yerr = (int24[1] - in
 plt.bar(17, norm_tree100_100_6_scal_enc, color = 'red', yerr = (int22[1] - int22[0]) / (2 * (tree100_100_6_scal_enc_avg + tree100_100_6_scal_run_avg)), ecolor = 'black', bottom = norm_tree100_100_6_scal_run)
 
 plt.xticks([1,4,7,10,13,16],["sparse_3", "sparse_6", "dense_nonhomogeneous_3", "dense_nonhomogeneous_6", "dense_homogeneous_3", "dense_homogeneous_6"], rotation = 20, fontsize = 10)
-plt.show()
+plt.savefig('TreeGraphwithNumbers' + '.png', transparent=True)
