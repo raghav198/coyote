@@ -1,4 +1,10 @@
 \section{Implementation}\label{sec:implementation}
+
+\milind{need an intro paragraph here -- you should never dive right into subsections.
+Some suggestions:
+1. What is this section going to talk about?
+2. Explain that we implement \system using an edsl in python to express computations, stage it down to circuits, evaluate the circuits, create C, etc. It's basically a recap of the first paragraph of overview... In fact, you could change the first paragraph of Overview to instead basically be ``Coyote is an eDSL and compiler for converting arithmetic expressions written in a high level language into arithmetic circuits, and then compiling those arithmetic circuits into vectorized FHE code.'' and put the more detailed paragraph here.}
+
 \subsection{Code Generation}\label{sec:codegen}
 The output of the algorithm in Section~\ref{sec:design} is a vector schedule (i.e. a lane and schedule slot for each scalar, where the schedule slot determines the order in which instructions get executed).
 This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction.
