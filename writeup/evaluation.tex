@@ -6,28 +6,38 @@
 % 3. what platforms we're using to do the evaluation
 % }
 
-\raghav{how's this?}
+%\raghav{how's this?}
 We would like to know whether \system's vectorization strategy actually leads to significant speedups on realistic applications, as well as what properties of a program affect \system's ability to vectorize it.
 To answer these questions, we evaluate \system on a number of benchmarks that cover many real-world applications and represent both regular and irregular computation.
-We also evaluate \system on a set of randomly fuzzed irregular microbenchmarks that vary aspects like computation density and homogeneity to investigate the effects of these properties on vectorizability. \raghav{Further explain what that means here? Or wait until the microbenchmarks section?}
-All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. \raghav{I don't need to say stuff about the cores etc. since nothing's being multithreaded, right?}
+We also evaluate \system on a set of randomly fuzzed irregular microbenchmarks that vary aspects like computation density and homogeneity to investigate the effects of these properties on vectorizability. %\raghav{Further explain what that means here? Or wait until the microbenchmarks section?}\milind{wait}
+All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. %\raghav{I don't need to say stuff about the cores etc. since nothing's being multithreaded, right?}\milind{Yeah, I think that's fine.}
 
 \subsection{Computational Kernels}
-\begin{figure*}
-    \begin{subfigure}{0.3\textwidth}
-        \includegraphics[width=0.95\textwidth]{figures/newAspectRatioGraphs/DataUnreplicatedENC+RUN.png}
+\begin{figure}
+	\vspace{-3em}
+    \begin{subfigure}{\linewidth}
+        \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataUnreplicatedENC+RUN.png}
+        \vspace{-3em}
         \caption{Scalar vs. Vector comparison for unreplicated inputs}\label{fig:ml-kernels-unrepl}
     \end{subfigure}
-    \begin{subfigure}{0.3\textwidth}
-        \includegraphics[width=0.95\textwidth]{figures/newAspectRatioGraphs/DataPartiallyReplicatedENC+RUN.png}
+    
+    \vspace{-2.5em}
+    
+    \begin{subfigure}{\linewidth}
+        \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataPartiallyReplicatedENC+RUN.png}
+                \vspace{-3em}
         \caption{Scalar vs. Vector comparison for partially replicated inputs}\label{fig:ml-kernels-part-repl}
     \end{subfigure}
-    \begin{subfigure}{0.3\textwidth}
-        \includegraphics[width=0.95\textwidth]{figures/newAspectRatioGraphs/DataReplicatedENC+RUN.png}
+    
+     \vspace{-2.5em}
+     
+    \begin{subfigure}{\linewidth}
+        \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataReplicatedENC+RUN.png}
+            \vspace{-3em}
         \caption{Scalar vs. Vector comparison for fully replicated inputs}\label{fig:ml-kernels-repl}
     \end{subfigure}
     \caption{Scalar vs. Vector encryption + run time comparisons for various replication regimes. The scalar run times (in the red bars) are normalized to 1, so a smaller (blue) vector bar represents more speedup.}\label{fig:ml-kernels}
-\end{figure*}
+\end{figure}
 
 We evaluate \system by compiling several computational kernels, of the sort that might be found in machine-learning code, and comparing their vectorized performance against an unvectorized (scalar) baseline implementation. Both the scalar and vector versions use the same FHE backend.
 
