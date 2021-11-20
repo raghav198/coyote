@@ -110,11 +110,16 @@ This tracks with what we expect, given that the first two are very regular compu
 However, all of these ideal speedups are close to the actual speedup in execution time as shown in the table, suggesting that \system is capable of finding highly optimized schedules even in the presence of high data movement costs. (Note that for \texttt{pairwise\_dist2x2}, the observed speedup is actually {\em higher} than the ideal speedup; this discrepancy is because the cost model used to calculate ideal speedups is an approximation.)
 %\milind{Remove the scalar and vector columns from the table, and add an ``observed speedup'' column to the table so people can see that we get pretty close to the ideal speedup}
 
+\paragraph{Compilation time}
+Table~\ref{tab:compilationtime} shows the compilation time for each of the benchmarks. We see that the slowest compilation times occur for the un-replicated variants. We see that some of the larger benchmarks with many lane assignment problems to solve can take several minutes to complete. However, when weighed against the generally high cost of FHE execution, this compilation time is reasonable, and is in the same ballpark as other FHE vectorizers~\cite{Porcupine}.
 
 \begin{table}
+	\caption{Compilation time (s) for \system benchmarks}
+	\label{tab:compilationtime}
+	\vspace{-0.5em}
     \begin{tabular}{lccc}
         \toprule
-        Benchmark & Unreplicated & Partial & Replicated\\\midrule
+        Benchmark & Unrepl. & Partial & Replicated\\\midrule
         \texttt{mat\_convol\_4x4x2x2} & 143.998 & 249.587 &199.653\\
         \texttt{mat\_mul\_det2x2} & 3.702 & 2.386 &2.356\\
         \texttt{mat\_mul3x3} &  104.779 & 66.661&107.803\\
@@ -122,11 +127,10 @@ However, all of these ideal speedups are close to the actual speedup in executio
         \texttt{dot\_product3x3} & 0.425 & 0.304&0.332\\
         \texttt{pairwise\_dist2x2} & 9.582 & 11.984&15.737\\
         \texttt{dot\_product6x6} & 1.131 & 1.158&1.370\\
-        \texttt{mat\_convol4x4x3x3} 453.378 & 144.412&206.653\\
+        \texttt{mat\_convol4x4x3x3} & 453.378 & 144.412&206.653\\
         \texttt{mat\_mul2x2} & 3.702 & 1.739&1.837\\
         \texttt{mat\_mul\_det3x3} & 307.757 & 382.387&476.384\\
         \bottomrule
-
     \end{tabular}
 \end{table}
 
