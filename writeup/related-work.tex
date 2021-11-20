@@ -22,13 +22,11 @@ SLP works by iterating over a sequence of scalar instructions and computing ``ve
 Because SLP does not rely on the presence of data-parallel structures like loops to aid in vectorization, it works well even for irregular programs.
 When computing vector packs, SLP does not account for how expensive rotations are in FHE, leading to schedules with very high data shuffling costs. 
 
-VeGen \cite{VeGen} is a recent variant of SLP that carries out a more sophisticated analysis when building vector packs by introducing {\em lane level parallelism} that reasons about which lanes are performing which computations.
+VeGen \cite{VeGen} is a recent variant of SLP introduces {\em lane level parallelism} that reasons about which lanes are performing which computations, allowing it to reason about rotation costs when building vector packs.
 For example, VeGen can reason about the rotation costs to pack together operands for an instruction into a temporary vector, and can use this to decide whether or not packing those instructions is worth it.
 However, this reasoning only happens locally, and VeGen does not incorporate information about how instruction packing might affect rotations much later in the program.
 
-goSLP \cite{goSLP} is another variant of SLP that reasons about globally optimal packing, and tries to find lane placements that minimize data shuffling costs.
-However, its lane placement algorithm only looks backwards, essentially using previous lane placements to determine the best placement for the current vector pack.
-It does not try to reduce the number of places where data shuffling is necessary, and cannot look ahead to determine the effects of specific placements on later rotations.
+goSLP \cite{goSLP} reasons about globally optimal packing, and tries to find lane placements that minimize data shuffling costs. While goSLP does reason globally about lane placement, it has two drawbacks in an FHE context. First, it packs instructions into vectors before considering shuffling costs, so may over-aggressively vectorize, while \system may forego some vectorization opportunities in the name of getting packing larger expressions without rotation. Second, its lane placement algorithm considers arbitrary permutations, which are impractically expensive in FHE.
 
 %By reasoning globally about the entire dependence graph of the program at once, \system can identify such phenomena when making vector packs.
 %\system can also automatically find vector schedules that are amenable to more efficient data movement, and can propagate this information back through the program this to identify more optimal data layouts.
