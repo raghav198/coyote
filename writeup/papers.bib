@@ -120,3 +120,39 @@ address = {Stanford, CA, USA},
 abstract = {We propose the first fully homomorphic encryption scheme, solving an old open problem. Such a scheme allows one to compute arbitrary functions over encrypted data without the decryption key—i.e., given encryptions  E (  m  1), ...,  E (  m t ) of  m  1, ...,  m  t,  one can efficiently compute a compact ciphertext that encrypts  f (  m  1, ...,  m  t ) for any efficiently computable function  f . Fully homomorphic encryption has numerous applications. For example, it enables encrypted search engine queries—i.e., a search engine can give you a succinct encrypted answer to your (boolean) query without even knowing what your query was. It also enables searching on encrypted data; you can store your encrypted data on a remote server, and later have the server retrieve only files that (when decrypted) satisfy some boolean constraint, even though the server cannot decrypt the files on its own. More broadly, it improves the efficiency of secure multiparty computation. In our solution, we begin by designing a somewhat homomorphic "boostrappable" encryption scheme that works when the function  f  is  the scheme's own decryption function.  We then show how, through recursive self-embedding, bootstrappable encryption gives fully homomorphic encryption.},
 note = {AAI3382729}
 }
+
+@article{goSLP,
+author = {Mendis, Charith and Amarasinghe, Saman},
+title = {GoSLP: Globally Optimized Superword Level Parallelism Framework},
+year = {2018},
+issue_date = {November 2018},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {2},
+number = {OOPSLA},
+url = {https://doi.org/10.1145/3276480},
+doi = {10.1145/3276480},
+abstract = {Modern microprocessors are equipped with single instruction multiple data (SIMD) or vector instruction sets which allow compilers to exploit superword level parallelism (SLP), a type of fine-grained parallelism. Current SLP auto-vectorization techniques use heuristics to discover vectorization opportunities in high-level language code. These heuristics are fragile, local and typically only present one vectorization strategy that is either accepted or rejected by a cost model. We present goSLP, a novel SLP auto-vectorization framework which solves the statement packing problem in a pairwise optimal manner. Using an integer linear programming (ILP) solver, goSLP searches the entire space of statement packing opportunities for a whole function at a time, while limiting total compilation time to a few minutes. Furthermore, goSLP optimally solves the vector permutation selection problem using dynamic programming. We implemented goSLP in the LLVM compiler infrastructure, achieving a geometric mean speedup of 7.58% on SPEC2017fp, 2.42% on SPEC2006fp and 4.07% on NAS benchmarks compared to LLVM’s existing SLP auto-vectorizer.},
+journal = {Proc. ACM Program. Lang.},
+month = {oct},
+articleno = {110},
+numpages = {28},
+keywords = {Vector Permutation, Auto-vectorization, Dynamic Programming, Superword Level Parallelism, Statement Packing, Integer Linear Programming}
+}
+
+@article{SmartPacking,
+author = {Smart, Nigel and Vercauteren, Frederik},
+year = {2011},
+month = {01},
+pages = {133},
+title = {Fully homomorphic SIMD operations},
+volume = {2011},
+journal = {IACR Cryptology ePrint Archive},
+doi = {10.1007/s10623-012-9720-4}
+}
+
+@MISC{BrakerskiPacking,
+    author = {Zvika Brakerski and Craig Gentry and Shai Halevi},
+    title = {Packed Ciphertexts in LWE-based Homomorphic Encryption},
+    year = {2012}
+}
