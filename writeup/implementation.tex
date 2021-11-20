@@ -43,7 +43,8 @@ While lowering to C++, we also precompute all the blending masks, so that we can
 % \end{enumerate}
 
 \subsection{Optimality Tradeoffs}\label{sec:optimality-tradeoffs}
-Because each of the compilation steps quickly blows up when given larger programs, we make a number of tradeoffs that sacrifice some optimality in exchange for faster compilation times.
+Because each of the compilation steps quickly blows up when given larger programs, we make a number of tradeoffs that sacrifice optimality in exchange for faster compilation times.
+
 \subsubsection*{Finding maximal cliques/synthesizing alignment}\label{sec:iterative-synthesis}
 In many cases, we want a certain optimal solution to the problem we are passing to the solver; for instance, we want the clique with the largest sum of edge weights, or we want the vector schedule that uses the fewest schedule slots.
 One way to accomplish this is to pass an objective function to the solver; however, this technique often takes a long time, since before returning a solution the solver must first prove that no better one exists.
@@ -65,20 +66,19 @@ Once again, this amounts to sacrificing optimality in exchange for compilation t
 \subsection{Input Layout}\label{sec:duplicating-inputs}
 The arithmetic circuits input to \system are DAGs, which fail to be trees exactly when values are used as inputs to multiple computations (for instance, in the expression $ab + ac$, the value $a$ is used as an input to both multiplies).
 Any such DAG can be turned into a tree, however, simply by creating copies of each repeated value, in a ``reverse-CSE'' process.
-Applying this to the example expression yields $a_1b + a_2c$ where $a_1$ and $a_2$ are fresh input variables that both have the same value passed into them.
-By duplicating the data this way, the new circuit, while strictly bigger, may have better rotation characteristics.
-This is because if $a$ were to be used on two different lanes it would have incurred at least one rotation, but by having two copies of $a$ we can avoid this rotation entirely.
+%Applying this to the example expression yields $a_1b + a_2c$ where $a_1$ and $a_2$ are fresh input variables that both have the same value passed into them.
+By duplicating the data, the new circuit, while strictly bigger, may have better rotation characteristics.
+This is because if $a$ were to be used on two different lanes it would have incurred at least one rotation, but by having two copies of $a$ we can avoid this rotation entirely. The frontend DSL for \system exposes an API by which the programmer can specify which of the input variables to the computation should be duplicated, and which ones should not.
 
-One downside to this transformation is it makes vectorized computations harder to compose.
-If $a$ is not an input to the whole program but rather the output of some other kernel, then duplicating $a$ in the circuit requires the preceding kernel to also duplicate its output, which incurs more rotation costs and potentially outweighs any savings.
-Rather than automatically trying to balance these factors, \system leaves it up to the programmer.
-The frontend DSL for \system exposes an API by which the programmer can specify which of the input variables to the computation should be duplicated, and which ones should not.
-
-Another thing the \system DSL exposes is the {\em input grouping} API, which allows a programmer to specify sets of inputs which are forced to be packed together into a single vector.
+Another input layout control the \system DSL exposes is the {\em input grouping} API, which allows a programmer to specify sets of inputs which are forced to be packed together into a single vector.
 This is useful, for example, when doing a matrix computation.
 By default, \system treats the 9 elements of a $3 \times 3$ matrix as independent inputs to the computation.
 However, by putting all of them into the same input group, the programmer can prevent the matrix from having to be split across multiple ciphertext vectors when input to the computation, and generate vector code that operates on a single packed matrix. 
-There is a tradeoff: \system may have been able to find a schedule with fewer rotates with two matrix entries on the same lane, but forcing the entire matrix to packed into a single vector precludes any such schedule. \raghav{Does this explain it properly?}
+There is a tradeoff: \system may have been able to find a schedule with fewer rotates with two matrix entries on the same lane, but forcing the entire matrix to packed into a single vector precludes any such schedule.
+
+Both of these input controls allow programmers to trade off between predictable input layouts and flexible input layouts. Predictable layouts are good for composition---different kernels can be plugged together more easily, without incurring rotations to line the kernels up---but may be bad for performance---\system has less flexibility to manage how the inputs flow through the kernel.
+Rather than automatically trying to balance these factors, \system leaves it up to the programmer.
+
 
 
 \subsection{Weighting Cliques for Epoch Selection}\label{sec:penalizing-rotates}%\raghav{Name this section something different?}
