@@ -62,11 +62,7 @@ Almost all benchmarks have substantially faster execution times with vectorizati
 % Most of our benchmarks see a greater speedup from vectorization as we move from unreplicated inputs to fully replicated inputs.
 % This is what we expect, because, as discussed in Section~\ref{sec:duplicating-inputs}, replicating a set of inputs leads to fewer rotations necessary to get each of them to the correct lanes.
 Performing full replication ameliorates both of these, as discussed in Section~\ref{sec:duplicating-inputs}, and is uniformly faster.
-<<<<<<< HEAD
 When fully replicated, all of the vectorized benchmarks are much faster than their scalar counterparts, ranging from a 6.2$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\_mul\_det3x3}
-=======
-When fully replicated, all of the vectorized benchmarks are much faster than their scalar counterparts, ranging from a 5$\times$ speedup for \texttt{mat\-\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\-\_mul\-\_det3x3}
->>>>>>> 8e37d2907ad380f5dc146e07c3708c18b04dbd86
 
 In the unreplicated runs, we see some of the vectorized kernels (\texttt{mat\-\_convol\-\_4x4x2x2}, \texttt{mat\-\_mul\-\_det3x3}, and \texttt{pair\-wise\-\_dist2x2}) are actually {\em slower} than the scalar baseline.
 This is because the overhead of all the rotations these benchmarks incur outweighs any benefits gained from vectorization.
@@ -85,15 +81,6 @@ In the \texttt{mat\_mul\_det} kernels, \system first identifies the the highly v
 % \milind{Add a discussion here about visually inspecting the generated code, and point out where and whether coyote does especially cool stuff, or where it breaks down.}
 
 \subsubsection*{Ideal Speedups}
-In addition to collecting data about execution time, we also model the ideal speedup of each benchmark (i.e., how much faster vectorization would be if data shuffling were free).
-We do this by counting the instructions in both the fully replicated vector schedule and the baseline scalar code, treating a ciphertext multiply as being roughly 10$\times$ as expensive\footnote{This is also the ratio \system uses in its internal cost model.} as a ciphertext add or plaintext multiply, and treating each rotation as a no-op.
-This data is shown in Table~\ref{tab:ideal-speedup}.
-The most vectorizable benchmarks are \texttt{mat\_mul2x2} and \texttt{dot\_product6x6}, with ideal speedups of 7.6 and 5.0 respectively, and the least vectorizable benchmark is \texttt{pairwise\_dist2x2}, with an ideal speedup of approximately 1.3.
-This tracks with what we expect, given that the first two are very regular computations and the pairwise distance benchmark represents a worst case scenario for vectorization, being highly irregular with a dense dependence structure.
-However, all of these ideal speedups are close to the actual speedup in execution time as shown in the table, suggesting that \system is capable of finding highly optimized schedules even in the presence of high data movement costs. (Note that for \texttt{pairwise\_dist2x2}, the observed speedup is actually {\em higher} than the ideal speedup; this discrepancy is because the cost model used to calculate ideal speedups is an approximation.)
-%\milind{Remove the scalar and vector columns from the table, and add an ``observed speedup'' column to the table so people can see that we get pretty close to the ideal speedup}
-
-
 \begin{table}
     \begin{tabular}{lcccc}
         \toprule    
@@ -111,6 +98,34 @@ However, all of these ideal speedups are close to the actual speedup in executio
         \texttt{mat\_mul\_det3x3} & 1.799 & 1.153\\\bottomrule
     \end{tabular}
     \caption{Speedups from vectorization (ideal speedup by instruction count, and observed speedup by execution time)}\label{tab:ideal-speedup}
+\end{table}
+
+In addition to collecting data about execution time, we also model the ideal speedup of each benchmark (i.e., how much faster vectorization would be if data shuffling were free).
+We do this by counting the instructions in both the fully replicated vector schedule and the baseline scalar code, treating a ciphertext multiply as being roughly 10$\times$ as expensive\footnote{This is also the ratio \system uses in its internal cost model.} as a ciphertext add or plaintext multiply, and treating each rotation as a no-op.
+This data is shown in Table~\ref{tab:ideal-speedup}.
+The most vectorizable benchmarks are \texttt{mat\_mul2x2} and \texttt{dot\_product6x6}, with ideal speedups of 7.6 and 5.0 respectively, and the least vectorizable benchmark is \texttt{pairwise\_dist2x2}, with an ideal speedup of approximately 1.3.
+This tracks with what we expect, given that the first two are very regular computations and the pairwise distance benchmark represents a worst case scenario for vectorization, being highly irregular with a dense dependence structure.
+However, all of these ideal speedups are close to the actual speedup in execution time as shown in the table, suggesting that \system is capable of finding highly optimized schedules even in the presence of high data movement costs. (Note that for \texttt{pairwise\_dist2x2}, the observed speedup is actually {\em higher} than the ideal speedup; this discrepancy is because the cost model used to calculate ideal speedups is an approximation.)
+%\milind{Remove the scalar and vector columns from the table, and add an ``observed speedup'' column to the table so people can see that we get pretty close to the ideal speedup}
+
+
+\begin{table}
+    \begin{tabular}{lccc}
+        \toprule
+        Benchmark & Unreplicated & Partial & Replicated\\\midrule
+        \texttt{mat\_convol\_4x4x2x2} & 143.998 & 249.587 &199.653\\
+        \texttt{mat\_mul\_det2x2} & 3.702 & 2.386 &2.356\\
+        \texttt{mat\_mul3x3} &  104.779 & 66.661&107.803\\
+        \texttt{pairwise\_dist3x3} & 132.660 & 158.475&194.264\\
+        \texttt{dot\_product3x3} & 0.425 & 0.304&0.332\\
+        \texttt{pairwise\_dist2x2} & 9.582 & 11.984&15.737\\
+        \texttt{dot\_product6x6} & 1.131 & 1.158&1.370\\
+        \texttt{mat\_convol4x4x3x3} 453.378 & 144.412&206.653\\
+        \texttt{mat\_mul2x2} & 3.702 & 1.739&1.837\\
+        \texttt{mat\_mul\_det3x3} & 307.757 & 382.387&476.384\\
+        \bottomrule
+
+    \end{tabular}
 \end{table}
 
 
