@@ -1,3 +1,7 @@
 \section{Conclusion}\label{sec:conclusion}
 In this paper, we presented \system, the first vectorizing compiler for arbitrary homomorphic programs that considers FHE's unique cost model for data movement when vectorizing.
+\system operates at a coarser level than most vectorizers, allowing it to minimize the data movement overhead of vectorizing by only packing together sufficently similar subexpressions.
+By reasoning about the dependence graph of the program globally, \system can also find optimal data layouts that encourage more efficient rotation patterns.
 We show that \system can automatically vectorize a large class of useful kernels, showing speedups of up to 6$\times$ over scalar code.
+
+Potential avenues for future work include fine-tuning \system's cost model and adding semantics-preserving transformations that can restructure circuits to be more vectorizable.
