@@ -1,10 +1,16 @@
 \section{Evaluation}\label{sec:eval}
 
-\milind{Need to intro evaluation here: 
-1. what research questions we're trying to answer
-2. high level overview of what we're going to evaluate to answer those questions
-3. what platforms we're using to do the evaluation
-}
+% \milind{Need to intro evaluation here: 
+% 1. what research questions we're trying to answer
+% 2. high level overview of what we're going to evaluate to answer those questions
+% 3. what platforms we're using to do the evaluation
+% }
+
+\raghav{how's this?}
+We would like to know whether \system's vectorization strategy actually leads to significant speedups on realistic applications, as well as what properties of a program affect \system's ability to vectorize it.
+To answer these questions, we evaluate \system on a number of benchmarks that cover many real-world applications and represent both regular and irregular computation.
+We also evaluate \system on a set of randomly fuzzed irregular microbenchmarks that vary aspects like computation density and homogeneity to investigate the effects of these properties on vectorizability. \raghav{Further explain what that means here? Or wait until the microbenchmarks section?}
+All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. \raghav{I don't need to say stuff about the cores etc. since nothing's being multithreaded, right?}
 
 \subsection{Computational Kernels}
 \begin{figure*}
@@ -38,13 +44,17 @@ The exact benchmarks used are:
 
 Figure~\ref{fig:ml-kernels} shows the performance results for these benchmarks.
 The red bars represent scalar execution time (normalized to 1), and the blue bars represent the relative vector execution time (a smaller blue bar is better).
-\milind{Start with the punchline -- don't keep people in suspense: vector execution ranges from $0.xxx$ to $y$ times faster than scalar execution. Almost all benchmarks, except those with ... have substantially faster vector than scalar runtimes, and performing full replication, which means less rotation is needed, is uniformly faster -- up to 5 times faster. Once you give them the punchline, then you can explain the rest of the details.}
+Vector execution ranges from 0.77 to 6.2 times faster than scalar execution.
+Almost all benchmarks have substantially faster execution times with vectorization, except those with very dense dependence graphs (such as pairwise distance) or a lot of input reuse (such as matrix convolution), both of which contribute to requiring a lot of data shuffling.
 
-Most of our benchmarks see a greater speedup from vectorization as we move from unreplicated inputs to fully replicated inputs.
-This is what we expect, because, as discussed in Section~\ref{sec:duplicating-inputs}, replicating a set of inputs leads to fewer rotations necessary to get each of them to the correct lanes.
+% \milind{Start with the punchline -- don't keep people in suspense: vector execution ranges from $0.xxx$ to $y$ times faster than scalar execution. Almost all benchmarks, except those with ... have substantially faster vector than scalar runtimes, and performing full replication, which means less rotation is needed, is uniformly faster -- up to 5 times faster. Once you give them the punchline, then you can explain the rest of the details.}
+
+% Most of our benchmarks see a greater speedup from vectorization as we move from unreplicated inputs to fully replicated inputs.
+% This is what we expect, because, as discussed in Section~\ref{sec:duplicating-inputs}, replicating a set of inputs leads to fewer rotations necessary to get each of them to the correct lanes.
+Performing full replication ameliorates both of these, as discussed in Section~\ref{sec:duplicating-inputs}, and is uniformly faster.
 When fully replicated, all of the vectorized benchmarks are much faster than their scalar counterparts, ranging from a 5$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\_mul\_det3x3}
 
-In the unreplicated runs, we see some of the vectorized kernels (in particular, \texttt{mat\_convol\_4x4x2x2}, \texttt{mat\_mul\_det3x3}, and \texttt{pairwise\_dist2x2}) actually {\em slower} than the scalar baseline.
+In the unreplicated runs, we see some of the vectorized kernels (\texttt{mat\_convol\_4x4x2x2}, \texttt{mat\_mul\_det3x3}, and \texttt{pairwise\_dist2x2}) actually {\em slower} than the scalar baseline.
 This is because the overhead of all the rotations these benchmarks incur outweighs any benefits gained from vectorization.
 In fact, it makes sense that these benchmarks would behave like that: convolution is a computation in which the values in the kernel get reused over and over, leading to a high number of rotations to move them into place each time.
 The $2\times 2$ pairwise distance benchmark is small enough that even the scalar computation doesn't take very long, but the dependence graph is fully connected, essentially leading to the worst case scenario for vectorization.
@@ -56,7 +66,11 @@ However, even in these examples, the vectorized code is no more than 20\% worse 
 
 From these results, we see that it is almost always better to fully replicate inputs when vectorizing, unless specifically compiling several composable kernels separately.
 
-\milind{Add a discussion here about visually inspecting the generated code, and point out where and whether coyote does especially cool stuff, or where it breaks down.}
+Visually inspecting the vector code generated by \system, we see that it often automatically finds what are known to be the optimal schedules.
+In the dot product kernels, \system first packs all of the multiplications into a single vector operation, and then logarithmically reduces this down into the sum of all the entries. \raghav{Are these actual words?}
+In the \texttt{mat\_mul\_det} kernels, \system first identifies the the highly vectorizable matrix multiply part of the computation, and then essentially computes the irregular determinant on a single lane.
+
+% \milind{Add a discussion here about visually inspecting the generated code, and point out where and whether coyote does especially cool stuff, or where it breaks down.}
 
 \subsubsection*{Ideal Speedups}
 In addition to collecting data about execution time, we also compute the ideal speedup of each benchmark (i.e. how much faster vectorization would be if data shuffling were free).
@@ -71,20 +85,20 @@ However, all of these ideal speedups are very close to the actual speedup in exe
 \begin{table}
     \begin{tabular}{lcccc}
         \toprule    
-         & & & Ideal & Observed\\
-        Benchmark & Scalar & Vector & Speedup & Speedup\\\midrule
-        \texttt{mat\_convol\_4x4x2x2} & 387 & 120 & 3.225\\
-        \texttt{mat\_mul\_det2x2} & 105 & 23 & 4.565\\
-        \texttt{mat\_mul3x3} & 288 & 59 & 4.881\\
-        \texttt{pairwise\_dist3x3} & 189 & 96 & 1.969\\
-        \texttt{dot\_product3x3} & 32 & 12 & 2.667\\
-        \texttt{pairwise\_dist2x2} & 84 & 65 & 1.292\\
-        \texttt{dot\_product6x6} & 65 & 13 & 5.000\\
-        \texttt{mat\_convol4x4x3x3} & 392 & 89 & 4.404\\
-        \texttt{mat\_mul2x2} & 84 & 11 & 7.636\\
-        \texttt{mat\_mul\_det3x3} & 574 & 319 & 1.799\\\bottomrule
+         & Ideal & Observed\\
+        Benchmark & Speedup & Speedup\\\midrule
+        \texttt{mat\_convol\_4x4x2x2} & 3.225 & 1.560\\
+        \texttt{mat\_mul\_det2x2} & 4.565 & 3.249\\
+        \texttt{mat\_mul3x3} & 4.881 & 4.182\\
+        \texttt{pairwise\_dist3x3} & 1.969 & 2.137\\
+        \texttt{dot\_product3x3} & 2.667 & 1.999\\
+        \texttt{pairwise\_dist2x2} & 1.292 & 1.279\\
+        \texttt{dot\_product6x6} & 5.000 & 3.558\\
+        \texttt{mat\_convol4x4x3x3} & 4.404 & 2.346\\
+        \texttt{mat\_mul2x2} & 7.636 & 6.184\\
+        \texttt{mat\_mul\_det3x3} & 1.799 & 1.153\\\bottomrule
     \end{tabular}
-    \caption{Ideal speedups from vectorization (in terms of instruction counts)}\label{tab:ideal-speedup}
+    \caption{Speedups from vectorization (ideal speedup by instruction count, and observed speedup by execution time)}\label{tab:ideal-speedup}
 \end{table}
 
 
