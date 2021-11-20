@@ -76,8 +76,7 @@ By default, \system treats the 9 elements of a $3 \times 3$ matrix as independen
 However, by putting all of them into the same input group, the programmer can prevent the matrix from having to be split across multiple ciphertext vectors when input to the computation, and generate vector code that operates on a single packed matrix. 
 There is a tradeoff: \system may have been able to find a schedule with fewer rotates with two matrix entries on the same lane, but forcing the entire matrix to packed into a single vector precludes any such schedule.
 
-Both of these input controls allow programmers to trade off between predictable input layouts and flexible input layouts. Predictable layouts are good for composition---different kernels can be plugged together more easily, without incurring rotations to line the kernels up---but may be bad for performance---\system has less flexibility to manage how the inputs flow through the kernel.
-Rather than automatically trying to balance these factors, \system leaves it up to the programmer.
+Both of these input controls allow programmers to trade off between predictable input layouts, that are good for composing kernels without too much rotation, and flexible input layouts, that can give \system more flexibility to manage data flow. Rather than automatically trying to balance these factors, \system leaves it up to the programmer.
 
 
 
