@@ -4,16 +4,18 @@
 std::map<std::string, ptxt> VectorProgram::make_bits(RuntimeContext &info)
 {
     std::map<std::string, ptxt> bits;
-    add_bitstring(bits, "10001000", info);
-    add_bitstring(bits, "00100010", info);
+    add_bitstring(bits, "0010", info);
+    add_bitstring(bits, "1101", info);
     return bits;
 }
 
 std::vector<ctxt> VectorProgram::initialize_temps(RuntimeContext &info)
 {
     std::vector<ctxt> ts(6);
-    ts[0] = encrypt_input("1111011111110101101111010110111111011111", info);
-    ts[2] = encrypt_input("001101011110001101111111", info);
+    ts[0] = encrypt_input("11010111101111111010", info);
+    ts[1] = encrypt_input("11010110111111011011", info);
+    ts[2] = encrypt_input("11011111111111011011", info);
+    ts[3] = encrypt_input("11110111111101011111", info);
     return ts;
 }
 
@@ -22,42 +24,36 @@ ctxt VectorProgram::computation(std::vector<ctxt> ts, std::map<std::string, ptxt
     seal::RelinKeys rk = info.keys->rk;
     seal::GaloisKeys gk = info.keys->gk;
 
-    ctxt vs[8];
-    ctxt ss[7];
+    ctxt vs[6];
+    ctxt ss[3];
 
-    vs[0] = ts[0]; // vector load instr
-    info.eval->rotate_rows(vs[0], -7, gk, ss[0]); // __s0 = __v0 >> 7
-    vs[1] = ts[2]; // vector load instr
-    info.eval->rotate_rows(vs[1], -6, gk, ss[1]); // __s1 = __v1 >> 6
-    info.eval->rotate_rows(vs[1], -5, gk, ss[2]); // __s2 = __v1 >> 5
-    info.eval->rotate_rows(vs[1], -7, gk, ss[3]); // __s3 = __v1 >> 7
+    info.eval->multiply(ts[0], ts[1], vs[0]); // __v0 = __t0 * __t1
+    info.eval->relinearize_inplace(vs[0], rk);
+    info.eval->multiply(ts[2], ts[3], vs[1]); // __v1 = __t2 * __t3
+    info.eval->relinearize_inplace(vs[1], rk);
     
-    // __t4 = blend(__s2@10001000, __s3@00100010)
+    // __t4 = blend(__v0@1101, __v1@0010)
     ctxt t4_1, t4_2;
-    info.eval->multiply_plain(ss[2], bits["10001000"], t4_1);
-    info.eval->multiply_plain(ss[3], bits["00100010"], t4_2);
+    info.eval->multiply_plain(vs[0], bits["1101"], t4_1);
+    info.eval->multiply_plain(vs[1], bits["0010"], t4_2);
     info.eval->add(t4_1, t4_2, ts[4]);
     
-    info.eval->multiply(ss[0], ts[4], vs[2]); // __v2 = __s0 * __t4
-    info.eval->relinearize_inplace(vs[2], rk);
     
-    // __t5 = blend(__s1@10001000, __v1@00100010)
+    // __t5 = blend(__v1@1101, __v0@0010)
     ctxt t5_1, t5_2;
-    info.eval->multiply_plain(ss[1], bits["10001000"], t5_1);
-    info.eval->multiply_plain(vs[1], bits["00100010"], t5_2);
+    info.eval->multiply_plain(vs[1], bits["1101"], t5_1);
+    info.eval->multiply_plain(vs[0], bits["0010"], t5_2);
     info.eval->add(t5_1, t5_2, ts[5]);
     
-    info.eval->multiply(vs[0], ts[5], vs[3]); // __v3 = __v0 * __t5
+    info.eval->add(ts[4], ts[5], vs[2]); // __v2 = __t4 + __t5
+    info.eval->rotate_rows(vs[2], -3, gk, ss[0]); // __s0 = __v2 >> 3
+    info.eval->rotate_rows(vs[2], -2, gk, ss[1]); // __s1 = __v2 >> 2
+    info.eval->rotate_rows(vs[2], -1, gk, ss[2]); // __s2 = __v2 >> 1
+    info.eval->multiply(ss[1], ss[2], vs[3]); // __v3 = __s1 * __s2
     info.eval->relinearize_inplace(vs[3], rk);
-    info.eval->add(vs[3], vs[2], vs[4]); // __v4 = __v3 + __v2
-    info.eval->rotate_rows(vs[4], -2, gk, ss[4]); // __s4 = __v4 >> 2
-    info.eval->rotate_rows(vs[4], -6, gk, ss[5]); // __s5 = __v4 >> 6
-    info.eval->rotate_rows(vs[4], -4, gk, ss[6]); // __s6 = __v4 >> 4
-    info.eval->multiply(ss[4], ss[5], vs[5]); // __v5 = __s4 * __s5
-    info.eval->relinearize_inplace(vs[5], rk);
-    info.eval->multiply(vs[4], ss[6], vs[6]); // __v6 = __v4 * __s6
-    info.eval->relinearize_inplace(vs[6], rk);
-    info.eval->add(vs[6], vs[5], vs[7]); // __v7 = __v6 + __v5
-    return vs[7];
+    info.eval->multiply(vs[2], ss[0], vs[4]); // __v4 = __v2 * __s0
+    info.eval->relinearize_inplace(vs[4], rk);
+    info.eval->add(vs[4], vs[3], vs[5]); // __v5 = __v4 + __v3
+    return vs[5];
 }
     

@@ -11,10 +11,12 @@ from benchmarks.pairwise_dist import *
 from benchmarks.mat_mult import *
 from benchmarks.dot_product import *
 from numberTreeGenerator import *
+import time
+start_time = time.time()
 
 if __name__ == '__main__':
     ### Change name to whatever you want the directory name to be
-    directory = "tree100,100-6_5"
+    directory = "dot_product6x6"
     ###
     path = os.path.join("outputs/", directory)
     shutil.rmtree(path)
@@ -49,7 +51,7 @@ if __name__ == '__main__':
     
     ## Matrix Multiply Determinant Benchmark
     # input_groups = get_mmd_input_groups('a', 'b', 2, 2)
-    # c = Compiler({}, input_groups, allow_replicating = [0])
+    # c = Compiler({}, allow_replicating ='all')
 
     # tag_list = []
     # tree = (mat_mul_det_benchmark(2, 2)).a
@@ -59,7 +61,7 @@ if __name__ == '__main__':
 
     ## Matrix Multiply Determinant Benchmark
     # input_groups = get_mmd_input_groups('a', 'b', 3, 3)
-    # c = Compiler({}, input_groups, allow_replicating = [0])
+    # c = Compiler({}, allow_replicating ='all')
 
     # tag_list = []
     # tree = (mat_mul_det_benchmark(3, 3)).a
@@ -71,7 +73,7 @@ if __name__ == '__main__':
 
     ## Matrix Convolution Benchmark
     # input_groups = get_mc_input_groups('a', 'b', 4, 4, 2, 2)
-    # c = Compiler({}, input_groups, allow_replicating = [1])
+    # c = Compiler({}, allow_replicating ='all')
 
     # tag_list = []
     # for i in mat_convol_benchmark(4, 2):
@@ -83,7 +85,7 @@ if __name__ == '__main__':
 
     ## Matrix Convolution Benchmark
     # input_groups = get_mc_input_groups('a', 'b', 4, 4, 3, 3)
-    # c = Compiler({}, input_groups, allow_replicating = [1])
+    # c = Compiler({}, allow_replicating ='all')
 
     # tag_list = []
     # for i in mat_convol_benchmark(4, 3):
@@ -97,7 +99,7 @@ if __name__ == '__main__':
 
     ## Pairwise Distance Benchmark
     # input_groups = get_pd_input_groups('a', 'b', 'c', 'd', 2, 2)
-    # c = Compiler({}, input_groups, allow_replicating = [0, 1])
+    # c = Compiler({}, allow_replicating ='all')
 
     # tag_list = []
     # for i in pairwise_dist_benchmark(2, 2):
@@ -108,7 +110,7 @@ if __name__ == '__main__':
 
     ## Pairwise Distance Benchmark
     # input_groups = get_pd_input_groups('a', 'b', 'c', 'd', 3, 3)
-    # c = Compiler({}, input_groups, allow_replicating = [0, 1])
+    # c = Compiler({}, allow_replicating ='all')
 
     # tag_list = []
     # for i in pairwise_dist_benchmark(3, 3):
@@ -121,7 +123,7 @@ if __name__ == '__main__':
 
     ## Matrix Multiply Benchmark
     # input_groups = get_mm_input_groups('a', 'b', 2, 2)
-    # c = Compiler({}, input_groups, allow_replicating = [0])
+    # c = Compiler({}, allow_replicating ='all')
 
     # tag_list = []
     # for i in mat_mult_benchmark(2, 2):
@@ -133,7 +135,7 @@ if __name__ == '__main__':
 
     ## Matrix Multiply Benchmark
     # input_groups = get_mm_input_groups('a', 'b', 3, 3)
-    # c = Compiler({}, input_groups, allow_replicating = [0])
+    # c = Compiler({}, allow_replicating ='all')
 
     # tag_list = []
     # for i in mat_mult_benchmark(3, 3):
@@ -147,7 +149,7 @@ if __name__ == '__main__':
 
     ## Dot Product Benchmark
     # input_groups = get_dp_input_groups('a', 'b', 3, 3)
-    # c = Compiler({}, input_groups, allow_replicating = [0])
+    # c = Compiler({}, allow_replicating ='all')
 
     # tag_list = []
     # tree = dot_product_benchmark(3, 3).a
@@ -156,13 +158,13 @@ if __name__ == '__main__':
     ## End Dot Prodcut Benchmark
 
     ## Dot Product Benchmark
-    # input_groups = get_dp_input_groups('a', 'b', 6, 6)
-    # c = Compiler({}, input_groups, allow_replicating = [0])
+    input_groups = get_dp_input_groups('a', 'b', 6, 6)
+    c = Compiler({}, allow_replicating ='all')
 
-    # tag_list = []
-    # tree = dot_product_benchmark(6, 6).a
-    # print(tree)
-    # tag_list.append(c.compile(tree))
+    tag_list = []
+    tree = dot_product_benchmark(6, 6).a
+    print(tree)
+    tag_list.append(c.compile(tree))
     ## End Dot Prodcut Benchmark
 
     ######################################################
@@ -177,12 +179,12 @@ if __name__ == '__main__':
     ## End Tree Gen 50,50 Benchmark
 
     ## Tree Gen Benchmark
-    c = Compiler({}, allow_replicating ='all')
+    # c = Compiler({}, allow_replicating ='all')
 
-    tag_list = []
-    tree = treeGenerator(6, 13925).a
-    print(tree)
-    tag_list.append(c.compile(tree))
+    # tag_list = []
+    # tree = treeGenerator(6, 13925).a
+    # print(tree)
+    # tag_list.append(c.compile(tree))
     ## End Tree Gen 50,50 Benchmark
 
     ######################################################
@@ -215,3 +217,5 @@ if __name__ == '__main__':
     # os.system("cmake --build build")
     # os.chdir("build")
     # os.system("make all")
+
+print("--- %s seconds ---" % (time.time() - start_time))
