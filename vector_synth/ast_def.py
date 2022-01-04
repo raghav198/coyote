@@ -15,6 +15,15 @@ class Var:
         self.tag = name
         self.subtags: List[Union[int, str]] = []
 
+    def __add__(self, other):
+        return Op('+', self, other)
+
+    def __mul__(self, other):
+        return Op('*', self, other)
+
+    def __sub__(self, other):
+        return Op('-', self, other)
+
     def __str__(self) -> str:
         return self.name
 
@@ -24,6 +33,9 @@ class Var:
     def __eq__(self, o: object) -> bool:
         return isinstance(o, Var) and o.name == self.name
 
+    def __hash__(self) -> int:
+        return hash(self.name)
+
 
 class Op:
     def __init__(self, op: str, lhs: Expression, rhs: Expression):
@@ -32,6 +44,15 @@ class Op:
         self.rhs = rhs
         self.tag: int = -1
         self.subtags: List[Union[int, str]] = []
+
+    def __add__(self, other):
+        return Op('+', self, other)
+
+    def __mul__(self, other):
+        return Op('*', self, other)
+
+    def __sub__(self, other):
+        return Op('-', self, other)
 
     def __str__(self) -> str:
         return f'({str(self.lhs)} {self.op} {str(self.rhs)})'

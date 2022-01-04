@@ -164,7 +164,7 @@ def vector_compile(comp: Compiler, log=stderr):
     *pen_stuff, pen_score = compute_epochs(comp, log, penalty=10, overhead=7)
     *unpen_stuff, unpen_score = compute_epochs(comp, log, penalty=0, overhead=7)
 
-    if pen_score > unpen_score:
+    if pen_score > unpen_score and False:
         print('PENALIZING ROTATIONS')
         program_stages, interstage_deps, intrastage_deps, warp_size = pen_stuff
     else:
