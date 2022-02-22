@@ -1,8 +1,36 @@
 \section{Related Work}\label{sec:related-work}
-\subsection{SLP}
-\subsection{FHE}
-\subsection{CHET}
-\subsection{Porcupine}
+There are two main categories of related work. This section first discusses work on FHE vectorization, and then discusses more general approaches to plaintext vectorization
+
+
+\subsection{Vectorization in FHE}
+Prior work has been done on building vectorizing compilers for FHE applications \cite{CHET, Porcupine}.
+CHET \cite{CHET} is a vectorizing compiler for homomorphic tensor programs that automatically selects encryption parameters, and chooses optimal data layout strategies.
+CHET is specifically targeted towards optimizing the dense tensor computations found in neural network inference, and does not apply to a broader class of programs, especially those with irregular computations that are not so easily vectorized.
+\system makes no assumptions about the domain of the program, and can generalize to vectorizing even highly irregular computations.
+
+Porcupine \cite{Porcupine} is another vectorizing compiler that uses a synthesis-based approach to automatically generate vectorized FHE kernels given a reference implementation.
+Porcupine is more general than CHET, but it is still mostly targeted towards regular, easily vectorizable computations.
+While Porcupine can, in theory, generate kernels for any computation, its treatment of rotations makes it harder to adapt to vectorizing irregular programs.
+Porcupine considers rotations directly as inputs to arithmetic expressions, and relies on a sketch to constrain the search space and a solver to find programs with optimal performance characteristics.
+Irregular applications without many apparent symmetries to exploit incur many asymmetric rotations, making it more difficult for the solver to produce an optimal schedule. The search space becomes prohibitively large, and is not tuned towards finding minimal sets of rotations.
+In contrast, because \system focuses on irregular programs, it {\em automatically} adds constraints that limit the search space for rotations, and can often find hidden symmetries even in irregular code, enabling it to combine more rotations at once.
+%\raghav{I think I explained that correctly?}\milind{Sounds good.}
+
+\subsection{Vectorization of Irregular Programs}
+Superword-Level Parallelism \cite{SLP} is a technique for automatically vectorizing arbitrary programs.
+SLP works by iterating over a sequence of scalar instructions and computing ``vector packs'', or sets of isomorphic instructions that can be packed together into vectors.
+Because SLP does not rely on the presence of data-parallel structures like loops to aid in vectorization, it works well even for irregular programs.
+When computing vector packs, SLP does not account for how expensive rotations are in FHE, leading to schedules with very high data shuffling costs. 
+
+VeGen \cite{VeGen} is a recent variant of SLP introduces {\em lane level parallelism} that reasons about which lanes are performing which computations, allowing it to reason about rotation costs when building vector packs.
+For example, VeGen can reason about the rotation costs to pack together operands for an instruction into a temporary vector, and can use this to decide whether or not packing those instructions is worth it.
+However, this reasoning only happens locally, and VeGen does not incorporate information about how instruction packing might affect rotations much later in the program.
+
+goSLP \cite{goSLP} reasons about globally optimal packing, and tries to find lane placements that minimize data shuffling costs. While goSLP does reason globally about lane placement, it has two drawbacks in an FHE context. First, it packs instructions into vectors before considering shuffling costs, so may over-aggressively vectorize, while \system may forego some vectorization opportunities in the name of getting packing larger expressions without rotation. Second, its lane placement algorithm considers arbitrary permutations, which are impractically expensive in FHE.
+
+%By reasoning globally about the entire dependence graph of the program at once, \system can identify such phenomena when making vector packs.
+%\system can also automatically find vector schedules that are amenable to more efficient data movement, and can propagate this information back through the program this to identify more optimal data layouts.
+
 % Talk about SLP
 % Talk about FHE (Gentry paper)
 % Talk in depth about CHET

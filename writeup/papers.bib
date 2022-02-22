@@ -1,0 +1,158 @@
+@inproceedings{Porcupine,
+author = {Cowan, Meghan and Dangwal, Deeksha and Alaghi, Armin and Trippel, Caroline and Lee, Vincent T. and Reagen, Brandon},
+title = {Porcupine: A Synthesizing Compiler for Vectorized Homomorphic Encryption},
+year = {2021},
+isbn = {9781450383912},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3453483.3454050},
+doi = {10.1145/3453483.3454050},
+abstract = {Homomorphic encryption (HE) is a privacy-preserving technique that enables computation directly on encrypted data. Despite its promise, HE has seen limited use due to performance overheads and compilation challenges. Recent work has made significant advances to address the performance overheads but automatic compilation of efficient HE kernels remains relatively unexplored. This paper presents Porcupine, an optimizing compiler that generates vectorized HE code using program synthesis. HE poses three major compilation challenges: it only supports a limited set of SIMD-like operators, it uses long-vector operands, and decryption can fail if ciphertext noise growth is not managed properly. Porcupine captures the underlying HE operator behavior so that it can automatically reason about the complex trade-offs imposed by these challenges to generate optimized, verified HE kernels. To improve synthesis time, we propose a series of optimizations including a sketch design tailored to HE to narrow the program search space. We evaluate Porcupine using a set of kernels and show speedups of up to 52% (25% geometric mean) compared to heuristic-driven hand-optimized kernels. Analysis of Porcupine’s synthesized code reveals that optimal solutions are not always intuitive, underscoring the utility of automated reasoning in this domain.},
+booktitle = {Proceedings of the 42nd ACM SIGPLAN International Conference on Programming Language Design and Implementation},
+pages = {375–389},
+numpages = {15},
+keywords = {homomorphic encryption, program synthesis, vectorization},
+location = {Virtual, Canada},
+series = {PLDI 2021}
+}
+
+@misc{seal,
+        title = {{M}icrosoft {SEAL} (release 3.7)},
+        howpublished = {\url{https://github.com/Microsoft/SEAL}},
+        month = sep,
+        year = 2021,
+        note = {Microsoft Research, Redmond, WA.},
+        key = {SEAL}
+    }
+
+
+@inproceedings{CHET,
+author = {Dathathri, Roshan and Saarikivi, Olli and Chen, Hao and Laine, Kim and Lauter, Kristin and Maleki, Saeed and Musuvathi, Madanlal and Mytkowicz, Todd},
+title = {CHET: An Optimizing Compiler for Fully-Homomorphic Neural-Network Inferencing},
+year = {2019},
+isbn = {9781450367127},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3314221.3314628},
+doi = {10.1145/3314221.3314628},
+abstract = {Fully Homomorphic Encryption (FHE) refers to a set of encryption schemes that allow computations on encrypted data without requiring a secret key. Recent cryptographic advances have pushed FHE into the realm of practical applications. However, programming these applications remains a huge challenge, as it requires cryptographic domain expertise to ensure correctness, security, and performance.  CHET is a domain-specific optimizing compiler designed to make the task of programming FHE applications easier. Motivated by the need to perform neural network inference on encrypted medical and financial data, CHET supports a domain-specific language for specifying tensor circuits. It automates many of the laborious and error prone tasks of encoding such circuits homomorphically, including encryption parameter selection to guarantee security and accuracy of the computation, determining efficient tensor layouts, and performing scheme-specific optimizations.  Our evaluation on a collection of popular neural networks shows that CHET generates homomorphic circuits that outperform expert-tuned circuits and makes it easy to switch across different encryption schemes. We demonstrate its scalability by evaluating it on a version of SqueezeNet, which to the best of our knowledge, is the deepest neural network to be evaluated homomorphically.},
+booktitle = {Proceedings of the 40th ACM SIGPLAN Conference on Programming Language Design and Implementation},
+pages = {142–156},
+numpages = {15},
+keywords = {Homomorphic encryption, domain-specific compiler, privacy-preserving machine learning, neural networks},
+location = {Phoenix, AZ, USA},
+series = {PLDI 2019}
+}
+
+@article{10.1145/358438.349320,
+author = {Larsen, Samuel and Amarasinghe, Saman},
+title = {Exploiting Superword Level Parallelism with Multimedia Instruction Sets},
+year = {2000},
+issue_date = {May 2000},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {35},
+number = {5},
+issn = {0362-1340},
+url = {https://doi.org/10.1145/358438.349320},
+doi = {10.1145/358438.349320},
+abstract = {Increasing focus on multimedia applications has prompted the addition
+of multimedia extensions to most existing general purpose microprocessors.  This added functionality comes primarily with the addition of short SIMD instructions.  Unfortunately, access to these instructions is limited to in-line assembly and library calls. Generally, it has been assumed that vector compilers provide the most promising means of exploiting multimedia instructions. Although vectorization technology is well understood, it is inherently complex and fragile. In addition, it is incapable of locating SIMD-style parallelism within a basic block.In this paper we introduce the concept of Superword Level Parallelism (SLP) ,a novel way of viewing parallelism in multimedia and scientific applications. We believe SLPP is  fundamentally different from the loop level parallelism exploited by traditional vector processing, and therefore demands a new method of extracting it.  We have developed a simple and robust compiler for detecting SLPP that targets basic blocks rather than loop nests.  As with techniques designed to extract ILP, ours is able to exploit parallelism both across loop iterations and within basic blocks. The result is an algorithm that provides excellent performance in several application domains. In our experiments, dynamic instruction counts were reduced by 46%. Speedups ranged from 1.24 to 6.70.},
+journal = {SIGPLAN Not.},
+month = {may},
+pages = {145–156},
+numpages = {12}
+}
+
+@inproceedings{SLP,
+author = {Larsen, Samuel and Amarasinghe, Saman},
+title = {Exploiting Superword Level Parallelism with Multimedia Instruction Sets},
+year = {2000},
+isbn = {1581131992},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/349299.349320},
+doi = {10.1145/349299.349320},
+abstract = {Increasing focus on multimedia applications has prompted the addition
+of multimedia extensions to most existing general purpose microprocessors.  This added functionality comes primarily with the addition of short SIMD instructions.  Unfortunately, access to these instructions is limited to in-line assembly and library calls. Generally, it has been assumed that vector compilers provide the most promising means of exploiting multimedia instructions. Although vectorization technology is well understood, it is inherently complex and fragile. In addition, it is incapable of locating SIMD-style parallelism within a basic block.In this paper we introduce the concept of Superword Level Parallelism (SLP) ,a novel way of viewing parallelism in multimedia and scientific applications. We believe SLPP is  fundamentally different from the loop level parallelism exploited by traditional vector processing, and therefore demands a new method of extracting it.  We have developed a simple and robust compiler for detecting SLPP that targets basic blocks rather than loop nests.  As with techniques designed to extract ILP, ours is able to exploit parallelism both across loop iterations and within basic blocks. The result is an algorithm that provides excellent performance in several application domains. In our experiments, dynamic instruction counts were reduced by 46%. Speedups ranged from 1.24 to 6.70.},
+booktitle = {Proceedings of the ACM SIGPLAN 2000 Conference on Programming Language Design and Implementation},
+pages = {145–156},
+numpages = {12},
+location = {Vancouver, British Columbia, Canada},
+series = {PLDI '00}
+}
+
+@article{BFV,
+  title={Somewhat Practical Fully Homomorphic Encryption},
+  author={Junfeng Fan and Frederik Vercauteren},
+  journal={IACR Cryptol. ePrint Arch.},
+  year={2012},
+  volume={2012},
+  pages={144}
+}
+
+@inproceedings{VeGen,
+author = {Chen, Yishen and Mendis, Charith and Carbin, Michael and Amarasinghe, Saman},
+title = {VeGen: A Vectorizer Generator for SIMD and Beyond},
+year = {2021},
+isbn = {9781450383172},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3445814.3446692},
+doi = {10.1145/3445814.3446692},
+abstract = {Vector instructions are ubiquitous in modern processors. Traditional compiler auto-vectorization techniques have focused on targeting single instruction multiple data (SIMD) instructions. However, these auto-vectorization techniques are not sufficiently powerful to model non-SIMD vector instructions, which can accelerate applications in domains such as image processing, digital signal processing, and machine learning. To target non-SIMD instruction, compiler developers have resorted to complicated, ad hoc peephole optimizations, expending significant development time while still coming up short. As vector instruction sets continue to rapidly evolve, compilers cannot keep up with these new hardware capabilities.  In this paper, we introduce Lane Level Parallelism (LLP), which captures the model of parallelism implemented by both SIMD and non-SIMD vector instructions. We present VeGen, a vectorizer generator that automatically generates a vectorization pass to uncover target-architecture-specific LLP in programs while using only instruction semantics as input. VeGen decouples, yet coordinates automatically generated target-specific vectorization utilities with its target-independent vectorization algorithm. This design enables us to systematically target non-SIMD vector instructions that until now require ad hoc coordination between different compiler stages. We show that VeGen can use non-SIMD vector instructions effectively, for example, getting speedup 3\texttimes{} (compared to LLVM’s vectorizer) on x265’s idct4 kernel.},
+booktitle = {Proceedings of the 26th ACM International Conference on Architectural Support for Programming Languages and Operating Systems},
+pages = {902–914},
+numpages = {13},
+keywords = {auto-vectorization, non-SIMD, optimization},
+location = {Virtual, USA},
+series = {ASPLOS 2021}
+}
+
+@phdthesis{Gentry,
+author = {Gentry, Craig},
+advisor = {Boneh, Dan},
+title = {A Fully Homomorphic Encryption Scheme},
+year = {2009},
+isbn = {9781109444506},
+publisher = {Stanford University},
+address = {Stanford, CA, USA},
+abstract = {We propose the first fully homomorphic encryption scheme, solving an old open problem. Such a scheme allows one to compute arbitrary functions over encrypted data without the decryption key—i.e., given encryptions  E (  m  1), ...,  E (  m t ) of  m  1, ...,  m  t,  one can efficiently compute a compact ciphertext that encrypts  f (  m  1, ...,  m  t ) for any efficiently computable function  f . Fully homomorphic encryption has numerous applications. For example, it enables encrypted search engine queries—i.e., a search engine can give you a succinct encrypted answer to your (boolean) query without even knowing what your query was. It also enables searching on encrypted data; you can store your encrypted data on a remote server, and later have the server retrieve only files that (when decrypted) satisfy some boolean constraint, even though the server cannot decrypt the files on its own. More broadly, it improves the efficiency of secure multiparty computation. In our solution, we begin by designing a somewhat homomorphic "boostrappable" encryption scheme that works when the function  f  is  the scheme's own decryption function.  We then show how, through recursive self-embedding, bootstrappable encryption gives fully homomorphic encryption.},
+note = {AAI3382729}
+}
+
+@article{goSLP,
+author = {Mendis, Charith and Amarasinghe, Saman},
+title = {GoSLP: Globally Optimized Superword Level Parallelism Framework},
+year = {2018},
+issue_date = {November 2018},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {2},
+number = {OOPSLA},
+url = {https://doi.org/10.1145/3276480},
+doi = {10.1145/3276480},
+abstract = {Modern microprocessors are equipped with single instruction multiple data (SIMD) or vector instruction sets which allow compilers to exploit superword level parallelism (SLP), a type of fine-grained parallelism. Current SLP auto-vectorization techniques use heuristics to discover vectorization opportunities in high-level language code. These heuristics are fragile, local and typically only present one vectorization strategy that is either accepted or rejected by a cost model. We present goSLP, a novel SLP auto-vectorization framework which solves the statement packing problem in a pairwise optimal manner. Using an integer linear programming (ILP) solver, goSLP searches the entire space of statement packing opportunities for a whole function at a time, while limiting total compilation time to a few minutes. Furthermore, goSLP optimally solves the vector permutation selection problem using dynamic programming. We implemented goSLP in the LLVM compiler infrastructure, achieving a geometric mean speedup of 7.58% on SPEC2017fp, 2.42% on SPEC2006fp and 4.07% on NAS benchmarks compared to LLVM’s existing SLP auto-vectorizer.},
+journal = {Proc. ACM Program. Lang.},
+month = {oct},
+articleno = {110},
+numpages = {28},
+keywords = {Vector Permutation, Auto-vectorization, Dynamic Programming, Superword Level Parallelism, Statement Packing, Integer Linear Programming}
+}
+
+@article{SmartPacking,
+author = {Smart, Nigel and Vercauteren, Frederik},
+year = {2011},
+month = {01},
+pages = {133},
+title = {Fully homomorphic SIMD operations},
+volume = {2011},
+journal = {IACR Cryptology ePrint Archive},
+doi = {10.1007/s10623-012-9720-4}
+}
+
+@MISC{BrakerskiPacking,
+    author = {Zvika Brakerski and Craig Gentry and Shai Halevi},
+    title = {Packed Ciphertexts in LWE-based Homomorphic Encryption},
+    year = {2012}
+}
