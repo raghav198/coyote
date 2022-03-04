@@ -1,48 +1,51 @@
 # include "../vector_synth/bfv_backend/scalar.hpp"
-// #include <stdio.h>
+# include <vector>
+# include <stdio.h>
 
-std::ctext ScalarProgram::less_than_bits(std::ctext ctext1, std::ctext ctext2, std::integer l, RuntimeContext &info)
+seal::ctext ScalarProgram::less_than_bits(std::vector<seal::ctxt> ctext1, std::vector<seal::ctxt> ctext2, RuntimeContext &info)
 {
-    int SUM = 0;
-    int LT;
-    int LocalPRODUCT;
-
+    seal::ctext LT;
+    seal::ctext LocalPRODUCT;
+    int l = ctext1.size();
+    std::vector<seal::ctxt> sum_parts(l);
+    seal::ctext negated1;
+    seal::ctext negated2;
     for(int i = l - 1; i >= 0; i--){
-        LT = ((ctext1[i] - ctext2[i]) % 2) * ctext2[i];
-        LocalPRODUCT = 1;
+        LT = (1 - ctext1[i]) * ctext2[i];
+        std::vector<seal::ctxt> mult_parts(i);
         for(int j = i - 1; j >= 0; j--){
-            LocalPRODUCT *= 1 - ((ctext1[j] - ctext2[j]) % 2);
+            infor.eval->negate(ctext1[j], negated1);
+            infor.eval->negate(ctext2[j], negated2);
+            mult_parts[j] = ((ctext1[j] * ctext2[j]) + (negated1 * negated2));
         }
-        SUM += LT * LocalPRODUCT;
+        info.eval->multiply_many(mult_parts, LocalPRODUCT);
+        sum_parts[i] = LT * LocalPRODUCT;
     }
+    info.eval->add_many(sum_parts, SUM);
 
-    return (0 - SUM) % 2;
+    return (SUM ^ (p-1)) % p;
 }
 
-// int Sless_than_bits(int ctext1 [], int ctext2 [], int l)
-// {
+int main(){
 
-//     int SUM = 0;
-//     int LT;
-//     int LocalPRODUCT;
+    seal::EncryptionParameters params(seal::scheme_type::bfv);
+    size_t poly_modulus_degree = 8192;
+    params.set_poly_modulus_degree(poly_modulus_degree);
+    params.set_coeff_modulus(seal::CoeffModulus::BFVDefault(poly_modulus_degree));
+    params.set_plain_modulus(seal::PlainModulus::Batching(poly_modulus_degree, 20));
 
-//     for(int i = l - 1; i >= 0; i--){
-//         LT = ((ctext1[i] - ctext2[i]) % 2) * ctext2[i];
-//         LocalPRODUCT = 1;
-//         for(int j = i - 1; j >= 0; j--){
-//             LocalPRODUCT *= 1 - ((ctext1[j] - ctext2[j]) % 2);
-//         }
-//         SUM += LT * LocalPRODUCT;
-//     }
+    RuntimeContext info(params);
 
-//     return (0 - SUM) % 2;
-// }
-
-// int main(){
-//     int ctext1 [] = {1,0,0,0,0};
-//     int ctext2 [] = {0,1,1,1,1};
-//     int output = Sless_than_bits(ctext1, ctext2, 5);
-//     printf("%d\n", output);
+    std::vector<std::integer> vector1 = {1,0,0,0,0};
+    std::vector<std::integer> vector2 = {0,1,1,1,1};
+    seal::ctext ctext1;
+    seal::ctext ctext2;
+    info.enc->encrypt(vector1, ctext1);
+    info.enc->encrypt(vector2, ctext2);
+    seal::ctext enc_output = less_than_bits(ctext1, ctext2, *info);
+    int dec_output;
+    info.enc->decrypt(enc_output, dec_output);
+    printf("%d\n", dec_output);
     
-//     return 1;
-// }
+    return 1;
+}
