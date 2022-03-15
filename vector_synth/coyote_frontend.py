@@ -1,7 +1,7 @@
 # from collections import namedtuple
 from dataclasses import dataclass
 from inspect import signature
-from ast_def import Compiler, Var
+from ast_def import Compiler, CompilerV2, Var
 from vector_compiler import vector_compile
 
 @dataclass
@@ -30,7 +30,18 @@ class coyote_compiler:
     def vectorize(self):
         return vector_compile(self.compiler)
 
+
     def instantiate(self, *funcs):
+        input_groups, outputs = self.get_outputs(funcs)
+            
+        self.compiler = Compiler({}, input_groups=input_groups)
+
+        for out in outputs:
+            self.compiler.compile(out)
+
+        return list(map(str, self.compiler.code))
+
+    def get_outputs(self, funcs):
         input_groups = []
         outputs = []
 
@@ -58,13 +69,7 @@ class coyote_compiler:
                 outputs += out
             else:
                 outputs.append(out)
-            
-        self.compiler = Compiler({}, input_groups=input_groups)
-
-        for out in outputs:
-            self.compiler.compile(out)
-
-        return list(map(str, self.compiler.code))
+        return input_groups,outputs
 
 
     def define_circuit(self, **types):
@@ -129,8 +134,29 @@ if __name__ == '__main__':
                 row.append(recursive_sum([a[i][k] * b[k][j] for k in range(MAT_SIZE)]))
             output += row
 
-        return output[0] * output[3] - output[1] * output[2]
+        return output
+        # return output[0] * output[3] - output[1] * output[2]
 
+
+    # sz = 3
+    # @coyote.define_circuit(arr1=vector(sz), arr2=vector(sz))
+    # def get_distances(arr1, arr2):
+    #     dists = []
+    #     for i in range(sz):
+    #         for j in range(sz):
+    #             xdiff = arr1[i] - arr2[j]
+    #             # xdiff = plus(f'{arr1}_x{i}', f'{arr2}_x{j}')
+    #             dists.append(xdiff * xdiff)
+    #             # dists.append(times(xdiff, copy(xdiff)))
+    #             # print(dists[-1])
+    #     return dists
+
+    # @coyote.define_circuit(a=scalar(), b=scalar())
+    # def func(a, b):
+    #     x = a * b
+    #     y = x + a
+    #     z = x * x
+    #     return y + z
 
     # IMG_SIZE = 3
     # KER_SIZE = 2
@@ -146,10 +172,14 @@ if __name__ == '__main__':
     #             output.append(recursive_sum(vals))
     #     return output
 
+    total_rotates = []
+    for i in range(20):
+        scalar_code = coyote.instantiate()
+        vectorized_code, width = coyote.vectorize()
+        print('\n'.join(scalar_code))
+        print(ans := '\n'.join(vectorized_code))
+        total_rotates.append(ans.count('>>'))
 
-    scalar_code = coyote.instantiate()
-    vectorized_code, width = coyote.vectorize()
-
-    print('\n'.join(scalar_code))
-    print('\n'.join(vectorized_code))
+    print(sum(total_rotates) / 20, min(total_rotates), max(total_rotates), total_rotates)
+        
     

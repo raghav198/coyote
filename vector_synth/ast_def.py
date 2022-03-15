@@ -1,4 +1,5 @@
-from typing import Dict, List, Set, Union, Any
+from collections import defaultdict
+from typing import Dict, List, Optional, Set, Union, Any
 from random import choice, random, seed
 from string import ascii_lowercase
 
@@ -12,7 +13,7 @@ BLANK_SYMBOL = '_'
 class Var:
     def __init__(self, name: str):
         self.name = name
-        self.tag = name
+        self.tag = None#name
         self.subtags: List[Union[int, str]] = []
 
     def __add__(self, other):
@@ -42,7 +43,7 @@ class Op:
         self.op = op
         self.lhs = lhs
         self.rhs = rhs
-        self.tag: int = -1
+        self.tag: Optional[int] = None
         self.subtags: List[Union[int, str]] = []
 
     def __add__(self, other):
@@ -224,6 +225,73 @@ class Compiler:
         self.code_lookup[e.tag].append(self.code[-1])
 
         return Atom(self.target)
+
+
+class CompilerV2:
+    def __init__(self, input_groups: List[Set[str]] = [], allow_replicating=[]):
+        self.code: List[Instr] = []
+        self.tag_lookup: Dict[int, Expression] = {}
+        self.dependences: Dict[int, Set[int]] = defaultdict(set)
+        self.next_temp = -1
+
+        self.loaded_regs: Dict[str, int] = {}
+        self.input_groups = input_groups
+        self.allow_duplicates: Set[str] = set()
+        if allow_replicating == 'all':
+            self.replicate_all = True
+        else:
+            self.replicate_all = False
+            for thing in allow_replicating:
+                if isinstance(thing, int):
+                    self.allow_duplicates |= self.input_groups[thing]
+                else:
+                    self.allow_duplicates.add(thing)
+
+    def compile(self, e: Expression):
+        if isinstance(e, Var):
+            # is this variable not supposed to be grouped?
+            if all(e.name not in group for group in self.input_groups):
+                # directly use it without emitting a load
+                return Atom(e.name)
+            
+            # this variable shouldn't be replicated, and its already loaded into a register
+            if not self.replicate_all and e.name not in self.allow_duplicates and e.name in self.loaded_regs:
+                # there is already a register that loads it
+                e.tag = self.loaded_regs[e.name]
+                return Atom(self.loaded_regs[e.name])
+
+            # otherwise, emit a load instruction
+            self.next_temp += 1
+            e.tag = self.next_temp
+            self.code.append(Instr(self.next_temp, Atom(e.name), Atom(e.name), '~'))
+            self.tag_lookup[self.next_temp] = e
+            self.loaded_regs[e.name] = self.next_temp
+
+            return Atom(self.next_temp)
+
+        assert isinstance(e, Op)
+        if e.lhs.tag is None:
+            self.compile(e.lhs)
+        if e.rhs.tag is None:
+            self.compile(e.rhs)
+        # if e.lhs.tag is None:
+        #     lhs = self.compile(e.lhs)
+        # else:
+        #     lhs = self.tag_lookup[e.lhs.tag]
+
+        # if e.rhs.tag is None:
+        #     rhs = self.compile(e.rhs)
+        # else:
+        #     rhs = self.tag_lookup[e.rhs.tag]
+
+        self.next_temp += 1
+        e.tag = self.next_temp
+        self.dependences[e.tag] = self.dependences[e.lhs.tag] | self.dependences[e.rhs.tag] | {e.lhs.tag, e.rhs.tag}
+        self.tag_lookup[e.tag] = e
+
+        self.code.append(Instr(self.next_temp, Atom(e.lhs.tag), Atom(e.rhs.tag), e.op))
+        return Atom(self.next_temp)
+
 
 
 def fuzzer(step, term=0) -> Expression:
