@@ -1,21 +1,21 @@
-# include "../vector_synth/bfv_backend/scalar.hpp"
-# include <vector>
-# include <stdio.h>
+#include "../bfv_backend/scalar.hpp"
+#include <vector>
+#include <stdio.h>
 
-seal::ctext ScalarProgram::less_than_bits(std::vector<seal::ctxt> ctext1, std::vector<seal::ctxt> ctext2, RuntimeContext &info)
+ctxt less_than_bits(std::vector<ctxt> ctext1, std::vector<ctxt> ctext2, RuntimeContext &info)
 {
-    seal::ctext LT;
-    seal::ctext LocalPRODUCT;
+    ctxt LT;
+    ctxt LocalPRODUCT;
     int l = ctext1.size();
-    std::vector<seal::ctxt> sum_parts(l);
-    seal::ctext negated1;
-    seal::ctext negated2;
+    std::vector<ctxt> sum_parts(l);
+    ctxt negated1;
+    ctxt negated2;
     for(int i = l - 1; i >= 0; i--){
         LT = (1 - ctext1[i]) * ctext2[i];
-        std::vector<seal::ctxt> mult_parts(i);
+        std::vector<ctxt> mult_parts(i);
         for(int j = i - 1; j >= 0; j--){
-            infor.eval->negate(ctext1[j], negated1);
-            infor.eval->negate(ctext2[j], negated2);
+            info.eval->negate(ctext1[j], negated1);
+            info.eval->negate(ctext2[j], negated2);
             mult_parts[j] = ((ctext1[j] * ctext2[j]) + (negated1 * negated2));
         }
         info.eval->multiply_many(mult_parts, LocalPRODUCT);
@@ -36,15 +36,16 @@ int main(){
 
     RuntimeContext info(params);
 
-    std::vector<std::integer> vector1 = {1,0,0,0,0};
-    std::vector<std::integer> vector2 = {0,1,1,1,1};
-    seal::ctext ctext1;
-    seal::ctext ctext2;
+    std::vector<int> vector1 = {1,0,0,0,0};
+    std::vector<int> vector2 = {0,1,1,1,1};
+    ctxt ctext1;
+    ctxt ctext2;
+
     info.enc->encrypt(vector1, ctext1);
     info.enc->encrypt(vector2, ctext2);
-    seal::ctext enc_output = less_than_bits(ctext1, ctext2, *info);
+    ctxt enc_output = less_than_bits(ctext1, ctext2, *info);
     int dec_output;
-    info.enc->decrypt(enc_output, dec_output);
+    info.dec->decrypt(enc_output, dec_output);
     printf("%d\n", dec_output);
     
     return 1;
