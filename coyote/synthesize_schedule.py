@@ -172,9 +172,6 @@ def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int, l
     dep_graph = dependency_graph(program)
     adds, subs, mults = split_types(program)
 
-    print(program)
-    print(dep_graph)
-
     num_instr = len(program)
 
     opt = z3.Solver()
@@ -223,7 +220,6 @@ def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int, l
     log.flush()
     start = time()
     res = opt.check()
-    print(f'Answer: {res}')
     end = time()
     print(f'({int(1000 * (end - start))} ms)', file=log)
     if res == z3.unsat:
@@ -311,7 +307,7 @@ def synthesize_schedule_iterative_refine_saved_state(program: List[Instr], warp:
 
 
 def synthesize_schedule(program: List[Instr], warp: int, log=stderr) -> List[int]:
-    print(f'Calculating height...', file=log, end='')
+    # print(f'Calculating height...', file=log, end='')
     log.flush()
     heights: Dict[int, int] = defaultdict(lambda: 0)
     for instr in program:
@@ -320,7 +316,7 @@ def synthesize_schedule(program: List[Instr], warp: int, log=stderr) -> List[int
         heights[instr.dest.val] = max(left_height, right_height) + 1
 
     max_height = max(heights.values())
-    print(f'({max_height})', file=log)
+    # print(f'({max_height})', file=log)
     start = time()
 
     synthesizer = ScheduleSynthesizer(program, warp, log=log)

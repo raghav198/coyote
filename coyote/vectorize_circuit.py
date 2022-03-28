@@ -82,7 +82,7 @@ def nx_columnize(_graph: nx.DiGraph):
 
             # part2 = epochs[j]
 
-            print(f'Parts of {i, j}: {part1, part2}')
+            # print(f'Parts of {i, j}: {part1, part2}')
 
             # have to make a copy so that it can be modified independently
             bp_subgraph: nx.Graph = nx.Graph(graph.subgraph(part1 | part2))
@@ -116,14 +116,14 @@ def nx_columnize(_graph: nx.DiGraph):
         ## also check if the edge connects an unmatched vertex to one already matched with something in the same epoch
         matchable_graph = nx.graphviews.subgraph_view(bp_piece, filter_edge=lambda u, v: not (columns.contains(u) and columns.contains(v)))
         
-        print(f'Marking edges {[(u, v) for u, v in bp_piece.edges if columns.contains(u) and columns.contains(v)]} as unmatchable')
-        print(f'{matchable_graph.edges} are all matchable')
+        # print(f'Marking edges {[(u, v) for u, v in bp_piece.edges if columns.contains(u) and columns.contains(v)]} as unmatchable')
+        # print(f'{matchable_graph.edges} are all matchable')
         matching = nx.algorithms.max_weight_matching(matchable_graph, maxcardinality=True)
 
 
         # print(f'Querying weights for {matching}')
         weight = sum(bp_piece[u][v]['weight'] for u, v in matching)
-        print(f'Matching for {i, j}: {matching} (weight={weight})')
+        # print(f'Matching for {i, j}: {matching} (weight={weight})')
         
 
         for u, v in matching:
@@ -191,9 +191,6 @@ def lane_placement(graph: nx.DiGraph, t=10, beta=0.05, rounds=10000):
     if num_cols == 1:
         return current
 
-    # orig = list(range(num_cols))
-    print(f'Original cost: {current}')
-
     best_cost = current
     best_graph = nx.DiGraph(graph)
 
@@ -225,7 +222,6 @@ def lane_placement(graph: nx.DiGraph, t=10, beta=0.05, rounds=10000):
             best_cost = current
             best_graph = nx.DiGraph(graph)
 
-    print(f'Final cost: {best_cost}')
     graph.update(best_graph)
     return best_cost
 
@@ -347,7 +343,6 @@ def bfs_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], max_edges=10, 
             contracted_graphs.append(contracted)
 
         if not costs_this_iter:
-            print('Nothing added to the queue this round!')
             continue
         min_cost, best_graph_idx = min(zip(costs_this_iter, range(len(costs_this_iter))))
         best_graph = contracted_graphs[best_graph_idx]
@@ -357,8 +352,6 @@ def bfs_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], max_edges=10, 
 
 
 def schedule_height(graph: nx.DiGraph, debug=False):
-    print(graph.graph)
-
     cells = defaultdict(lambda: defaultdict(tuple))
 
     for node in graph:
@@ -412,18 +405,14 @@ def anneal_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], t=20, beta=
         all_candidate_edges = list(set().union(*ann.values()) - already_visited)
         if not all_candidate_edges:
             if max_restarts and num_restarts >= max_restarts:
-                print('Restarting too many times, terminating early!')
                 break
-            print('We hit a dead end...restarting at best')
             cur = nx.DiGraph(best_graph)
             current_cost = best_cost
             already_visited = set()
             num_restarts += 1
             continue
         # all_candidate_edges.sort()
-        print(f'Candidates: {all_candidate_edges}')
         edge_to_contract = choice(all_candidate_edges)
-        print(f'Trying {edge_to_contract}')
         
         raw_contracted = contract_edge(cur, edge_to_contract)
         contracted = nx.condensation(raw_contracted) # candidate solution, condense any newly created SCCs to keep acyclic
@@ -449,7 +438,6 @@ def anneal_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], t=20, beta=
             current_cost = contracted_cost
             cur = nx.DiGraph(contracted)
             already_visited = set()
-            print(f'Accepted contraction of {edge_to_contract}')
 
         if current_cost < best_cost:
             best_cost = current_cost
@@ -469,7 +457,6 @@ def anneal_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], t=20, beta=
     print('Final cost accounting:')
     rotation_cost(best_graph, debug=True)
     schedule_height(best_graph, debug=True)
-    input()
 
     return best_graph, best_cost
 
@@ -505,8 +492,6 @@ def vectorize(comp: CompilerV2):
     graph = nx.DiGraph(nx.subgraph(graph, actual_instrs))
 
     relaxed_schedule, _ = anneal_relax_schedule(graph, loaded_groups, t=20, beta=0.001, rounds=200)
-
-    print(relaxed_schedule.nodes)
 
     print('Column mapping:')
     for node in relaxed_schedule.nodes:

@@ -13,3 +13,4 @@
 **/_deps
 **/bfv_backend/build/*
 **/.vscode/*
+**/outputs/*
