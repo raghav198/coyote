@@ -67,6 +67,7 @@ class coyote_compiler:
         return list(map(str, self.compiler.code))
 
     def get_outputs(self, funcs):
+
         input_groups = []
         outputs = []
 
@@ -74,6 +75,7 @@ class coyote_compiler:
             funcs = self.func_signatures
         else:
             print([(func.__name__, funcs, func.__name__ in funcs) for func in self.func_signatures.keys()])
+
             funcs = list(filter(lambda func: func.__name__ in funcs, self.func_signatures.keys()))
 
         for func in funcs:
@@ -92,6 +94,7 @@ class coyote_compiler:
                         params[_p] = copy_vector(t.size, p)
                     else:
                         params[_p] = [Var(f'{p}:{i}') for i in range(t.size)]
+
                     input_groups.append({f'{p}:{i}' for i in range(t.size)})
                 else:
                     params[_p] = Var(p)
@@ -102,6 +105,7 @@ class coyote_compiler:
             else:
                 outputs.append(out)
         return input_groups,outputs
+
 
 
     def define_circuit(self, **types):
@@ -190,6 +194,7 @@ if __name__ == '__main__':
     #     z = x * x
     #     return y + z
 
+
     # IMG_SIZE = 3
     # KER_SIZE = 2
     # @coyote.define_circuit(ker=matrix(KER_SIZE, KER_SIZE), img=matrix(IMG_SIZE, IMG_SIZE))
@@ -213,5 +218,5 @@ if __name__ == '__main__':
         total_rotates.append(ans.count('>>'))
 
     print(sum(total_rotates) / 20, min(total_rotates), max(total_rotates), total_rotates)
-        
+
     
