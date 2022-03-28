@@ -1,18 +1,17 @@
 from collections import defaultdict
-from email.policy import default
-import enum
-from inspect import BoundArguments
+from functools import total_ordering
 from math import sqrt
 from time import time
 
-from numpy import matrix
-from pyparsing import col
+from disjoint_set import DisjointSet
 from path_semiring import LangSemiring, Matrix, Path, adjacency_matrix_from_graph, is_zero
 from graph import Edge, Graph, Node, connect, edges_on_path
-from itertools import combinations
+from itertools import combinations, groupby
 from typing import Callable, Counter, Dict, FrozenSet, Iterator, List, Optional, Set, Tuple, TypeVar
 import z3
 from progressbar import ProgressBar
+import networkx as nx
+from networkx.algorithms import bipartite
 
 
 Relation = FrozenSet[Node]
@@ -453,15 +452,24 @@ def split_stage_graph_3():
 
 def place_lanes_hypergraph_method(dependencies: List[Dict[int, Set[int]]], max_warp: int):
     graph, stages, renum_to_orig = build_dependency_graph(dependencies)
-
     
     # for stage1, stage2 in zip(stages[:-1], stages[1:]):
     #     num_edges = sum(len(list(filter(lambda v2: v2 in stage2, graph[v1]))) for v1 in stage1)
     #     print(len(stage1), len(stage2), num_edges)
     # input()
     
+    # bipartite_counting(dependencies)
+    # input()
 
     edges, hyperedges = build_hypergraph_with_path_semiring(graph, stages, timeout=5000)
+    
+    # degree: Dict[Edge, int] = {}
+    
+    
+    # for edge in edges:
+    #     v1, v2 = edge
+    #     degree[edge] = min(int(v1.split('_')[0]), int(v2.split('_')[0]))
+
     while True:
         coloring = color_hypergraph((edges, hyperedges), colors)
 
@@ -505,7 +513,138 @@ def place_lanes_hypergraph_method(dependencies: List[Dict[int, Set[int]]], max_w
             continue
         break
 
+    # epoch_wise_contraction(coloring, renum_to_orig, dependencies, 0)
+
+    # input()
     return {renum_to_orig[k]: v for k, v in result.items()}
+
+
+def epoch_wise_contraction(coloring: Dict[Edge, str], renum_to_orig: Dict[str, int], dependencies: List[Dict[int, Set[int]]], cur_epoch: int):
+    epoch_num: Dict[int, int] = {}
+    for i, epoch in enumerate(dependencies):
+        for instr in epoch:
+            epoch_num[instr] = i
+
+    flattened_deps: Dict[int, Set[int]] = {k:v for deps in dependencies for k, v in deps.items()}
+
+    sibling_sets: DisjointSet[int] = DisjointSet()
+    sibling_sets.add(*flattened_deps.keys())
+
+    for instr in flattened_deps:
+        deps = list(flattened_deps[instr])
+        for dep in deps[1:]:
+            sibling_sets.union(deps[0], dep)
+
+    color_classes: Dict[str, Set[int]] = defaultdict(set)
+
+    for edge, color in coloring.items():
+        v1, v2 = map(renum_to_orig.__getitem__, edge)
+        if min(epoch_num[v1], epoch_num[v2]) != cur_epoch:
+            continue
+        print(v1, v2, color)
+        color_classes[color].update(sibling_sets.find(v1))
+        color_classes[color].update(sibling_sets.find(v2))
+
+    print(color_classes)
+
+        
+
+
+def find_tops(coloring: Dict[Edge, str], renum_to_orig: Dict[str, int], dependencies: List[Dict[int, Set[int]]]):
+    start = time()
+    stage_num: Dict[int, int] = {}
+    for i, stage in enumerate(dependencies):
+        for instr in stage:
+            stage_num[instr] = i
+    
+    closures: Dict[int, Set[int]] = {} # instr -> closure of instructions it depends on
+    flattened_deps: Dict[int, Set[int]] = {k:v for deps in dependencies for k, v in deps.items()}
+
+    dominators: Dict[str, Set[int]] = defaultdict(set) # color -> set of instrs dominating it (this set of instructions includes all edges of this color below it)
+
+    color_classes: Dict[str, Set[int]] = defaultdict(set) # color -> set of instrs it affects (endpoints of the edges + filling out siblings)
+
+    def get_closure(n):
+        if n in closures:
+            return
+        closure: Set[int] = set()
+        for dep in flattened_deps[n]:
+            get_closure(dep)
+            closure.update(closures[dep])
+            closure.add(dep)
+            
+        closures[n] = closure
+
+
+    def add_dominator(color: str, instr: int):
+        cur_dominators = dominators[color].copy()
+        for i in cur_dominators:
+            if i in closures[instr]:
+                dominators[color].remove(i)
+            elif instr in closures[i]:
+                break
+        else:
+            dominators[color].add(instr)
+
+
+    for n in flattened_deps:
+        get_closure(n)
+
+    for edge, color in coloring.items():
+        v1, v2 = edge
+        add_dominator(color, renum_to_orig[v1])
+        add_dominator(color, renum_to_orig[v2])
+        color_classes[color].add(renum_to_orig[v1])
+        color_classes[color].add(renum_to_orig[v2])
+
+    print('Open classes:')
+    print(color_classes)
+
+    # close color classes
+    for color in color_classes:
+        added = True
+        while added:
+            added = False
+            for instr in color_classes[color].copy():
+                # which of instr's children are also in the color class?
+                included_children = flattened_deps[instr].intersection(color_classes[color])
+                # some children are in the color class, but not all
+                if included_children != flattened_deps[instr] and included_children == set():
+                    # updated this round, we'll have to go again
+                    added = True
+                    # add all the children
+                    color_classes[color].update(flattened_deps[instr])
+
+    for color in color_classes:
+        cost = 0
+        split_instrs = []
+        for stage, instrs in groupby(sorted(color_classes[color], key=stage_num.__getitem__), key=stage_num.__getitem__):
+            instrs = list(instrs)
+            split_instrs.append(instrs)
+            cost += len(instrs) - 1
+
+        print(f'To collapse {color}: {cost}')
+        print(split_instrs)
+        
+
+
+
+    print('Open dominators:')
+    print(dominators)
+
+    print('Closed dominators')
+    for col in dominators:
+        for instr in dominators[col].copy():
+            dominators[col].update(closures[instr])
+
+    print(dominators)
+
+    print('Coloring:')
+    print(coloring)
+    print(renum_to_orig)
+    end = time()
+    print(end - start)
+
 
 def build_dependency_graph(dependencies):
     graph: Graph[str] = defaultdict(list)
@@ -531,6 +670,8 @@ def build_dependency_graph(dependencies):
         graph[k].sort()
 
     return graph, stages, renum_to_orig
+    
+
 
 
 

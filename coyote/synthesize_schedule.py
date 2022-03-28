@@ -2,7 +2,7 @@ from collections import defaultdict
 from math import ceil
 from typing import Tuple
 
-from ast_def import *
+from coyote_ast import *
 import z3
 from sys import stderr
 from time import time
