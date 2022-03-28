@@ -110,3 +110,15 @@ class DisjointSet(Generic[T]):
             equiv_class = self.find(v)
             consumed.update(equiv_class)
             yield equiv_class
+
+    def is_equivalent(self, item1: T, item2: T) -> bool:
+        """
+        :param item1: T. First item
+        :param item2: T. Second item
+        :return: True if `item1` and `item2` are in the same equivalence class, False otherwise
+        :raises ItemNotPresent if either `item1` or `item2` are not contained in the structure
+        """
+        rep1 = self.rep(item1)
+        rep2 = self.rep(item2)
+        return rep1 == rep2
+    

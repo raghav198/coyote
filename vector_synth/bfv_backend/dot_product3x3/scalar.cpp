@@ -28,6 +28,7 @@ std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, R
     info.eval->relinearize_inplace(regs[8], rk);
     info.eval->add(regs[5], regs[8], regs[9]);
     info.eval->add(regs[2], regs[9], regs[10]);
+
     std::vector<ctxt> answer;
     answer.push_back(regs[10]);
     return answer;

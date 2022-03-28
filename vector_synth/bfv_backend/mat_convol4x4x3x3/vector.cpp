@@ -1,5 +1,4 @@
-
-# include "../vector.hpp"
+#include "../vector.hpp"
 
 std::map<std::string, ptxt> VectorProgram::make_bits(RuntimeContext &info)
 {

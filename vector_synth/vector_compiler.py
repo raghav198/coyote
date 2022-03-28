@@ -6,6 +6,7 @@ from covectorizability_graph import build_graph
 from max_clique import BreaksetCalculator
 from ast_def import *
 from typing import Dict, Tuple
+from schedule_by_merging import place_lanes_sa_method
 from vectorize import synthesize_schedule, VecInstr
 from build_code import place_output_lanes, build_vector_program, propagate_lane_assigments, place_lanes
 from sys import stderr
@@ -208,6 +209,7 @@ def vector_compile(comp: Compiler, log=stderr):
     # output_placement = place_lanes_piecewise(interstage_deps, warp_size)
     # output_placement = place_lanes_manually(interstage_deps, warp_size)
     output_placement = place_lanes_hypergraph_method(interstage_deps, warp_size)
+    # output_placement = place_lanes_sa_method(interstage_deps, warp_size)
     print(output_placement)
     warp_size = max(output_placement.values()) + 1
     print(f'Placed all stage outputs: {output_placement}, new warp size is {warp_size}')

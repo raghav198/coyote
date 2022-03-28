@@ -247,18 +247,22 @@ class CompilerV2:
                 else:
                     self.allow_duplicates.add(thing)
 
+
     def compile(self, e: Expression):
         if isinstance(e, Var):
+            
             # is this variable not supposed to be grouped?
             if all(e.name not in group for group in self.input_groups):
                 # directly use it without emitting a load
+                e.tag = e.name
                 return Atom(e.name)
             
             # this variable shouldn't be replicated, and its already loaded into a register
-            if not self.replicate_all and e.name not in self.allow_duplicates and e.name in self.loaded_regs:
-                # there is already a register that loads it
-                e.tag = self.loaded_regs[e.name]
-                return Atom(self.loaded_regs[e.name])
+
+            # if not self.replicate_all and e.name not in self.allow_duplicates and e.name in self.loaded_regs:
+            #     # there is already a register that loads it
+            #     e.tag = self.loaded_regs[e.name]
+            #     return Atom(self.loaded_regs[e.name])
 
             # otherwise, emit a load instruction
             self.next_temp += 1

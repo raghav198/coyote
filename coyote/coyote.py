@@ -1,8 +1,7 @@
-# from collections import namedtuple
 from dataclasses import dataclass
 from inspect import signature
-from coyote_ast import Atom, Compiler, CompilerV2, Var
-from vector_compiler import vector_compile
+from coyote_ast import CompilerV2, Var
+from vectorize_circuit import vectorize
 
 @dataclass
 class matrix:
@@ -53,7 +52,7 @@ class coyote_compiler:
         self.func_signatures = {}
 
     def vectorize(self):
-        return vector_compile(self.compiler)
+        return vectorize(self.compiler)
 
 
     def instantiate(self, *funcs):

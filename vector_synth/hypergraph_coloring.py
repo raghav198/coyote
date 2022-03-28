@@ -3,8 +3,6 @@ from functools import total_ordering
 from math import sqrt
 from time import time
 
-from pyparsing import col
-
 from disjoint_set import DisjointSet
 from path_semiring import LangSemiring, Matrix, Path, adjacency_matrix_from_graph, is_zero
 from graph import Edge, Graph, Node, connect, edges_on_path
@@ -460,8 +458,8 @@ def place_lanes_hypergraph_method(dependencies: List[Dict[int, Set[int]]], max_w
     #     print(len(stage1), len(stage2), num_edges)
     # input()
     
-    bipartite_counting(dependencies)
-    input()
+    # bipartite_counting(dependencies)
+    # input()
 
     edges, hyperedges = build_hypergraph_with_path_semiring(graph, stages, timeout=5000)
     
@@ -672,78 +670,6 @@ def build_dependency_graph(dependencies):
         graph[k].sort()
 
     return graph, stages, renum_to_orig
-
-
-def bipartite_counting(dependencies: List[Dict[int, Set[int]]]):
-
-    # bipartite pieces, indexed by (source, target) epoch
-    pieces: Dict[Tuple[int, int], nx.graph.Graph] = {}
-    for i in range(len(dependencies)): # i = source epoch
-        for j in range(i + 1, len(dependencies)): # j = target epoch
-            part1 = set(dependencies[j].keys()) # all instructions in target epoch
-            part2 = set().union(*dependencies[j].values()).intersection(set(dependencies[i].keys())) # which dependences are from source epoch
-
-            # construct the bipartite graph
-            graph = nx.graph.Graph()
-            graph.add_nodes_from(part1, bipartite=0)
-            graph.add_nodes_from(part2, bipartite=1)
-            for x in part1:
-                for y in part2:
-                    if y in dependencies[j][x]:
-                        graph.add_edge(x, y)
-
-            if graph.number_of_edges() == 0:
-                continue
-
-            # weight of each edge = sum of degrees of nodes (so that max weight matching will prioritize removing high-degree edges first)
-            for x in part1:
-                for y in part2:
-                    weight = graph.degree[x] + graph.degree[y]
-                    if graph.has_edge(x, y):
-                        graph[x][y]['weight'] = weight
-
-            pieces[i, j] = graph
-
-    columns = DisjointSet() # columns of instructions (one per epoch) all lined up in the same lane (determined by bipartite matches)
-    total_degree = 0 # sum of max remaining degree in each bipartite piece after matching is done, proxy for num of rotations required
-
-    for i, j in sorted(pieces.keys()):
-        print(f'===Bipartite piece between epochs {i} and {j}===')
-        graph = pieces[i, j]
-        
-        # add each untracked source element to its own equivalence class so they can't be combined into one column
-        part = set(n for n, d in graph.nodes(data=True) if d['bipartite'])
-        columns.add(*filter(lambda p: not columns.contains(p), part))
-        
-        # remove any edge in the graph that has both its endpoints already placed, since matching such an edge would merge columns (violates consistency)
-        matchable_graph = nx.graphviews.subgraph_view(graph, filter_edge=lambda u, v: not (columns.contains(u) and columns.contains(v)))
-
-        # do a maximum bipartite matching; for each matched edge, merge their vertices into the same column
-        matching = nx.algorithms.max_weight_matching(matchable_graph)
-        print(matching)
-        for u, v in matching:
-            # this shouldn't happen because we removed all such vertex pairs
-            assert not (columns.contains(u) and columns.contains(v)), (u, v)
-
-            if columns.contains(u):
-                columns.add_to(v, u)
-            else:
-                columns.add_to(u, v)
-
-        # get the graph without matched edges (all remaining edges will require a rotation), this also reinserts unmatchable edges
-        rotation_graph = nx.graphviews.subgraph_view(graph, filter_edge=lambda u, v: (u, v) not in matching)
-        
-        # degree of this piece is the max degree of any vertex
-        total_degree += max(rotation_graph.degree(), key=lambda n: n[1])[1]
-
-        
-    # print('---Columns---')
-    # for column in columns.all_classes():
-    #     print(column)
-
-    column_list = list(columns.all_classes())
-    print(column_list)
-    print(total_degree)
     
 
 
