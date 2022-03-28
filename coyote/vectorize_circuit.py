@@ -2,12 +2,12 @@ from collections import defaultdict
 from functools import reduce
 from math import exp
 from random import randint, random, seed, choice
-from codegen import build_vector_program, codegen
-from disjoint_set import DisjointSet
+from .codegen import build_vector_program, codegen
+from .disjoint_set import DisjointSet
 from typing import Counter, List, Set, Dict, Tuple, Generator
-from coyote_ast import CompilerV2, Instr
+from .coyote_ast import CompilerV2, Instr
 import networkx as nx
-from synthesize_schedule import VecInstr, synthesize_schedule
+from .synthesize_schedule import VecInstr, synthesize_schedule
 
 seed(1)
 

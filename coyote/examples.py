@@ -1,4 +1,4 @@
-from coyote import *
+from coyote.coyote import *
 
 coyote = coyote_compiler()
 

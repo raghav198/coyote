@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from inspect import signature
-from coyote_ast import CompilerV2, Var
-from vectorize_circuit import vectorize
+from .coyote_ast import CompilerV2, Var
+from .vectorize_circuit import vectorize
 
 @dataclass
 class matrix:
