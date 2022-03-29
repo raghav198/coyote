@@ -66,7 +66,7 @@ def split_types(program: List[Instr]) -> Tuple[List[int], List[int], List[int]]:
 
 
 class ScheduleSynthesizer:
-    def __init__(self, program, warp_size, log=stderr, timeout=60, disallow_same_vec_same_dep=False):
+    def __init__(self, program: List[Instr], warp_size: int, lanes: List[int], log=stderr, timeout=60, disallow_same_vec_same_dep=False):
         self.timeout = timeout
         self.log = log
 
@@ -98,9 +98,11 @@ class ScheduleSynthesizer:
                     print(f'Disallowing {i} and {j}')
                     self.opt.add(self._schedule[i] != self._schedule[j])
 
+            self.opt.add(self._lanes[i] == lanes[program[i].dest.val])
             for dep in dep_graph[i]:
                 self.opt.add(self._schedule[i] > self._schedule[dep])
                 self.opt.add(self._lanes[i] == self._lanes[dep])
+                
 
     def add_bound(self, bound):
         print(f'Bounding by {bound}')
@@ -306,7 +308,7 @@ def synthesize_schedule_iterative_refine_saved_state(program: List[Instr], warp:
         best_sched, blend_penalty = result
 
 
-def synthesize_schedule(program: List[Instr], warp: int, log=stderr) -> List[int]:
+def synthesize_schedule(program: List[Instr], warp: int, lanes: List[int], log=stderr) -> List[int]:
     # print(f'Calculating height...', file=log, end='')
     log.flush()
     heights: Dict[int, int] = defaultdict(lambda: 0)
@@ -319,7 +321,7 @@ def synthesize_schedule(program: List[Instr], warp: int, log=stderr) -> List[int
     # print(f'({max_height})', file=log)
     start = time()
 
-    synthesizer = ScheduleSynthesizer(program, warp, log=log)
+    synthesizer = ScheduleSynthesizer(program, warp, lanes, log=log)
     # synthesizer.add_bound(4 * max_height)
     synthesizer.add_bound(len(program))
     best_so_far = None

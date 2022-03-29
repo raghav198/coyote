@@ -50,6 +50,7 @@ class copy_matrix:
 class coyote_compiler:
     def __init__(self):
         self.func_signatures = {}
+        self.outputs = []
 
     def vectorize(self):
         return vectorize(self.compiler)
@@ -61,9 +62,9 @@ class coyote_compiler:
         self.compiler = CompilerV2(input_groups)
 
         for out in outputs:
-            self.compiler.compile(out)
+            self.outputs.append(self.compiler.compile(out).val)
 
-        return list(map(str, self.compiler.code))
+        return [' '.join(f'%{reg}' for reg in self.outputs)] + list(map(str, self.compiler.code))
 
     def get_outputs(self, funcs):
         input_groups = []
@@ -84,8 +85,8 @@ class coyote_compiler:
                     if t.replicate:
                         params[_p] = copy_matrix(t.rows, t.cols, p)
                     else:
-                        params[_p] = [[Var(f'{p}:{i},{j}') for i in range(t.rows)] for j in range(t.cols)]
-                    input_groups.append({f'{p}:{i},{j}' for i in range(t.rows) for j in range(t.cols)})
+                        params[_p] = [[Var(f'{p}:{i};{j}') for i in range(t.rows)] for j in range(t.cols)]
+                    input_groups.append({f'{p}:{i};{j}' for i in range(t.rows) for j in range(t.cols)})
                 elif isinstance(t, vector):
                     if t.replicate:
                         params[_p] = copy_vector(t.size, p)

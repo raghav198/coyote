@@ -510,7 +510,7 @@ def vectorize(comp: CompilerV2):
     schedule = [0] * len(comp.code)
     for stage in get_stages(relaxed_schedule):
         stage_instrs = [comp.code[i] for i in stage]
-        stage_sched = synthesize_schedule(stage_instrs, warp_size)
+        stage_sched = synthesize_schedule(stage_instrs, warp_size, lanes)
         for s, i in zip(stage_sched, stage_instrs):
             schedule[i.dest.val] = s + len(vector_program)
         vector_program += build_vector_program(stage_instrs, lanes, stage_sched)

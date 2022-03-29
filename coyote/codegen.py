@@ -10,6 +10,7 @@ def build_vector_program(program: List[Instr],
                          schedule: List[int], log=stderr) -> List[VecInstr]:
     print('Building stage:', file=log)
     print('\n'.join(map(str, program)), file=log)
+    # print(lanes, schedule)
     vectorized_code = []
     warp = max(lanes) + 1
 
@@ -17,6 +18,7 @@ def build_vector_program(program: List[Instr],
     inv_schedule = [[i for i in range(len(schedule)) if schedule[i] == slot]
                     for slot in set(schedule)]
 
+    # print(inv_schedule)
     for instrs in inv_schedule:
         dest = [-1 for _ in range(warp)]
         lhs = [Atom(BLANK_SYMBOL) for _ in range(warp)]
@@ -32,19 +34,26 @@ def build_vector_program(program: List[Instr],
 
         vectorized_code.append(VecInstr(dest, lhs, rhs, program[instrs[0]].op))
 
+    # print('Stage:')
+    # print('\n'.join(map(str, vectorized_code)))
     return vectorized_code
 
 
 def codegen(vector_program: List[VecInstr], graph: nx.DiGraph, lanes: List[int], schedule: List[int], warp_size: int):
     shift_amounts_needed: Dict[int, Dict[int, int]] = defaultdict(lambda: defaultdict(lambda: 0))
+    print('Raw program: ')
+    print('\n'.join(map(str, vector_program)))
     print(f'Warp size: {warp_size}')
 
     for prods, cons in graph.edges:
         for p in prods:
             for c in cons:
                 shift_amount = (lanes[c] - lanes[p]) % warp_size
+                if shift_amount == 0:
+                    continue
                 shift_amounts_needed[p][c] = shift_amount
 
+    print(shift_amounts_needed)
 
 
     shifted_vectors: Dict[Tuple[int, int], str] = {} # (register, shift amount) -> name of shifted vector
