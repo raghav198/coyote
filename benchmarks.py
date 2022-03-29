@@ -16,6 +16,31 @@ def conv(sig, ker):
         output.append(recursive_sum([sig[offset + i] * ker[i] for i in range(len(ker))]))
     return output
 
+
+@coyote.define_circuit(a=matrix(2, 2), b=matrix(2, 2))
+def matmul2x2(a, b):
+    return [recursive_sum([a[i][k] * b[k][j] for k in range(2)]) for i in range(2) for j in range(2)]
+
+
+@coyote.define_circuit(a=matrix(2, 2), b=matrix(2, 2))
+def weird_stuff(a, b):
+    return conv(matmul2x2(a, b), a[0])
+
+
+def cond(b, true, false):
+    return b * true + (Var('1') + b) * false
+    
+@coyote.define_circuit(c12=scalar(), c23=scalar(), c13=scalar(), o123=scalar(), o132=scalar(), o213=scalar(), o231=scalar(), o312=scalar(), o321=scalar())
+def sort_3(c12, c23, c13, o123, o132, o213, o231, o312, o321):
+    return cond(c12, 
+                (cond(c23, 
+                    o123,
+                    cond(c13, o132, o312))), 
+                (cond(c13,
+                    o213,
+                    cond(c23, o231, o321))))
+
+
 def usage():
     print(f'Usage: {argv[0]} [list|build] [benchmark_name?]')
     raise SystemExit()
