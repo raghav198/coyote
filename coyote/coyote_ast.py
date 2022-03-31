@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, List, Optional, Set, Union, Any
+from typing import Dict, List, Optional, Set, Tuple, Union, Any
 from random import choice, random, seed
 from string import ascii_lowercase
 
@@ -234,7 +234,7 @@ class CompilerV2:
         self.dependences: Dict[int, Set[int]] = defaultdict(set)
         self.next_temp = -1
 
-        self.loaded_regs: Dict[str, int] = {}
+        self.loaded_regs: Dict[str, Set[int]] = defaultdict(set)
         self.input_groups = input_groups
         self.allow_duplicates: Set[str] = set()
         if allow_replicating == 'all':
@@ -269,7 +269,7 @@ class CompilerV2:
             e.tag = self.next_temp
             self.code.append(Instr(self.next_temp, Atom(e.name), Atom(e.name), '~'))
             self.tag_lookup[self.next_temp] = e
-            self.loaded_regs[e.name] = self.next_temp
+            self.loaded_regs[e.name].add(self.next_temp)
 
             return Atom(self.next_temp)
 
