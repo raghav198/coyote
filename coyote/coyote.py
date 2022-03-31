@@ -41,7 +41,7 @@ class copy_matrix:
     def __getitem__(self, i):
         if i >= self.rows:
             raise IndexError('list index out of range')
-        return copy_vector(self.cols, f'{self.name}:{i}', var_conv=f'{self.name}:{i},{{i}}')
+        return copy_vector(self.cols, f'{self.name}:{i}', var_conv=f'{self.name}:{i};{{i}}')
 
     def __len__(self):
         return self.rows

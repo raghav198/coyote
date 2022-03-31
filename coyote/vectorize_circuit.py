@@ -486,7 +486,7 @@ def get_lanes(graph: nx.DiGraph, warp_size: int) -> List[int]:
 
 def vectorize(comp: CompilerV2):
     # compute the schedule
-    loaded_groups = [{comp.loaded_regs[g] for g in group} for group in comp.input_groups]
+    loaded_groups = [set().union(*(comp.loaded_regs[g] for g in group)) for group in comp.input_groups]
     graph = instr_sequence_to_nx_graph(comp.code)
     actual_instrs = list(filter(lambda n: all(isinstance(m, int) for m in n), graph.nodes))
     graph = nx.DiGraph(nx.subgraph(graph, actual_instrs))
