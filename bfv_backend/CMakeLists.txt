@@ -4,7 +4,9 @@ project(CoyoteBFVBackend VERSION 0.1.0)
 list(APPEND BENCHMARKS 
 # add all the benchmarks you want to build here, one per line
 	distances
-	conv)
+	conv
+	sort_3
+	dot_product)
 
 include(CTest)
 include(CMakeFindDependencyMacro)
@@ -17,9 +19,9 @@ add_executable(${BENCHMARK} main.cpp util.cpp
 			${BENCHMARK}/scalar.cpp
 			${BENCHMARK}/vector.cpp
 )
-set(CMAKE_CXX_FLAGS "-DBENCHMARK_NAME=${BENCHMARK}")
+set_target_properties(${BENCHMARK} PROPERTIES COMPILE_FLAGS "-DBENCHMARK_NAME=${BENCHMARK}")
 find_package(SEAL 3.7 REQUIRED)
-target_link_libraries(${BENCHMARK} SEAL::seal_shared)
+target_link_libraries(${BENCHMARK} SEAL::seal)
 endforeach(BENCHMARK)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
