@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-ctxt less_than_bits(std::vector<ctxt> ctext1, std::vector<ctxt> ctext2, const uint64_t *p, RuntimeContext &info)
+ctxt less_than_bits(ctxt ctext1, ctxt ctext2, const uint64_t *p, RuntimeContext &info)
 {
     ctxt LT;
     ctxt LocalPRODUCT;
