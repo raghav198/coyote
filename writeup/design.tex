@@ -14,23 +14,23 @@ In the following sections, we lay out the exact optimization problem as well as 
 
 \subsection{Overview}
 The vector schedule \raghav{To be pedantic, this is kind of a ``pre-schedule'', where we haven't done any vertical alignment yet. Mostly because that's both too easy to worry about and too hard to worry about. But what do I say here?} is represented as a labeled quotient of the original circuit graph, where each vertex represents a connected subgraph, and is labeled with an integer representing the lane the subgraph gets placed on, satisfying the condition that no two vertices at the same height are labeled by the same lane.
-The quotient graph is naturally graded into {\em epochs}, or groups of (independent) vertices at the same height which get packed together into a single sequence of vector instructions requiring no data movement.
+The quotient graph is naturally bi-graded into {\em epochs}, or groups of (independent) vertices at the same height which get packed together into a single sequence of vector instructions requiring no data movement, as well as {\em columns}, groups of vertices assigned to the same lane representing computation that happens in a single thread with no internal vectorization.
+Note that the uniqueness condition stated above means that each vertex of the quotient graph can be uniquely identified by its epoch and column (although the converse in general does not hold, since its possible to have a column that does not contain every epoch and vice-versa).
 
-In fact, both of our extremes from earlier can be realized in this model.
+It turns out that both of our extremes from earlier can be realized in this model.
 Aggressively vectorizing SLP-style can be recovered by assigning a trivial subcircuit to each vertex of the quotient, and simply enumerating lanes across epochs.
 On the other end of the spectrum, we could instead quotient the circuit into the discrete graph of its connected components and assign each discrete vertex an arbitrary lane; since this graph has no edges it requires no rotations, but also precludes any vectorization within connected components.
 
-Finding a good vector schedule then requires us to first compute a ``good'' quotient somewhere between these extremes, together with a lane assignment that somehow maximizes our ability to vectorize without incurring too many rotations.
+Finding a good vector schedule then requires us to first compute a ``good'' quotient that trades off between these extremes, together with a lane assignment that somehow maximizes our ability to vectorize without incurring too many rotations.
 The next section discusses what makes one graph quotient ``better'' than another, and exactly how these tradeoffs are quantified.
 
-\subsection{Cost Model}
+\subsection{Cost Model}\label{sec:cost-model}
 The cost of a particular schedule comes from two places: the number of rotations we have to perform, and the amount we've ``given up'' on vectorizing.
 \subsubsection*{Rotations}
 Given a vector schedule, each {\em cross-lane arc} in the graph (an arc connecting vertices of different lanes) represents a rotation that must be performed to align an output from the tail of the arc to where it gets used at the head.
 However, determining the rotation overhead is not as simple as counting these arcs.
 Consider the case where instructions $A$ and $B$ are operands to instructions $A'$ and $B'$, respectively.
-If $A$ and $B$ are assigned lanes $n$ and $m$, $A'$ and $B'$ are assigned $n+k$ and $m+k$, and $A$ and $B$ end up packed together in the same vector instruction, the two separate data movement operations required for the $A\to A'$ arc and the $B\to B'$ can actually be instantiated with a single rotation by $k$ slots of the $[A, B]$ vector (In fact, taking advantage of this fact is the main way we can optimize data layout to require fewer total rotates).
-
+If $A$ and $B$ are assigned lanes $n$ and $m$, $A'$ and $B'$ are assigned $n+k$ and $m+k$, and $A$ and $B$ end up packed together in the same vector instruction, the two separate data movement operations required for the $A\to A'$ arc and the $B\to B'$ can actually be instantiated with a single rotation by $k$ slots of the $[A, B]$ vector (In fact, taking advantage of this fact is the main way we can optimize data layout to require fewer total rotates). 
 To compute the {\em actual} number of rotations required for a particular schedule, we instead proceed epoch-by-epoch. 
 For each epoch, we look at all cross-lane arc with tails in that epoch, and compute the required rotation amount (i.e., subtracting the lane at the tail from the lane at the head).
 The rotation cost for that epoch is then just the number of distinct rotation amounts\footnote{In practice, this underestimates the number of rotation instructions, since a given epoch might be packed into a sequence of multiple vector operations, so rotations of the same amount might not be carried out by a single instruction. This is addressed in Section~[TODO]}.
@@ -54,8 +54,34 @@ The analysis presented above computes an estimate for the number of each type of
 The final cost used a linear combination of all of these, with weights determined empirically by how expensive each instruction type is relative to the rest.
 In our implementation, we scale rotates and multiplies by $1$, and addition and subtraction by $0.1$. \raghav{Should this last sentence go here, or in implementation? Or both?}
 
-\subsection{Simulated Annealing}
-\raghav{Do I need to explain what simulated annealing is from scratch, or can I just describe the two-layer approach?}
+\subsection{Schedule Search}
+Given a cost model, we use a two-layer optimization strategy to produce a schedule that has good packing properties without incurring too much data movement overhead.
+\subsubsection*{Determining lane placement}
+The inner layer uses simulated annealing to find an optimal lane assignment for a given quotient graph.
+The initial assignment is the naive one given by simply enumerating the vertices at each epoch.
+At each step of the algorithm, we generate a candidate solution by randomly choosing two columns and a subset of the epochs in them to swap, maintaining the uniqueness condition of the schedule.
+If the overall cost (as described in Section~\ref{sec:cost-model})\footnote{We could have chosen to only look at the rotation cost of each solution, but considering both costs helps prioritize lane placements with a heterogeneity of instruction types within each lane} of the candidate solution is lower than the original cost, it is accepted, and used as the starting point for the next round.
+If the candidate solution cost is {\em higher} than the original cost, it is accepted with a probability that varies negatively with the difference in cost, and is generally smaller in later rounds than in earlier rounds\footnote{We use a slow cooling schedule with initial temperature $T_0=50$ and cooling parameter $\beta=10^{-3}$. The probability of accepting a move that increases the cost by $\Delta_c$ is $e^{-\Delta_c/T}$. The annealing is run for $10^4$ rounds.}.
+After a fixed number of rounds have elapsed (see footnote), this algorithm returns the best solution found so far.
+
+\subsubsection*{Computing optimal circuit quotient}
+The outer layer searches the space of quotients for a graph that admits a good lane placement without giving up too much vectorizability.
+We once again use a simulated annealing-style search strategy.
+At each step, the current graph is assumed to already have an optimal lane placement via the algorithm described above.
+A candidate solution is generated by looking at its set of cross-lane arcs and choosing one to contract, heuristically prioritizing arcs with high out-degree at the tail, and arcs that correspond to an infrequent rotation in their epoch.
+The contracted graph may not be acyclic, so we first mod out by all cycles before running the lane placement algorithm again.
+As before, we accept the candidate solution if its final cost is less than the cost of the original graph, or with some probability if its final cost is greater than the original cost.
+
+If there are no available arcs to contract (for example, if all available arcs have already been chosen and rejected), the algorithm restarts at the best graph seen so far.
+After a (configurable) number of restarts, or a fixed number of rounds have elapsed, the algorithm terminates and returns the best graph.
+Since each step of this algorithm involves an expensive call to the lane placement procedure, and because the space of graph quotients is highly discrete \raghav{I have a vague intuition about the space I'm trying to convey here but I don't know how to say it properly}, it runs for a much smaller number of rounds, usually between 150 and 200.
+In practice, this is enough to find highly efficient schedules.
+
+
+
+
+
+% \raghav{Do I need to explain what simulated annealing is from scratch, or can I just describe the two-layer approach?}
 
 % \subsection{Selecting Vectorizable Subexpressions}\label{sec:selecting-subexpressions}
 
