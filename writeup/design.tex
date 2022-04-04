@@ -57,6 +57,49 @@ In our implementation, we scale rotates and multiplies by $1$, and addition and 
 \subsection{Schedule Search}
 Given a cost model, we use a two-layer optimization strategy to produce a schedule that has good packing properties without incurring too much data movement overhead.
 \subsubsection*{Determining lane placement}
+\begin{algorithm}
+    \SetKwFunction{placelanes}{PlaceLanes}
+    \SetKwFunction{naive}{InitialPlacement}
+    \SetKwFunction{permute}{GenerateCandidate}
+    \SetKwFunction{cost}{Cost}
+    \SetKwFunction{accept}{Accept}
+    
+    \SetKwProg{algo}{Algorithm}{}{}
+    \SetKwProg{proc}{Procedure}{}{}
+
+    \algo{\placelanes{graph}}{
+        $lanes \gets \naive{graph}$\;
+        $T \gets T_0$\;
+        $cost \gets \cost{lanes, graph}$\;
+        \For{$i = 1 : 10000$}{
+            $T \gets T / (1 + \beta T)$\;
+            $candidate \gets \permute{lanes, graph}$\;
+            $cost' \gets \cost{candidate, graph}$\;
+            \If{$\accept{cost, cost', T}$}{
+                $lanes\gets candidate$\;
+                $cost \gets cost'$\;
+            }
+        }
+        \Return{lanes, cost}
+    }
+    \proc{\cost{lanes, graph}}{
+        $rotations[*] \gets \emptyset$\;
+        \ForEach{$(u\to v) \in graph$}{
+            \If{$lanes[u]\neq lanes[v]$}{
+                $rotations[u.epoch] \gets rotations[u.epoch]\cup \{lanes[v] - lanes[u]\}$\;
+            }
+        }
+        $instrs[*]\gets 0$\;
+        \ForEach{$epoch \in graph$}{
+            \ForEach{$opcode$}{
+                $instr[opcode] \gets instr[opcode] + \max\limits_{col}count(epoch, col, opcode)$\;
+            }
+        }
+        \Return{$w_R\times\sum\limits_{ep} rotations[ep] + \sum\limits_{op} w_{op}\times instrs[op]$}
+    }
+    \caption{Lane placement}\label{alg:lane-placement}
+    
+\end{algorithm}
 The inner layer uses simulated annealing to find an optimal lane assignment for a given quotient graph.
 The initial assignment is the naive one given by simply enumerating the vertices at each epoch.
 At each step of the algorithm, we generate a candidate solution by randomly choosing two columns and a subset of the epochs in them to swap, maintaining the uniqueness condition of the schedule.
@@ -65,6 +108,42 @@ If the candidate solution cost is {\em higher} than the original cost, it is acc
 After a fixed number of rounds have elapsed (see footnote), this algorithm returns the best solution found so far.
 
 \subsubsection*{Computing optimal circuit quotient}
+\begin{algorithm}
+    \SetKwFunction{quotient}{ComputeQuotient}
+    \SetKwFunction{placelanes}{PlaceLanes}
+    \SetKwFunction{accept}{Accept}
+    \SetKwFunction{contract}{ContractEdge}
+    \SetKwFunction{condensation}{Condensation}
+    \SetKwFunction{cross}{CrossArcs}
+
+    \SetKwProg{algo}{Algorithm}{}{}
+
+    \algo{\quotient{graph}}{
+        $lanes, cost \gets \placelanes{graph}$\;
+        $best \gets lanes, graph$\;
+        $bestcost \gets cost$\;
+        $T\gets T_0$\;
+        \For{$i = 1 : 200$}{
+            $T \gets T/(1+\beta T)$\;
+            \eIf{$arc \samplefrom \cross{graph}$}{
+                $candidate \gets \condensation{\contract{graph, arc}}$\;
+                $lanes', cost' \gets \placelanes{candidate}$\;
+                \If{$\accept{cost, cost', T}$}{
+                    $lanes \gets lanes'$\;
+                    $cost \gets cost'$\;
+                    $graph \gets candidate$\;
+                }
+                \If{$cost' < bestcost$}{
+                    $best \gets lanes', candidate$\;
+                }
+            }{
+                $lanes, graph \gets best$\;
+            }
+        }
+        \Return{best}
+    }
+    \caption{Computing a good circuit quotient}\label{alg:circuit-quotient}
+\end{algorithm}
 The outer layer searches the space of quotients for a graph that admits a good lane placement without giving up too much vectorizability.
 We once again use a simulated annealing-style search strategy.
 At each step, the current graph is assumed to already have an optimal lane placement via the algorithm described above.
