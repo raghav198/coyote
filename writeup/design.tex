@@ -13,19 +13,19 @@ One of our key insights is that these two problems are highly related, so we hav
 In the following sections, we lay out the exact optimization problem as well as how we search for a solution. 
 
 \subsection{Overview}
-The vector schedule \raghav{To be pedantic, this is kind of a ``pre-schedule'', where we haven't done any vertical alignment yet. Mostly because that's both too easy to worry about and too hard to worry about. But what do I say here?} is represented as a labeled quotient of the original circuit graph, where each vertex represents a connected subgraph, and is labeled with an integer representing the lane the subgraph gets placed on, satisfying the condition that no two vertices at the same height are labeled by the same lane.
-The quotient graph is naturally bi-graded into {\em epochs}, or groups of (independent) vertices at the same height which get packed together into a single sequence of vector instructions requiring no data movement, as well as {\em columns}, groups of vertices assigned to the same lane representing computation that happens in a single thread with no internal vectorization.
+The vector {\em pre-schedule}\footnote{This structure is referred to as a {\em pre-schedule} to distinguish it from the actual vector schedule, which explicitly computes an alignment for sequences of instructions at the same level. \raghav{does this make sense?}} is a labeled quotient of the original circuit graph, where each vertex represents a connected subgraph, and is labeled with an integer representing the lane the subgraph gets placed on, satisfying the condition that no two vertices at the same height are labeled by the same lane.
+The pre-schedule is naturally bi-graded into {\em epochs}, or groups of (independent) vertices at the same height which get packed together into a single sequence of vector instructions requiring no data movement, as well as {\em columns}, groups of vertices assigned to the same lane representing computation that happens in a single thread with no internal vectorization.\raghav{There's something interesting to say here about how the circuit is filtered by height, and the vertical grading is actually the grading associated to this filtration, and the ``quotient'' is what you get when you mod out by the kernel of the lane assignment at each degree (which in fact is where that uniqueness condition from before comes from).}
 Note that the uniqueness condition stated above means that each vertex of the quotient graph can be uniquely identified by its epoch and column (although the converse in general does not hold, since its possible to have a column that does not contain every epoch and vice-versa).
 
 It turns out that both of our extremes from earlier can be realized in this model.
 Aggressively vectorizing SLP-style can be recovered by assigning a trivial subcircuit to each vertex of the quotient, and simply enumerating lanes across epochs.
 On the other end of the spectrum, we could instead quotient the circuit into the discrete graph of its connected components and assign each discrete vertex an arbitrary lane; since this graph has no edges it requires no rotations, but also precludes any vectorization within connected components.
 
-Finding a good vector schedule then requires us to first compute a ``good'' quotient that trades off between these extremes, together with a lane assignment that somehow maximizes our ability to vectorize without incurring too many rotations.
+Finding a good pre-schedule then requires us to first compute a ``good'' quotient that trades off between these extremes, together with a lane assignment that somehow maximizes our ability to vectorize without incurring too many rotations.
 The next section discusses what makes one graph quotient ``better'' than another, and exactly how these tradeoffs are quantified.
 
 \subsection{Cost Model}\label{sec:cost-model}
-The cost of a particular schedule comes from two places: the number of rotations we have to perform, and the amount we've ``given up'' on vectorizing.
+The cost of a particular pre-schedule comes from two places: the number of rotations we have to perform, and the amount we've ``given up'' on vectorizing.
 \subsubsection*{Rotations}
 Given a vector schedule, each {\em cross-lane arc} in the graph (an arc connecting vertices of different lanes) represents a rotation that must be performed to align an output from the tail of the arc to where it gets used at the head.
 However, determining the rotation overhead is not as simple as counting these arcs.
