@@ -1,12 +1,15 @@
 from collections import defaultdict
+from dataclasses import dataclass, field
 from functools import reduce
+from heapq import heappop, heappush
 from math import exp
 from random import randint, random, seed, choice
+from typing import Any, Counter, List, Set, Dict, Tuple, Generator
+import networkx as nx
+
 from .codegen import build_vector_program, codegen
 from .disjoint_set import DisjointSet
-from typing import Counter, List, Set, Dict, Tuple, Generator
 from .coyote_ast import CompilerV2, Instr
-import networkx as nx
 from .synthesize_schedule import VecInstr, synthesize_schedule
 
 seed(1)
@@ -14,7 +17,7 @@ seed(1)
 MUL_PER_ROTATE = 1
 ADD_PER_ROTATE = 0.1
 
-COSTS_PER_ROTATE = defaultdict(int, {'+': ADD_PER_ROTATE, '*': MUL_PER_ROTATE})
+COSTS_PER_ROTATE = defaultdict(int, {'+': ADD_PER_ROTATE, '*': MUL_PER_ROTATE, '-': ADD_PER_ROTATE})
 
 def instr_sequence_to_nx_graph(instrs: List[Instr]) -> nx.DiGraph:
     graph = nx.DiGraph()
@@ -461,6 +464,80 @@ def anneal_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], t=20, beta=
     return best_graph, best_cost
 
 
+def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], rounds=200):
+    @dataclass(order=True)
+    class schedule:
+        cost: int
+        graph: nx.DiGraph=field(compare=False)
+        edges: List[Tuple]=field(compare=False)
+
+    grade_nx_graph(graph, groups)
+    nx_columnize(graph)
+
+    current_cost = lane_placement(graph, t=50, beta=0.001, rounds=50000)
+    current_cost += schedule_height(graph)
+
+    best = schedule(cost=current_cost, graph=nx.DiGraph(graph), edges=None)
+    
+    pqueue: List[schedule] = []
+    heappush(pqueue, schedule(cost=best.cost, graph=best.graph, edges=None))
+    for r in range(rounds):
+
+        if not len(pqueue):
+            print('No more graphs to try!')
+            break
+
+        cur = heappop(pqueue)
+        if len(pqueue):
+            print(f'Round {r}/200: exploring {cur.cost}{" (new best!)" if cur < best else ""}')
+        if cur < best:
+            best = schedule(cost=cur.cost, graph=nx.DiGraph(cur.graph), edges=None)
+
+        if cur.edges is None:
+            # generate all candidate solutions
+            cross_edges = set()
+            for u, v in cur.graph.edges:
+                src = cur.graph.nodes[u]['epoch']
+                span = cur.graph.nodes[v]['column'] - cur.graph.nodes[u]['column']
+
+                if span == 0: continue
+                if src < len(groups): continue
+                cross_edges.add((u, v))
+
+            cur.edges = list(cross_edges)
+        
+        if not len(cur.edges):
+            continue
+            
+        # grab an edge, remove it from the list, and add its contraction to the queue
+        edge_to_contract = cur.edges.pop()
+
+        # for edge_to_contract in cross_edges:
+            # print(f'\tedge {edge_to_contract}...')
+        raw_contracted = contract_edge(cur.graph, edge_to_contract)
+        contracted = nx.condensation(raw_contracted)
+
+        for node in contracted:
+            contracted.nodes[node]['column'] = raw_contracted.nodes[next(iter(contracted.nodes[node]['members']))]['column']
+
+        contracted.graph['ops'] = cur.graph.graph['ops']
+    
+        relabeling = {num : sum(contracted.nodes[num]['members'], ()) for num in contracted}
+        contracted = nx.relabel_nodes(contracted, relabeling)
+
+        grade_nx_graph(contracted, groups)
+        contracted_cost = lane_placement(contracted, t=50, beta=0.001, rounds=20000)
+        contracted_cost += schedule_height(contracted)
+
+        heappush(pqueue, schedule(cost=contracted_cost, graph=nx.DiGraph(contracted), edges=None))
+        if len(cur.edges): # if there are still unexplored edges
+            heappush(pqueue, schedule(cost=cur.cost, graph=nx.DiGraph(cur.graph), edges=cur.edges[:])) # put this back into the queue
+
+
+    return best
+            
+
+
 def get_stages(graph: nx.DiGraph) -> Generator[Tuple[int], None, None]:
     cur_stage = 0
     while True:
@@ -491,6 +568,7 @@ def vectorize(comp: CompilerV2):
     actual_instrs = list(filter(lambda n: all(isinstance(m, int) for m in n), graph.nodes))
     graph = nx.DiGraph(nx.subgraph(graph, actual_instrs))
 
+    # relaxed_schedule = pq_relax_schedule(graph, loaded_groups).graph
     relaxed_schedule, _ = anneal_relax_schedule(graph, loaded_groups, t=20, beta=0.001, rounds=200)
 
     print('Column mapping:')

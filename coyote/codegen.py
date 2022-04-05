@@ -39,6 +39,28 @@ def build_vector_program(program: List[Instr],
     return vectorized_code
 
 
+def remove_repeated_ops(generated_code: List[str]) -> List[str]:
+    import re
+    computation: Dict[str, str] = {} # expression -> variable storing that expression (backwards of assignment)
+    remap: Dict[str, str] = {} # variable -> variable to use instead of it
+    for i, line in enumerate(generated_code):
+        print(f'{i}: {line}')
+        lhs, rhs = line.split(' = ')
+
+        for v in remap:
+            rhs = re.sub(rf'\b{v}\b', remap[v], rhs)
+            # rhs = rhs.replace(v, remap[v])
+
+        if rhs in computation:
+            generated_code[i] = ''
+            remap[lhs] = computation[rhs]
+        else:
+            computation[rhs] = lhs
+            generated_code[i] = f'{lhs} = {rhs}'
+
+    return list(filter(None, '\n'.join(generated_code).split('\n')))
+
+
 def codegen(vector_program: List[VecInstr], graph: nx.DiGraph, lanes: List[int], schedule: List[int], warp_size: int):
     shift_amounts_needed: Dict[int, Dict[int, int]] = defaultdict(lambda: defaultdict(lambda: 0))
     print('Raw program: ')
@@ -152,4 +174,4 @@ def codegen(vector_program: List[VecInstr], graph: nx.DiGraph, lanes: List[int],
         for shift_amt, shifted_name in shifted_names.items():
             generated_code.append(f'{shifted_name} = {instr.dest} >> {shift_amt}')
 
-    return generated_code
+    return remove_repeated_ops(generated_code)
