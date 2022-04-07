@@ -67,13 +67,14 @@ def codegen(vector_program: List[VecInstr], graph: nx.DiGraph, lanes: List[int],
     print('\n'.join(map(str, vector_program)))
     print(f'Warp size: {warp_size}')
 
-    for prods, cons in graph.edges:
-        for p in prods:
-            for c in cons:
-                shift_amount = (lanes[c] - lanes[p]) % warp_size
-                if shift_amount == 0:
-                    continue
-                shift_amounts_needed[p][c] = shift_amount
+    for instr in vector_program:
+        for p, c in zip(instr.dest * 2, instr.left + instr.right):
+            if not (isinstance(p.val, int) and isinstance(c.val, int)):
+                continue
+            shift_amount = (lanes[c.val] - lanes[p.val]) % warp_size
+            if shift_amount == 0:
+                continue
+            shift_amounts_needed[p.val][c.val] = shift_amount
 
     print(shift_amounts_needed)
 
