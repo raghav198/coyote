@@ -19,7 +19,7 @@ def treeGenerator(maxDepth, inputSeed) -> Expression:
     if (maxDepth > 0):
         randomNum = rand.randrange(0,1)
         seed+=1
-        if (randomNum == 2):
+        if (randomNum > 1):
             localString+=str(rand.randrange(0,1024))
             seed+=1
             return Tree(Var(localString))
