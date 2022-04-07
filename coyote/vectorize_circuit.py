@@ -568,8 +568,8 @@ def vectorize(comp: CompilerV2):
     actual_instrs = list(filter(lambda n: all(isinstance(m, int) for m in n), graph.nodes))
     graph = nx.DiGraph(nx.subgraph(graph, actual_instrs))
 
-    relaxed_schedule = pq_relax_schedule(graph, loaded_groups).graph
-    # relaxed_schedule, _ = anneal_relax_schedule(graph, loaded_groups, t=20, beta=0.001, rounds=200)
+    # relaxed_schedule = pq_relax_schedule(graph, loaded_groups).graph
+    relaxed_schedule, _ = anneal_relax_schedule(graph, loaded_groups, t=20, beta=0.001, rounds=200)
 
     print('Column mapping:')
     for node in relaxed_schedule.nodes:

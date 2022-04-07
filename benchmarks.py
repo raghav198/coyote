@@ -7,9 +7,6 @@ coyote = coyote_compiler()
 def cond(b, true, false):
     return b * true + (Var('1') + b) * false
 
-# Tree Benchmark 3 Depth
-
-
 # Decision Tree Benchmark
 @coyote.define_circuit(c12=scalar(), c23=scalar(), c13=scalar(), o123=scalar(), o132=scalar(), o213=scalar(), o231=scalar(), o312=scalar(), o321=scalar())
 def decision_tree(c12, c23, c13, o123, o132, o213, o231, o312, o321):

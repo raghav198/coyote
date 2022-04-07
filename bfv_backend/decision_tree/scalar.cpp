@@ -7,7 +7,7 @@ int ScalarProgram::num_registers()
 
 std::vector<std::string> ScalarProgram::vars_used()
 {
-    return {"decision_tree(c23)", "decision_tree(o312)", "1", "decision_tree(c13)", "decision_tree(o231)", "decision_tree(o213)", "decision_tree(o321)", "decision_tree(o123)", "decision_tree(o132)", "decision_tree(c12)"};
+    return {"decision_tree(o312)", "decision_tree(o321)", "decision_tree(c13)", "1", "decision_tree(o231)", "decision_tree(c12)", "decision_tree(o123)", "decision_tree(c23)", "decision_tree(o213)", "decision_tree(o132)"};
 }
 
 std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, RuntimeContext &info)
