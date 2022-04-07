@@ -8,47 +8,60 @@
  
 \subsection*{Compilation Steps}
 \begin{figure*}
-    \begin{subfigure}{0.45\columnwidth}
-        \includegraphics[scale=0.25]{figures/compilation_overview/small_expression_circuit.drawio.png}
-        \caption{Arithmetic circuit computing $$(ab+c)(xy+z)$$ with vectorizable subcircuits highlighted}
-        \label{fig:small-expr-circuit}
+    \begin{subfigure}{0.4\columnwidth}
+        \includegraphics[width=0.9\linewidth]{figures/compilation_overview/coyote_running_example.drawio.png}
+        \caption{Original circuit}
+        \label{fig:original-circuit}
     \end{subfigure}
-    \begin{subfigure}{0.45\columnwidth}
-        \includegraphics[scale=0.4]{figures/compilation_overview/stacked_vector_circuit.drawio.png}
-        \caption{Arithmetic circuit with highlighted subcircuits vectorized}
-        \label{fig:partially-vectorized-circuit}
+    \begin{subfigure}{0.4\columnwidth}
+        \includegraphics[width=0.9\linewidth]{figures/compilation_overview/running_example_quotiented.drawio.png}
+        \caption{Quotiented circuit}
+        \label{fig:quotient-circuit}
     \end{subfigure}
-    \begin{subfigure}{0.3\columnwidth}
-        \includegraphics[scale=0.3]{figures/compilation_overview/code_split_into_phases.drawio.png}
-        \caption{Scalar code split into vectorizable epochs}
-        \label{fig:code-split-epochs}
-    \end{subfigure}
-    \begin{subfigure}{0.6\columnwidth}
-        \includegraphics[scale=0.3]{figures/compilation_overview/vector_schedule_needing_rotates.drawio.png}
-        \caption{Vector schedule for scalar code demonstrating need for rotation}
-        \label{fig:vector-sched-needing-rotates}
-    \end{subfigure}
+%     \begin{subfigure}{0.45\columnwidth}
+%         \includegraphics[scale=0.4]{figures/compilation_overview/stacked_vector_circuit.drawio.png}
+%         \caption{Arithmetic circuit with highlighted subcircuits vectorized}
+%         \label{fig:partially-vectorized-circuit}
+%     \end{subfigure}
+%     \begin{subfigure}{0.3\columnwidth}
+%         \includegraphics[scale=0.3]{figures/compilation_overview/code_split_into_phases.drawio.png}
+%         \caption{Scalar code split into vectorizable epochs}
+%         \label{fig:code-split-epochs}
+%     \end{subfigure}
+%     \begin{subfigure}{0.6\columnwidth}
+%         \includegraphics[scale=0.3]{figures/compilation_overview/vector_schedule_needing_rotates.drawio.png}
+%         \caption{Vector schedule for scalar code demonstrating need for rotation}
+%         \label{fig:vector-sched-needing-rotates}
+%     \end{subfigure}
     \caption{A running example of how \system vectorizes arbitrary arithmetic circuits}
     \label{fig:toy-running-example}
 \end{figure*}
 
 In this section, we give a brief overview of the steps \system takes to vectorize an arbitrary arithmetic circuit.
-We will use the circuit in Figure~\ref{fig:small-expr-circuit} that computes $(ab+c)(xy+z)$ as a running example.
+We will use the circuit in Figure~\ref{fig:example-circuit} as a running example.
 The compilation proceeds as follows:
 \begin{enumerate}
-    \item \system first identifies highly vectorizable subcircuits (shown highlighted in Figure~\ref{fig:small-expr-circuit})
-    \item These subcircuits are pulled out and aligned to produce a single vectorized computation, which is then inserted back into the original program, resulting in the circuit in Figure~\ref{fig:partially-vectorized-circuit}.
-    The challenge with this is aligning the subcircuits optimally; i.e., figuring out which computations can be grouped together into vector operations.
-    Doing this once effectively replaces several subcircuits of the program with a single vectorized circuit, so the process is repeated until no more subcircuits can be found.
-    Each vectorized circuit creates an {\em epoch}, as seen in Figure~\ref{fig:code-split-epochs}.
-    Since the outputs of one epoch are consumed by subsequent epochs, we need to place the outputs in appropriate spots to ensure that the dependences line up.
-    \item The new circuit is converted to a vector {\em schedule} (Figure~\ref{fig:vector-sched-needing-rotates}), which amounts to assigning a {\em lane} (horizontal position) and {\em schedule slot} (vertical position) to each original scalar instruction.
-    \item \system compiles the vector schedule into a vector IR. The crux of this compilation step is figuring out when to {\em blend} and {\em rotate}. When a particular vector operand requires values from several other previously produced vectors, \system emits code to ``blend'' these together into a single vector which can then be used.
+    \item \system quotients and assigns lanes to the vertices of an input circuit to produce a new circuit (a {\em pre-schedule})that can be realized into a more efficient vector program. The result is a graph who's vertices correspond to connected subgraphs of the original circuit, such that no two vertices at the same height have the same lane. In this quotient graph, a subcircuit gets identified if \system determines that the overhead of internally vectorizing it is not worth the gain from vectorization, so this step essentially forces certain operations to happen in scalar on a single lane. \raghav{I feel I haven't done a good enough job of justifying this.}
+    In the example in Figure~\ref{fig:quotient-circuit}, two edges have been contracted, identifying each multiplication vertex with one of its addition children.
     
-    To see why rotates are necessary, notice that in the example schedule, the scalar \texttt{\%3} is computed on lane 2, but used in lane 1. 
-    To correct this discrepancy, \system emits an additional instruction to create a copy of the \texttt{[\%1, \%3]} vector with data arranged as \texttt{[\%3, \%1]}, putting \texttt{\%3} on lane 1 where it is used. %\raghav{Does this flow better?}\milind{yup}
-    % \raghav{Should (3) and (4) go together? Technically (4) is codegen which to me seems like a separate phase of compilation}\milind{It is, but it flows weird -- it's basically a consequence of lane assignment... Or at the very least, write this as a general codegen step, with reference to this example. Right now, it reads as ``this is one specific thing we do'' rather than ``inserting rotation instructions is how codegen works.''}
+    \item The (equivalence classes of) vertices at each height are aligned to pack together isomorphic nodes, turning the pre-schedule into an actual vector schedule.
+    \item \system compiles the schedule into a vector IR. The crux of this compilation step is figuring out when to {\em blend} and {\em rotate}. When a vector operand requires values from several different instructions, \system emits code to ``blend'' the results together into a single vector.
+    When the lane an operand is used in is different fron the lane it was produced in, \system emits a rotation instruction to move the operand into the correct lane. Notice that each arc in the pre-schedule connecting vertices of different lanes corresponds to a rotation in the generated vector IR.
 \end{enumerate}
+% \begin{enumerate}
+%     \item \system first identifies highly vectorizable subcircuits (shown highlighted in Figure~\ref{fig:small-expr-circuit})
+%     \item These subcircuits are pulled out and aligned to produce a single vectorized computation, which is then inserted back into the original program, resulting in the circuit in Figure~\ref{fig:partially-vectorized-circuit}.
+%     The challenge with this is aligning the subcircuits optimally; i.e., figuring out which computations can be grouped together into vector operations.
+%     Doing this once effectively replaces several subcircuits of the program with a single vectorized circuit, so the process is repeated until no more subcircuits can be found.
+%     Each vectorized circuit creates an {\em epoch}, as seen in Figure~\ref{fig:code-split-epochs}.
+%     Since the outputs of one epoch are consumed by subsequent epochs, we need to place the outputs in appropriate spots to ensure that the dependences line up.
+%     \item The new circuit is converted to a vector {\em schedule} (Figure~\ref{fig:vector-sched-needing-rotates}), which amounts to assigning a {\em lane} (horizontal position) and {\em schedule slot} (vertical position) to each original scalar instruction.
+%     \item \system compiles the vector schedule into a vector IR. The crux of this compilation step is figuring out when to {\em blend} and {\em rotate}. When a particular vector operand requires values from several other previously produced vectors, \system emits code to ``blend'' these together into a single vector which can then be used.
+    
+%     To see why rotates are necessary, notice that in the example schedule, the scalar \texttt{\%3} is computed on lane 2, but used in lane 1. 
+%     To correct this discrepancy, \system emits an additional instruction to create a copy of the \texttt{[\%1, \%3]} vector with data arranged as \texttt{[\%3, \%1]}, putting \texttt{\%3} on lane 1 where it is used. %\raghav{Does this flow better?}\milind{yup}
+%     % \raghav{Should (3) and (4) go together? Technically (4) is codegen which to me seems like a separate phase of compilation}\milind{It is, but it flows weird -- it's basically a consequence of lane assignment... Or at the very least, write this as a general codegen step, with reference to this example. Right now, it reads as ``this is one specific thing we do'' rather than ``inserting rotation instructions is how codegen works.''}
+% \end{enumerate}
 
 % enumerate
 % add figure
