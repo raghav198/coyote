@@ -7,6 +7,9 @@ coyote = coyote_compiler()
 def cond(b, true, false):
     return b * true + (Var('1') + b) * false
 
+# Tree Benchmark 3 Depth
+
+
 # Decision Tree Benchmark
 @coyote.define_circuit(c12=scalar(), c23=scalar(), c13=scalar(), o123=scalar(), o132=scalar(), o213=scalar(), o231=scalar(), o312=scalar(), o321=scalar())
 def decision_tree(c12, c23, c13, o123, o132, o213, o231, o312, o321):
@@ -189,6 +192,65 @@ def decision_tree_packed_un(cs, os):
                     os[2],
                     cond(cs[1], os[3], os[5]))))
 
+
+# 3x3 Unreplicated Mat Mult Case Study
+# A and B together
+@coyote.define_circuit(c=(matrix(3,3), matrix(3,3)))
+def matmul_3x3_case1(c):
+    return [recursive_sum([c[0][i][k] * c[1][k][j] for k in range(len(c[0]))]) for i in range(len(c[0])) for j in range(len(c[0]))]
+
+# A and B separate
+@coyote.define_circuit(a=matrix(3, 3), b=matrix(3, 3))
+def matmul_3x3_case2(a, b):
+    return [recursive_sum([a[i][k] * b[k][j] for k in range(len(a))]) for i in range(len(a)) for j in range(len(a))]
+
+# Rows A and Cols B separate
+@coyote.define_circuit(a_0=vector(3), a_1=vector(3), a_2=vector(3), b_0=vector(3), b_1=vector(3), b_2=vector(3))
+def matmul_3x3_case3(a_0, a_1, a_2, b_0, b_1, b_2):
+    output = []
+    output.append(recursive_sum((a_0[0] * b_0[0]), (a_0[1] * b_0[1]), (a_0[2] * b_0[2])))
+    output.append(recursive_sum((a_0[0] * b_1[0]), (a_0[1] * b_1[1]), (a_0[2] * b_1[2])))
+    output.append(recursive_sum((a_0[0] * b_2[0]), (a_0[1] * b_2[1]), (a_0[2] * b_2[2])))
+    output.append(recursive_sum((a_1[0] * b_0[0]), (a_1[1] * b_0[1]), (a_1[2] * b_0[2])))
+    output.append(recursive_sum((a_1[0] * b_1[0]), (a_1[1] * b_1[1]), (a_1[2] * b_1[2])))
+    output.append(recursive_sum((a_1[0] * b_2[0]), (a_1[1] * b_2[1]), (a_1[2] * b_2[2])))
+    output.append(recursive_sum((a_2[0] * b_0[0]), (a_2[1] * b_0[1]), (a_2[2] * b_0[2])))
+    output.append(recursive_sum((a_2[0] * b_1[0]), (a_2[1] * b_1[1]), (a_2[2] * b_1[2])))
+    output.append(recursive_sum((a_2[0] * b_2[0]), (a_2[1] * b_2[1]), (a_2[2] * b_2[2])))
+    return output
+
+# Cols A and Rows B separate
+@coyote.define_circuit(a_0=vector(3), a_1=vector(3), a_2=vector(3), b_0=vector(3), b_1=vector(3), b_2=vector(3))
+def matmul_3x3_case4(a_0, a_1, a_2, b_0, b_1, b_2):
+    output = []
+    output.append(recursive_sum((a_0[0] * b_0[0]), (a_1[0] * b_1[0]), (a_2[0] * b_2[0])))
+    output.append(recursive_sum((a_0[0] * b_0[1]), (a_1[0] * b_1[1]), (a_2[0] * b_2[1])))
+    output.append(recursive_sum((a_0[0] * b_0[2]), (a_1[0] * b_1[2]), (a_2[0] * b_2[2])))
+    output.append(recursive_sum((a_0[1] * b_0[0]), (a_1[1] * b_1[0]), (a_2[1] * b_2[0])))
+    output.append(recursive_sum((a_0[1] * b_0[1]), (a_1[1] * b_1[1]), (a_2[1] * b_2[1])))
+    output.append(recursive_sum((a_0[1] * b_0[2]), (a_1[1] * b_1[2]), (a_2[1] * b_2[2])))
+    output.append(recursive_sum((a_0[2] * b_0[0]), (a_1[2] * b_1[0]), (a_2[2] * b_2[0])))
+    output.append(recursive_sum((a_0[2] * b_0[1]), (a_1[2] * b_1[1]), (a_2[2] * b_2[1])))
+    output.append(recursive_sum((a_0[2] * b_0[2]), (a_1[2] * b_1[2]), (a_2[2] * b_2[2])))
+    return output
+
+# No Grouping
+@coyote.define_circuit(a_00=vector(1), a_01=vector(1), a_02=vector(1), a_10=vector(1), a_11=vector(1), a_12=vector(1), a_20=vector(1), a_21=vector(1), a_22=vector(1), b_00=vector(1), b_01=vector(1), b_02=vector(1), b_10=vector(1), b_11=vector(1), b_12=vector(1), b_20=vector(1), b_21=vector(1), b_22=vector(1))
+def matmul_3x3_case5(a_00, a_01, a_02, a_10, a_11, a_12, a_20, a_21, a_22, b_00, b_01, b_02, b_10, b_11, b_12, b_20, b_21, b_22):
+    output = []
+    output.append(recursive_sum((a_00 * b_00), (a_01 * b_10), (a_02 * b_20)))
+    output.append(recursive_sum((a_00 * b_01), (a_01 * b_11), (a_02 * b_21)))
+    output.append(recursive_sum((a_00 * b_02), (a_01 * b_12), (a_02 * b_22)))
+    output.append(recursive_sum((a_10 * b_00), (a_11 * b_10), (a_12 * b_20)))
+    output.append(recursive_sum((a_10 * b_01), (a_11 * b_11), (a_12 * b_21)))
+    output.append(recursive_sum((a_10 * b_02), (a_11 * b_12), (a_12 * b_22)))
+    output.append(recursive_sum((a_20 * b_00), (a_21 * b_10), (a_22 * b_20)))
+    output.append(recursive_sum((a_20 * b_01), (a_21 * b_11), (a_22 * b_21)))
+    output.append(recursive_sum((a_20 * b_02), (a_21 * b_12), (a_22 * b_22)))
+    return output
+
+
+# Example Benchmarks
 @coyote.define_circuit(xs=vector(3), ys=vector(3))
 def distances(xs, ys):
     return [(x - y) * (x - y) for x in xs for y in ys]

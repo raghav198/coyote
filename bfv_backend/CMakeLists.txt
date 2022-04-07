@@ -3,7 +3,6 @@ project(CoyoteBFVBackend VERSION 0.1.0)
 
 list(APPEND BENCHMARKS 
 # add all the benchmarks you want to build here, one per line
-<<<<<<< HEAD
 	decision_tree
 	distances_5x5_fully
 	distances_4x4_fully
@@ -38,12 +37,6 @@ list(APPEND BENCHMARKS
 	dot_product_6x6_un
 	dot_product_10x10_un
 	decision_tree_packed_un)
-=======
-	distances
-	conv
-	sort_3
-	dot_product)
->>>>>>> master
 
 include(CTest)
 include(CMakeFindDependencyMacro)
