@@ -68,7 +68,7 @@ def codegen(vector_program: List[VecInstr], graph: nx.DiGraph, lanes: List[int],
     print(f'Warp size: {warp_size}')
 
     for instr in vector_program:
-        for p, c in zip(instr.dest * 2, instr.left + instr.right):
+        for c, p in zip(instr.dest * 2, instr.left + instr.right):
             if not (isinstance(p.val, int) and isinstance(c.val, int)):
                 continue
             shift_amount = (lanes[c.val] - lanes[p.val]) % warp_size
@@ -175,4 +175,5 @@ def codegen(vector_program: List[VecInstr], graph: nx.DiGraph, lanes: List[int],
         for shift_amt, shifted_name in shifted_names.items():
             generated_code.append(f'{shifted_name} = {instr.dest} >> {shift_amt}')
 
+    return generated_code
     return remove_repeated_ops(generated_code)

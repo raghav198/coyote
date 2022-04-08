@@ -57,6 +57,7 @@ class coyote_compiler:
 
 
     def instantiate(self, *funcs):
+        self.outputs = []
         input_groups, outputs = self.get_outputs(funcs)
             
         self.compiler = CompilerV2(input_groups)
@@ -66,6 +67,7 @@ class coyote_compiler:
 
         return [' '.join(f'%{reg}' for reg in self.outputs)] + list(map(str, self.compiler.code))
 
+
     def get_outputs(self, funcs):
         input_groups = []
         outputs = []
@@ -73,7 +75,6 @@ class coyote_compiler:
         if len(funcs) == 0:
             funcs = self.func_signatures
         else:
-            print([(func.__name__, funcs, func.__name__ in funcs) for func in self.func_signatures.keys()])
             funcs = list(filter(lambda func: func.__name__ in funcs, self.func_signatures.keys()))
 
         for func in funcs:
