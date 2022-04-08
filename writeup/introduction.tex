@@ -39,7 +39,7 @@ Naively using the cost model from traditional vectorization in an FHE setting ca
 For example, consider the arithmetic circuit in Figure~\ref{fig:example-circuit}.
 A naive attempt at vectorizing this packs together the four additions at the first level, and the two multiplies at the second level.
 This produces a schedule with two vector adds, one vector multiply, and two vector rotates (one to line the adds up their multiplies, and one to line up the multiplies with the top level add).
-Using an approximate model of the relative latencies of each instruction (where multiplies and rotates have a latency of 1 and addition has a latency of 0.1), the total cost of this schedule is 3.2.
+Using an approximate model of the relative latencies of each instruction \raghav{TODO: something with this??} (where multiplies and rotates have a latency of 1 and addition has a latency of 0.1), the total cost of this schedule is 3.2.
 However, by doing no vectorization and executing the circuit entirely with scalar operations, we have 5 adds and two multiplies, with an overall cost of 2.5
 In this case, vectorization actually makes the performance {\em worse}!
 This doesn't have to be the case, though.

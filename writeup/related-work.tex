@@ -1,7 +1,6 @@
 \section{Related Work}\label{sec:related-work}
 There are two main categories of related work. This section first discusses work on FHE vectorization, and then discusses more general approaches to plaintext vectorization
 
-
 \subsection{Vectorization in FHE}
 Prior work has been done on building vectorizing compilers for FHE applications \cite{CHET, Porcupine}.
 CHET \cite{CHET} is a vectorizing compiler for homomorphic tensor programs that automatically selects encryption parameters, and chooses optimal data layout strategies.
@@ -26,7 +25,11 @@ VeGen \cite{VeGen} is a recent variant of SLP introduces {\em lane level paralle
 For example, VeGen can reason about the rotation costs to pack together operands for an instruction into a temporary vector, and can use this to decide whether or not packing those instructions is worth it.
 However, this reasoning only happens locally, and VeGen does not incorporate information about how instruction packing might affect rotations much later in the program.
 
+\raghav{TODO: lmao}
 goSLP \cite{goSLP} reasons about globally optimal packing, and tries to find lane placements that minimize data shuffling costs. While goSLP does reason globally about lane placement, it has two drawbacks in an FHE context. First, it packs instructions into vectors before considering shuffling costs, so may over-aggressively vectorize, while \system may forego some vectorization opportunities in the name of getting packing larger expressions without rotation. Second, its lane placement algorithm considers arbitrary permutations, which are impractically expensive in FHE.
+\raghav{goSLP frames vectorization overhead in terms of the number of {\em pack} and {\em unpack} operations incurred. For example, permuting the slots of a single vector incurs one unpack, whereas blending the contents of N vectors (without any permutation) incurs N unpacks. In other words, goSLP bakes in the assumption that wide blends are much more expensive than arbitrary permutations. This is fundamentally incompatible with FHE, since blends are almost free, whereas bad permutations can require several expensive rotations to realize. Essentially, in the FHE world, its often better to produce a schedule that {\em looks much worse} than to produce the traditionally optimal one.}
+
+\raghav{Add discussion of (Gazelle? Swizzle Inventor?)}
 
 %By reasoning globally about the entire dependence graph of the program at once, \system can identify such phenomena when making vector packs.
 %\system can also automatically find vector schedules that are amenable to more efficient data movement, and can propagate this information back through the program this to identify more optimal data layouts.
