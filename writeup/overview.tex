@@ -63,10 +63,13 @@ The compilation proceeds as follows:
     
     In the example in Figure~\ref{fig:quotient-circuit}, the two circled pairs of vertices are identified in the quotient.
     The lane assignment for this pre-schedule puts each bottom level addition on the same lane as its corresponding quotiented vertex, and chooses one of these lanes to place the top addition on.
+
+    Section~\ref{sec:schedule-search} describes how \system searches for such a quotient. \raghav{where do I put this?}
     
     \item The (equivalence classes of) vertices at each height are aligned to pack together isomorphic nodes, turning the pre-schedule into an actual vector schedule. 
     In our running example, the two adds at a height of 1 get trivially aligned, and the two ``supernodes'' at height 2 get aligned by packing together the two adds and the two multiplies.
     Since there is a single vertex at height 3, no alignment needs to be done there. \raghav{Is this description clear?}
+    The details of the alignment procedure are given in Section~\ref{sec:instruction-alignment}.
     Figure~\ref{fig:aligned-schedule} shows the result of this alignment.
     \item \system compiles the schedule into a vector IR. The crux of this compilation step is figuring out when to {\em blend} and {\em rotate}. When a vector operand requires values from several different instructions, \system emits code to ``blend'' the results together into a single vector.
     When the lane an operand is used in is different fron the lane it was produced in, \system emits a rotation instruction to move the operand into the correct lane. Notice that each arc in the pre-schedule connecting vertices of different lanes corresponds to a rotation in the generated vector IR.
@@ -78,6 +81,7 @@ The compilation proceeds as follows:
     \system emits a rotation because \texttt{\%5} gets used (line 4) on a different lane than its produced (line 3).
     The vector instruction \texttt{s0 = v2 >> 1} takes \texttt{[\%2, \%5]} in \texttt{v2} and produces \texttt{[\%5, \%2]} in \texttt{s0}.
     \raghav{I don't like this wording but I'm not sure how to make it better}.
+    Section~\ref{sec:codegen} describes the specifics of code generation.
 \end{enumerate}
 \raghav{TODO: maybe change the inline texttt stuff so it looks better?}
 

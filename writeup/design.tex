@@ -54,7 +54,7 @@ The analysis presented above computes an estimate for the number of each type of
 The final cost used a linear combination of all of these, with weights determined empirically by how expensive each instruction type is relative to the rest.
 In our implementation, we scale rotates and multiplies by $1$, and addition and subtraction by $0.1$. \raghav{Should this last sentence go here, or in implementation? Or both?}
 
-\subsection{Schedule Search}
+\subsection{Schedule Search}\ref{sec:schedule-search}
 Given a cost model, we use a two-layer optimization strategy to produce a schedule that has good packing properties without incurring too much data movement overhead.
 \subsubsection*{Determining lane placement}
 \begin{algorithm}
@@ -290,19 +290,19 @@ In practice, this is enough to find highly efficient schedules.
 % It can consider the similarity of small subexpressions when deciding what larger subexpressions to pack together. 
 % And it can consider whether larger subexpressions should be vectorized even if their component pieces may not play nicely together.
 
-% \subsection{Instruction Packing}\label{sec:instruction-packing}
-% Given a set of subexpressions to compute in a single epoch of the program, we can align the instructions between subexpressions to actually produce a vector schedule.
-% It may seem like the solution to this is just sequence alignment, but aligning circuits is actually more complicated than that.
-% At each step, the number of available children that can be aligned roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
-% This causes the dynamic programming strategy of sequence alignment to quickly blow up.
-% % Aligning trees is more complicated than a simple sequence alignment, because at each step the number of available children to align roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
-% % \raghav{Is this a good enough explanation for why sequence alignment doesn't work here?}\milind{Don't just say sequence alignment out of the blue. You want to say something like "It may seem like the way to go is sequence alignment but ..."}
+\subsection{Instruction Alignment}\label{sec:instruction-alignment}\raghav{I just lifted this from the old version, is it still good or do we need to update it?}
+Given a set of subexpressions to compute in a single epoch of the program, we can align the instructions between subexpressions to actually produce a vector schedule.
+It may seem like the solution to this is just sequence alignment, but aligning circuits is actually more complicated than that.
+At each step, the number of available children that can be aligned roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
+This causes the dynamic programming strategy of sequence alignment to quickly blow up.
+% Aligning trees is more complicated than a simple sequence alignment, because at each step the number of available children to align roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
+% \raghav{Is this a good enough explanation for why sequence alignment doesn't work here?}\milind{Don't just say sequence alignment out of the blue. You want to say something like "It may seem like the way to go is sequence alignment but ..."}
 
-% Instead of wrangling so many subproblems, we can formulate this as an ILP.
-% We create a variable for each scalar instruction representing its {\em schedule slot}, or the time at which it executes.
-% We add constraints to require that each instruction be scheduled after all of its dependences have been scheduled, and also to require that two instructions with different operations never be scheduled at the same time. 
-% Finally, to speed up the search for a solution, we place a bound on the total length of the schedule (in other words, an upper bound on the value of the schedule slot for any scalar instruction).
-% The bound is initially very loose but we iteratively tighten it until the solver returns ``unsatisfiable'', meaning no smaller schedule could be found, so the most recent one was the smallest.
+Instead of wrangling so many subproblems, we can formulate this as an ILP.
+We create a variable for each scalar instruction representing its {\em schedule slot}, or the time at which it executes.
+We add constraints to require that each instruction be scheduled after all of its dependences have been scheduled, and also to require that two instructions with different operations never be scheduled at the same time. 
+Finally, to speed up the search for a solution, we place a bound on the total length of the schedule (in other words, an upper bound on the value of the schedule slot for any scalar instruction).
+The bound is initially very loose but we iteratively tighten it until the solver returns ``unsatisfiable'', meaning no smaller schedule could be found, so the most recent one was the smallest.
 
 % % Instead of wrangling so many subproblems, we can easily pass this off to an SMT solver. \milind{Maybe say that you formulate this as an ILP? "pass to an SMT solver" is an implementation decision -- the {\em design} is that you create a bunch of ILP constraints}
 % % The encoding consists of a variable for each instruction representing when it gets scheduled, as well as constraints that require two instructions scheduled at the same time to have the same operation, and constraints that require the two dependencies of each instruction to be scheduled before it.
