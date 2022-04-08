@@ -7,10 +7,9 @@ Created on Sun Jul 18 18:45:15 2021
 """
 import random as rand
 from typing import List, Union
-from vector_synth.ast_def import *
 from dataclasses import dataclass
 from inspect import signature
-from coyote.coyote_ast import CompilerV2, Var
+from coyote.coyote_ast import CompilerV2, Var, Tree, Op
 from coyote.vectorize_circuit import vectorize
 
 Expression = Union['Var', 'Op']
@@ -54,7 +53,7 @@ class coyote_compiler:
         outputs.append(output)
         self.compiler = CompilerV2([])
         for out in outputs:
-            print(out.a)
+            print(type(out.a))
             self.outputs.append(self.compiler.compile(out.a).val)
 
         return [' '.join(f'%{reg}' for reg in self.outputs)] + list(map(str, self.compiler.code))
