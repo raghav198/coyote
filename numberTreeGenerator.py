@@ -9,7 +9,11 @@ import random as rand
 from typing import List, Union
 from dataclasses import dataclass
 from inspect import signature
+<<<<<<< HEAD
 from coyote.coyote_ast import *
+=======
+from coyote.coyote_ast import CompilerV2, Var, Tree, Op
+>>>>>>> 6e4aff85c54fee038edcef408397ce8a28239eef
 from coyote.vectorize_circuit import vectorize
 from sys import argv
 import os
@@ -56,7 +60,7 @@ class coyote_compiler:
         outputs.append(output)
         self.compiler = CompilerV2([])
         for out in outputs:
-            print(out.a)
+            print(type(out.a))
             self.outputs.append(self.compiler.compile(out.a).val)
 
         return [' '.join(f'%{reg}' for reg in self.outputs)] + list(map(str, self.compiler.code))
