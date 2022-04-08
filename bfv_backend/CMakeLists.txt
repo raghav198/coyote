@@ -36,7 +36,12 @@ list(APPEND BENCHMARKS
 	dot_product_3x3_un
 	dot_product_6x6_un
 	dot_product_10x10_un
-	decision_tree_packed_un)
+	decision_tree_packed_un
+	matmul_3x3_case1
+	matmul_3x3_case2
+	matmul_3x3_case3
+	matmul_3x3_case4
+	matmul_3x3_case5)
 
 include(CTest)
 include(CMakeFindDependencyMacro)

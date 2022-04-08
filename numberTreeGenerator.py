@@ -52,11 +52,10 @@ class coyote_compiler:
         outputs = []
         output = treeGenerator(3, seed)
         outputs.append(output)
-        print(output.a)
         self.compiler = CompilerV2([])
-
         for out in outputs:
-            self.outputs.append(self.compiler.compile(out).val)
+            print(out.a)
+            self.outputs.append(self.compiler.compile(out.a).val)
 
         return [' '.join(f'%{reg}' for reg in self.outputs)] + list(map(str, self.compiler.code))
 
