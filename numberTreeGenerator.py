@@ -7,11 +7,13 @@ Created on Sun Jul 18 18:45:15 2021
 """
 import random as rand
 from typing import List, Union
-from vector_synth.ast_def import *
 from dataclasses import dataclass
 from inspect import signature
-from coyote.coyote_ast import CompilerV2, Var
+from coyote.coyote_ast import *
 from coyote.vectorize_circuit import vectorize
+from sys import argv
+import os
+from coyote.coyote import *
 
 Expression = Union['Var', 'Op']
 
@@ -21,7 +23,7 @@ def treeGenerator(maxDepth, inputSeed) -> Expression:
     rand.seed(seed)
     localString = ""
     if (maxDepth > 0):
-        randomNum = rand.randrange(0,1)
+        randomNum = rand.randrange(0,4)
         seed+=1
         if (randomNum > 1):
             localString+=str(rand.randrange(0,1024))
@@ -48,9 +50,9 @@ class coyote_compiler:
         return vectorize(self.compiler)
 
 
-    def instantiate(self, seed):
+    def instantiate(self, depth, seed):
         outputs = []
-        output = treeGenerator(3, seed)
+        output = treeGenerator(depth, seed)
         outputs.append(output)
         self.compiler = CompilerV2([])
         for out in outputs:
@@ -59,17 +61,52 @@ class coyote_compiler:
 
         return [' '.join(f'%{reg}' for reg in self.outputs)] + list(map(str, self.compiler.code))
 
-
+def usage():
+    print(f'Usage: {argv[0]} [list|build] [benchmark_name?]')
+    raise SystemExit()
 
 if __name__ == '__main__':
     coyote = coyote_compiler()
 
-    total_rotates = []
-    for i in range(20):
-        scalar_code = coyote.instantiate(1661)
-        vectorized_code, width = coyote.vectorize()
-        print('\n'.join(scalar_code))
-        print(ans := '\n'.join(vectorized_code))
-        total_rotates.append(ans.count('>>'))
+    depth = int(argv[2][-3])
+    seed = 1761
 
-    print(sum(total_rotates) / 20, min(total_rotates), max(total_rotates), total_rotates)
+    # total_rotates = []
+    # for i in range(20):
+    #     scalar_code = coyote.instantiate(1661)
+    #     vectorized_code, width = coyote.vectorize()
+    #     print('\n'.join(scalar_code))
+    #     print(ans := '\n'.join(vectorized_code))
+    #     total_rotates.append(ans.count('>>'))
+
+    # print(sum(total_rotates) / 20, min(total_rotates), max(total_rotates), total_rotates)
+
+    if len(argv) < 2:
+        usage()
+
+    command = argv[1]
+    if command == 'list':
+        print('List of available benchmarks:')
+        for func in coyote.func_signatures:
+            print(f'* {func.__name__}')
+    elif command == 'build':
+        if len(argv) != 3:
+            print(f'Error: command "build" but no benchmark was specified (try `{argv[0]} list` to list available benchmarks)')
+            usage()
+        benchmark_name = argv[2]
+        scalar_code = coyote.instantiate(depth, seed + int(argv[2][-1]))
+        vector_code = coyote.vectorize()
+
+        try:
+            os.mkdir('outputs')
+        except FileExistsError:
+            pass
+        
+        try:
+            os.mkdir(f'outputs/{benchmark_name}')
+        except FileExistsError:
+            pass
+
+        open(f'outputs/{benchmark_name}/scal', 'w').write('\n'.join(scalar_code))
+        open(f'outputs/{benchmark_name}/vec', 'w').write('\n'.join(vector_code))
+        print(f'Successfully compiled benchmark {benchmark_name}; outputs placed in "outputs/{benchmark_name}"!')
