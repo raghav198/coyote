@@ -9,11 +9,7 @@ import random as rand
 from typing import List, Union
 from dataclasses import dataclass
 from inspect import signature
-<<<<<<< HEAD
-from coyote.coyote_ast import *
-=======
 from coyote.coyote_ast import CompilerV2, Var, Tree, Op
->>>>>>> 6e4aff85c54fee038edcef408397ce8a28239eef
 from coyote.vectorize_circuit import vectorize
 from sys import argv
 import os
@@ -21,21 +17,29 @@ from coyote.coyote import *
 
 Expression = Union['Var', 'Op']
 
-def treeGenerator(maxDepth, inputSeed) -> Expression:
+def treeGenerator(originalDepth, maxDepth, inputSeed) -> Expression:
     global seed 
     seed = inputSeed
     rand.seed(seed)
     localString = ""
+    if (originalDepth == maxDepth):
+        randomNum = rand.randrange(0,1)
+        lhs = treeGenerator(originalDepth, maxDepth-1, seed)
+        rhs = treeGenerator(originalDepth, maxDepth-1, seed)
+        if (randomNum == 1):
+            return(lhs + rhs)
+        elif (randomNum == 0):
+            return(lhs * rhs)
     if (maxDepth > 0):
-        randomNum = rand.randrange(0,4)
+        randomNum = rand.randrange(0,1)
         seed+=1
         if (randomNum > 1):
             localString+=str(rand.randrange(0,1024))
             seed+=1
             return Tree(Var(localString))
         else:
-            lhs = treeGenerator(maxDepth-1, seed)
-            rhs = treeGenerator(maxDepth-1, seed)
+            lhs = treeGenerator(originalDepth, maxDepth-1, seed)
+            rhs = treeGenerator(originalDepth, maxDepth-1, seed)
             if (randomNum == 1):
                 return(lhs + rhs)
             elif (randomNum == 0):
@@ -56,11 +60,11 @@ class coyote_compiler:
 
     def instantiate(self, depth, seed):
         outputs = []
-        output = treeGenerator(depth, seed)
+        output = treeGenerator(depth, depth, seed)
         outputs.append(output)
         self.compiler = CompilerV2([])
         for out in outputs:
-            print(type(out.a))
+            print(out.a)
             self.outputs.append(self.compiler.compile(out.a).val)
 
         return [' '.join(f'%{reg}' for reg in self.outputs)] + list(map(str, self.compiler.code))
