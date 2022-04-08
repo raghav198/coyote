@@ -8,21 +8,39 @@
  
 \subsection*{Compilation Steps}
 \begin{figure*}
-    \begin{subfigure}{0.4\columnwidth}
-        \includegraphics[width=0.9\linewidth]{figures/compilation_overview/coyote_running_example.drawio.png}
-        \caption{Original circuit}
-        \label{fig:original-circuit}
-    \end{subfigure}
-    \begin{subfigure}{0.4\columnwidth}
+    % \begin{subfigure}{0.4\columnwidth}
+    %     \includegraphics[width=0.9\linewidth]{figures/compilation_overview/coyote_running_example.drawio.png}
+    %     \caption{Original circuit}
+    %     \label{fig:original-circuit}
+    % \end{subfigure}
+    \begin{subfigure}{0.6\columnwidth}
         \includegraphics[width=0.9\linewidth]{figures/compilation_overview/running_example_quotiented.drawio.png}
         \caption{Quotiented circuit}
         \label{fig:quotient-circuit}
     \end{subfigure}
-%     \begin{subfigure}{0.45\columnwidth}
-%         \includegraphics[scale=0.4]{figures/compilation_overview/stacked_vector_circuit.drawio.png}
-%         \caption{Arithmetic circuit with highlighted subcircuits vectorized}
-%         \label{fig:partially-vectorized-circuit}
-%     \end{subfigure}
+    \begin{subfigure}{0.45\columnwidth}
+        \begin{verbatim}
+    1: [%1, %3] = [c, e] + [d, f]
+    2: [%0, %4] = [a, g] + [b, h]
+    3: [%2, %5] = [%0, %3] * [%1, %4]
+    4: [%6, _] = [%2, _] + [%5, _]
+        \end{verbatim}
+        \caption{Vector schedule after alignment}
+        \label{fig:aligned-schedule}
+    \end{subfigure}
+    \begin{subfigure}{0.45\columnwidth}
+        \begin{verbatim}
+        v0 = [c, e] + [d, f]
+        v1 = [a, g] + [b, h]
+        t0 = blend(v1[10], v0[01])
+        t1 = blend(v0[10], v1[01])
+        v2 = t0 * t1
+        s0 = v2 >> 1
+        v3 = v2 * s0
+        \end{verbatim}
+        \caption{Generated vector code}
+        \label{fig:generated-code}
+    \end{subfigure}
 %     \begin{subfigure}{0.3\columnwidth}
 %         \includegraphics[scale=0.3]{figures/compilation_overview/code_split_into_phases.drawio.png}
 %         \caption{Scalar code split into vectorizable epochs}
@@ -42,12 +60,27 @@ We will use the circuit in Figure~\ref{fig:example-circuit} as a running example
 The compilation proceeds as follows:
 \begin{enumerate}
     \item \system quotients and assigns lanes to the vertices of an input circuit to produce a new circuit (a {\em pre-schedule})that can be realized into a more efficient vector program. The result is a graph who's vertices correspond to connected subgraphs of the original circuit, such that no two vertices at the same height have the same lane. In this quotient graph, a subcircuit gets identified if \system determines that the overhead of internally vectorizing it is not worth the gain from vectorization, so this step essentially forces certain operations to happen in scalar on a single lane. \raghav{I feel I haven't done a good enough job of justifying this.}
-    In the example in Figure~\ref{fig:quotient-circuit}, two edges have been contracted, identifying each multiplication vertex with one of its addition children.
     
-    \item The (equivalence classes of) vertices at each height are aligned to pack together isomorphic nodes, turning the pre-schedule into an actual vector schedule.
+    In the example in Figure~\ref{fig:quotient-circuit}, the two circled pairs of vertices are identified in the quotient.
+    The lane assignment for this pre-schedule puts each bottom level addition on the same lane as its corresponding quotiented vertex, and chooses one of these lanes to place the top addition on.
+    
+    \item The (equivalence classes of) vertices at each height are aligned to pack together isomorphic nodes, turning the pre-schedule into an actual vector schedule. 
+    In our running example, the two adds at a height of 1 get trivially aligned, and the two ``supernodes'' at height 2 get aligned by packing together the two adds and the two multiplies.
+    Since there is a single vertex at height 3, no alignment needs to be done there. \raghav{Is this description clear?}
+    Figure~\ref{fig:aligned-schedule} shows the result of this alignment.
     \item \system compiles the schedule into a vector IR. The crux of this compilation step is figuring out when to {\em blend} and {\em rotate}. When a vector operand requires values from several different instructions, \system emits code to ``blend'' the results together into a single vector.
     When the lane an operand is used in is different fron the lane it was produced in, \system emits a rotation instruction to move the operand into the correct lane. Notice that each arc in the pre-schedule connecting vertices of different lanes corresponds to a rotation in the generated vector IR.
+    Figure~\ref{fig:generated-code} shows the vector code \system generates for our running example.
+    Notice that the generated code contains two blends and one rotate.
+    The blends are necessary\footnote{In this particular example, exchanging the positions of \texttt{\%3} and \texttt{\%4} would have produced semantically equivalent code that does not require the blends. However, automatically performing arithmetic rewrites such as this one is outside the scope of this work. \raghav{Something something future work may involve searching the space of semanticaly equivalent circuits to synthesize ones that admit more efficient vector schedules? or nah?}} because on line 3 of the schedule, \texttt{\%0} and \texttt{\%3} are used in the same vector despite being produced in two separate vectors on lines 1 and 2. 
+    Since none of the operands need to shift lanes, the vector instruction \texttt{t0 = blend(v0[10], v1[01])} takes \texttt{[\%0, \%4]} and \texttt{[\%1, \%3]} and blends them together to produce \texttt{[\%0, \%3]}, which is exactly the operand used on line 3. 
+
+    \system emits a rotation because \texttt{\%5} gets used (line 4) on a different lane than its produced (line 3).
+    The vector instruction \texttt{s0 = v2 >> 1} takes \texttt{[\%2, \%5]} in \texttt{v2} and produces \texttt{[\%5, \%2]} in \texttt{s0}.
+    \raghav{I don't like this wording but I'm not sure how to make it better}.
 \end{enumerate}
+\raghav{TODO: maybe change the inline texttt stuff so it looks better?}
+
 % \begin{enumerate}
 %     \item \system first identifies highly vectorizable subcircuits (shown highlighted in Figure~\ref{fig:small-expr-circuit})
 %     \item These subcircuits are pulled out and aligned to produce a single vectorized computation, which is then inserted back into the original program, resulting in the circuit in Figure~\ref{fig:partially-vectorized-circuit}.
