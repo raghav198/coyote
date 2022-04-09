@@ -77,7 +77,7 @@ if __name__ == '__main__':
     coyote = coyote_compiler()
 
     depth = int(argv[2][-3])
-    seed = 1761
+    seed = 1062
 
     # total_rotates = []
     # for i in range(20):
