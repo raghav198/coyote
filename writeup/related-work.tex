@@ -1,5 +1,5 @@
 \section{Related Work}\label{sec:related-work}
-There are two main categories of related work. This section first discusses work on FHE vectorization, and then discusses more general approaches to plaintext vectorization
+There are two main categories of related work. This section first discusses work on FHE vectorization, and then discusses more general approaches to plaintext vectorization \raghav{Your favorite part: finding a better way to taxonomize all of these!}
 
 \subsection{Vectorization in FHE}
 Prior work has been done on building vectorizing compilers for FHE applications \cite{CHET, Porcupine}.
@@ -7,13 +7,20 @@ CHET \cite{CHET} is a vectorizing compiler for homomorphic tensor programs that 
 CHET is specifically targeted towards optimizing the dense tensor computations found in neural network inference, and does not apply to a broader class of programs, especially those with irregular computations that are not so easily vectorized.
 \system makes no assumptions about the domain of the program, and can generalize to vectorizing even highly irregular computations.
 
-\raghav{TODO: talk about scalability}
 Porcupine \cite{Porcupine} is another vectorizing compiler that uses a synthesis-based approach to automatically generate vectorized FHE kernels given a reference implementation.
 Porcupine is more general than CHET, but it is still mostly targeted towards regular, easily vectorizable computations.
 While Porcupine can, in theory, generate kernels for any computation, its treatment of rotations makes it harder to adapt to vectorizing irregular programs.
 Porcupine considers rotations directly as inputs to arithmetic expressions, and relies on a sketch to constrain the search space and a solver to find programs with optimal performance characteristics.
 Irregular applications without many apparent symmetries to exploit incur many asymmetric rotations, making it more difficult for the solver to produce an optimal schedule. The search space becomes prohibitively large, and is not tuned towards finding minimal sets of rotations.
-In contrast, because \system focuses on irregular programs, it {\em automatically} adds constraints that limit the search space for rotations, and can often find hidden symmetries even in irregular code, enabling it to combine more rotations at once. \raghav{Maybe another thing to say (emphasize?) is that the \system and Porcupine approaches are fundamentally different in that the latter relies on a sketch to synthesize good schedules while \system finds them automatically.}
+In contrast, because \system focuses on irregular programs, it {\em automatically} adds constraints that limit the search space for rotations, and can often find hidden symmetries even in irregular code, enabling it to combine more rotations at once. \raghav{$\uparrow$ I don't know if this sentence is still true.}
+% \raghav{Maybe another thing to say (emphasize?) is that the \system and Porcupine approaches are fundamentally different in that the latter relies on a sketch to synthesize good schedules while \system finds them automatically.}
+
+Additionally, Porcupine's synthesis-based approach results in very long compile times for programs with more than a few instructions.
+Their solution to this problem is to break large programs into multiple smaller, composable kernels and synthesize solutions to each kernel independently.
+This has two major drawbacks: First of all, synthesizing kernels separately means that Porcupine is unable to find optimizations across kernel boundaries.
+Secondly, this requires the programmer to manually split their program into many pieces. \raghav{uhh should I flip the order of these?}
+\system, on the other hand, can compile much larger programs in a reasonable amount of time, and the circuit quotienting strategy automatically breaks large programs up into smaller sequences of vectorizable instructions. \raghav{TODO: add instruction counts to the eval?}
+
 %\raghav{I think I explained that correctly?}\milind{Sounds good.}
 
 Gazelle \cite{Gazelle} is a framework for secure neural network inference in FHE.
@@ -34,11 +41,22 @@ VeGen \cite{VeGen} is a recent variant of SLP introduces {\em lane level paralle
 For example, VeGen can reason about the rotation costs to pack together operands for an instruction into a temporary vector, and can use this to decide whether or not packing those instructions is worth it.
 However, this reasoning only happens locally, and VeGen does not incorporate information about how instruction packing might affect rotations much later in the program.
 
-\raghav{TODO: lmao}
-goSLP \cite{goSLP} reasons about globally optimal packing, and tries to find lane placements that minimize data shuffling costs. While goSLP does reason globally about lane placement, it has two drawbacks in an FHE context. First, it packs instructions into vectors before considering shuffling costs, so may over-aggressively vectorize, while \system may forego some vectorization opportunities in the name of getting packing larger expressions without rotation. Second, its lane placement algorithm considers arbitrary permutations, which are impractically expensive in FHE.
-\raghav{goSLP frames vectorization overhead in terms of the number of {\em pack} and {\em unpack} operations incurred. For example, permuting the slots of a single vector incurs one unpack, whereas blending the contents of N vectors (without any permutation) incurs N unpacks. In other words, goSLP bakes in the assumption that wide blends are much more expensive than arbitrary permutations. This is fundamentally incompatible with FHE, since blends are almost free, whereas bad permutations can require several expensive rotations to realize. Essentially, in the FHE world, its often better to produce a schedule that {\em looks much worse} than to produce the traditionally optimal one.}
+\raghav{Spotcheck again?}
+goSLP \cite{goSLP} reasons about globally optimal packing, and tries to find lane placements that minimize data shuffling costs. 
+However, there are assumptions baked into its cost model that make it fundamentally unsuitable for the FHE setting.
+goSLP frames vectorization overhead in terms of the number of {\em pack} and {\em unpack} operations incurred.
+For example, permuting the slots of a single vector incurs one unpack, whereas blending the contents of N vectors (without any permutation) incurs N unpacks.
+This results in a cost model that implicitly requires wide blends to be much more expensive than arbitrary permutations.
+This is incompatible with FHE, where blends are almost free (instantiated as cheap plaintext multiplies and ciphertext adds) whereas a ``bad'' permutation can require O(n) rotates to realize.
+In other words, in the FHE world, there are often highly profitable schedules that require many blends and few rotates, but the framing goSLP uses for vectorization overhead will cause it to forego these schedules for more conservative ones.
+Additionally, goSLP does lane placement (permutation selection) {\em after} finding vector packs, creating situations like the one we described in Section~\ref{sec:intro} in which the ostensibly profitable packing does not admit a good data layout.
+By contrast, \system's cooperative scheduling strategy ensures that this does not happen.
 
-\raghav{Add discussion of (Ramparts??)}
+% While goSLP does reason globally about lane placement, it has two drawbacks in an FHE context. First, it packs instructions into vectors before considering shuffling costs, so may over-aggressively vectorize, while \system may forego some vectorization opportunities in the name of getting packing larger expressions without rotation. Second, its lane placement algorithm considers arbitrary permutations, which are impractically expensive in FHE.
+% \raghav{goSLP frames vectorization overhead in terms of the number of {\em pack} and {\em unpack} operations incurred. For example, permuting the slots of a single vector incurs one unpack, whereas blending the contents of N vectors (without any permutation) incurs N unpacks. In other words, goSLP bakes in the assumption that wide blends are much more expensive than arbitrary permutations. This is fundamentally incompatible with FHE, since blends are almost free, whereas bad permutations can require several expensive rotations to realize. Essentially, in the FHE world, its often better to produce a schedule that {\em looks much worse} than to produce the traditionally optimal one.}
+
+Ramparts \cite{Ramparts} is a compiler that automatically lifts a program written in Julia into an optimized FHE circuit that perform the same computation.
+Unlike \system, the circuit optimizations Ramparts performs do not include vectorization.
 
 Swizzle Inventor \cite{SwizzleInventor} is a system which automatically synthesizes efficient data movement kernels for vectorized GPU code.
 There are two primary obstacles \system faces in directly applying this approach to our setting:
