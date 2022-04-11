@@ -11,9 +11,9 @@ To properly take advantage of ciphertext packing, we need a compiler that can ve
 % \raghav{It feels like I should mention ``all FHE programs are arithmetic circuits'' here, but I'm not sure where. One idea is it can go as part of the ``you can't do normal vectorization'' bit, since there are no loops and stuff to take advantage of. But I'm not sure.}\milind{I think what you've written here seems good.}
 
 % Who has tried to solve this problem before?
-Vectorizing compilers for FHE are nothing new, as seen in CHET and Porcupine \cite{CHET, Porcupine}.
+Vectorizing compilers for FHE are nothing new, as seen in CHET~\cite{CHET} and Porcupine~\cite{Porcupine}.
 However, neither of these approaches meets the need for a vectorizing compiler for arbitrary FHE programs.
-While CHET is optimized for highly regular computations over packed tensors (such as neural network), it does not generalize well to more irregular programs that are not already vectorized. 
+While CHET is optimized for highly regular computations over packed tensors (such as neural networks), it does not generalize to more irregular programs. 
 Porcupine, which uses a synthesis-based approach to generate vectorized code for arbitrary kernels, does work for a more general class of programs.
 However, it often cannot properly account for the high rotation costs in more irregular applications. 
 %\raghav{Is there a better/more correct/more effective way to say this?}\milind{It also relies on loops as its source of vectorization, right? Or am I misemembering?}
@@ -22,11 +22,11 @@ However, it often cannot properly account for the high rotation costs in more ir
 % \milind{You might want to be a little more explicit about the comparisons here: CHET does X, which means it doesn't do Y. Porcupine does A, which means it has drawback B.}
 % A lot of FHE computations do not deal with regular data structures like tensors, which makes it much harder to take advantage of vectorization opportunities.
 
-Other approaches to vectorizing arbitrary, non-loop-based code, such as Superword-Level Parallelism \cite{SLP}, also fail here.
+Other approaches to vectorizing arbitrary, non-loop-based code, such as Superword-Level Parallelism~\cite{SLP}, also fail here.
 SLP aggressively packs isomorphic instructions into vectors, because it assumes that shuffling vector lanes around or indexing into a vector is relatively cheap.
 In FHE, however, the vectors are not physical vector registers with slots for data, but rather {\em abstract mathematical objects} which only {\em encode} several ciphertexts.
-The only way to move data between vector lanes in FHE is by performing a cyclic rotation of the entire vector.
-While it is theoretically possible to encode arbitrary permutations as a series of masks and rotates, realizing the shuffles incurred by SLP in this way can quickly outweigh any benefits from vectorizing in the first place.
+The only way to move data between vector lanes in FHE is by performing a cyclic rotation of the entire vector .
+While it is theoretically possible to encode arbitrary permutations as a series of masks and rotates, realizing the shuffles incurred by SLP in this way can quickly outweigh any benefits from vectorizing in the first place. Naively using traditional vectorization cost models in an FHE setting can lead to {\em slowdowns}, rather than speedup, from vectorization.
 
 \begin{figure*}
     \includegraphics[width=0.6\linewidth]{figures/compilation_overview/coyote_running_example.drawio.png}
@@ -34,19 +34,19 @@ While it is theoretically possible to encode arbitrary permutations as a series 
     \Description{A figure of an arithmetic circuit computing ((a + b) * (c + d)) + ((e + f) * (g + h))}
 \end{figure*}
 
-\raghav{TODO: find a better place to put this paragraph, maybe?}
-Naively using the cost model from traditional vectorization in an FHE setting can have disastrous effects.
-For example, consider the arithmetic circuit in Figure~\ref{fig:example-circuit}.
-A naive attempt at vectorizing this packs together the four additions at the first level, and the two multiplies at the second level.
-This produces a schedule with two vector adds, one vector multiply, and two vector rotates (one to line the adds up their multiplies, and one to line up the multiplies with the top level add).
+%\raghav{TODO: find a better place to put this paragraph, maybe?}
+%
+Consider the arithmetic circuit in Figure~\ref{fig:example-circuit} implementing $((a + b) * (c + d)) + ((e + f) * (g + h))$.\footnote{We adopt the FHE-standard representation of arithmetic circuits as the intermediate representation for our programs.\milind{Citation here.}}
+A naive attempt at vectorizing this circuit packs together the four additions at the first level, and the two multiplies at the second level.
+This produces a schedule with a vector add, followed by a vector multiply, followed by an add. Rotations are needed between each operation to align the outputs of each operation with the next operation..
 Using an approximate model \raghav{TODO: cite \cite{AlgosHElib}} of the relative latencies of each instruction \raghav{TODO: something with this??} (where multiplies and rotates have a latency of 1 and addition has a latency of 0.1), the total cost of this schedule is 3.2.
 However, by doing no vectorization and executing the circuit entirely with scalar operations, we have 5 adds and two multiplies, with an overall cost of 2.5
 In this case, vectorization actually makes the performance {\em worse}!
-This doesn't have to be the case, though.
-We can pack the the first and the third adds separately from the second and the fourth, so that neither of them require a rotation to align with the multiply above them.
-We are effectively saving one rotation at the cost of an extra vector addition, resulting in a schedule with an overall cost of only 2.3. \raghav{further TODO: dunno how much detail I should be going into here. Should I enumerate the nodes of the circuit and refer to them explicitly? Or insert a sample of the vectorized code in both cases? Or something else? As it is, I'm certain this is pretty hard to follow}
+We can do better, though. though.
+We can pack the the first and the third adds ($a + b$ and $e + f$) separately from the second and the fourth ($c + d$ and $g + h$), so that neither of them require a rotation to align with the multiply above them.
+We are effectively saving one rotation at the cost of an extra vector addition, resulting in a schedule with an overall cost of only 2.3. \raghav{further TODO: dunno how much detail I should be going into here. Should I enumerate the nodes of the circuit and refer to them explicitly? Or insert a sample of the vectorized code in both cases? Or something else? As it is, I'm certain this is pretty hard to follow.}\milind{I tried to make this simpler, but it might be good to shrink the tree in Figure 1, and put three subfigures next to it showing the three schedules.}
 
-More recent takes on SLP, such as VeGen \cite{VeGen} and goSLP \cite{goSLP} are somewhat better at this.
+More recent takes on SLP, such as VeGen \cite{VeGen} and goSLP \cite{goSLP}, recognize the need to take the cost of data movement into account.
 VeGen is capable of incorporating reasoning about data movement into its vectorization, and can make the decision to not pack certain instructions together because the data movement cost incurred is not worth it.
 However, VeGen does all its reasoning {\em locally}; that is, it cannot reason about the effect packing instructions together may have on shuffling costs much later in the program. This tradeoff is generally fine in circumstances when shuffling is relatively cheap; it is less appropriate in an FHE context, where shuffling is very expensive.
 While goSLP does reason about globally optimal packing, the dynamic programming-based algorithm it uses to find good data layouts can miss the effects that one layout can have on the shuffling needed to produce subsequent expressions. %\raghav{How's that?} 
@@ -54,9 +54,9 @@ While goSLP does reason about globally optimal packing, the dynamic programming-
 This means that we need a new arbitrary vectorization strategy that is {\em FHE-aware}; i.e., it packs instructions without relying on regularity in the original computation, and can still account for the high cost of data movement throughout the program.
 
 %% Contributions
-In this paper, we present \system, the first vectorizing FHE-aware compiler for irregular programs. \raghav{feels weird explicitly saying irregular here, should I say `arbitrary' instead?}
+This paper presents \system, the first vectorizing FHE-aware compiler for programs that do not have any regular structure. \raghav{feels weird explicitly saying irregular here, should I say `arbitrary' instead?}\milind{How's that?}
 
-Rather than incurring many expensive data shuffles by aggressively vectorizing the whole program, \system uses an FHE-specific cost model to co-optimize the data layout and vector packing, producing a schedule that enjoys the benefits of vectorization while still being able to efficiently realize the necessary shuffles. \raghav{Wording?}
+Rather than incurring many expensive data shuffles by aggressively vectorizing the whole program, \system uses an FHE-specific cost model to co-optimize the data layout and vector packing, producing a schedule that enjoys the benefits of vectorization while still being able to efficiently realize the necessary rotations. \raghav{Wording?}\milind{Seems OK}
 
 The specific contributions we make are:
 \begin{enumerate}
