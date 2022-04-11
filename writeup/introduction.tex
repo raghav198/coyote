@@ -28,6 +28,7 @@ In FHE, however, the vectors are not physical vector registers with slots for da
 The only way to move data between vector lanes in FHE is by performing a cyclic rotation of the entire vector .
 While it is theoretically possible to encode arbitrary permutations as a series of masks and rotates, realizing the shuffles incurred by SLP in this way can quickly outweigh any benefits from vectorizing in the first place. 
 
+\raghav{Still need to review this for accuracy}
 More recent takes on SLP, such as VeGen \cite{VeGen} and goSLP \cite{goSLP}, recognize the need to take the cost of data movement into account.
 VeGen is capable of incorporating reasoning about data movement into its vectorization, and can make the decision to not pack certain instructions together because the data movement cost incurred is not worth it.
 However, VeGen does all its reasoning {\em locally}; that is, it cannot reason about the effect packing instructions together may have on shuffling costs much later in the program. This tradeoff is generally fine in circumstances when shuffling is relatively cheap; it is less appropriate in an FHE context, where shuffling is very expensive.
@@ -45,30 +46,33 @@ In general, without carefully accounting for, and controlling, rotation, traditi
 
 %\raghav{TODO: find a better place to put this paragraph, maybe?}
 %
-Consider the arithmetic circuit in Figure~\ref{fig:example-circuit} implementing $((a + b) * (c + d)) + ((e + f) * (g + h))$.\footnote{We adopt the FHE-standard representation of arithmetic circuits as the intermediate representation for our programs.\milind{Citation here.}}
+Consider the arithmetic circuit in Figure~\ref{fig:example-circuit} implementing $((a + b) * (c + d)) + ((e + f) * (g + h))$.\footnote{We adopt the FHE-standard representation of arithmetic circuits as the intermediate representation for our programs. \cite{Gentry,CircuitRewriting,Ramparts,Porcupine}\milind{Citation here.}}
 A naive attempt at vectorizing this circuit packs together the four additions at the first level, and the two multiplies at the second level.
 This produces a schedule with a vector add, followed by a vector multiply, followed by an add. Rotations are needed between each operation to align the outputs of each operation with the next operation..
-Using an approximate model \raghav{TODO: cite \cite{AlgosHElib}} of the relative latencies of each instruction \raghav{TODO: something with this??} (where multiplies and rotates have a latency of 1 and addition has a latency of 0.1), the total cost of this schedule is 3.2.
-However, by doing no vectorization and executing the circuit entirely with scalar operations, we have 5 adds and two multiplies, with an overall cost of 2.5
+Using an approximate model\footnote{Algorithms in HElib \cite{AlgosHElib} assigns a ``high latency'' to both multiplies and rotates and a ``low latency'' to adds. For both simplicity and concreteness, we assume a 10:1 ratio between ``high latency'' and ``low latency''} of the relative latencies of each instruction in which multiplies and rotates have a latency of 1 and addition has a latency of 0.1, the total cost of this schedule is 3.2.
+However, by doing no vectorization and executing the circuit entirely with scalar operations, we have 5 adds and two multiplies, with an overall cost of 2.5.
 In this case, vectorization actually makes the performance {\em worse}!
 We can do better, though. though.
 We can pack the the first and the third adds ($a + b$ and $e + f$) separately from the second and the fourth ($c + d$ and $g + h$), so that neither of them require a rotation to align with the multiply above them.
-We are effectively saving one rotation at the cost of an extra vector addition, resulting in a schedule with an overall cost of only 2.3. \raghav{further TODO: dunno how much detail I should be going into here. Should I enumerate the nodes of the circuit and refer to them explicitly? Or insert a sample of the vectorized code in both cases? Or something else? As it is, I'm certain this is pretty hard to follow.}\milind{I tried to make this simpler, but it might be good to shrink the tree in Figure 1, and put three subfigures next to it showing the three schedules.}
+We are effectively saving one rotation at the cost of an extra vector addition, resulting in a schedule with an overall cost of only 2.3. \raghav{further TODO: dunno how much detail I should be going into here. Should I enumerate the nodes of the circuit and refer to them explicitly? Or insert a sample of the vectorized code in both cases? Or something else? As it is, I'm certain this is pretty hard to follow.}\milind{I tried to make this simpler, but it might be good to shrink the tree in Figure 1, and put three subfigures next to it showing the three schedules.}\raghav{Schedules like the ones in Figure~\ref{fig:aligned-schedule}?}
 
 This means that we need a new arbitrary vectorization strategy that is {\em FHE-aware}; i.e., it packs instructions without relying on regularity in the original computation, and can still account for the high cost of data movement throughout the program.
 
 \subsection*{Co-optimization of vector packing and data layout}
-
-Our key insight is ...
-
-\milind{High level idea of find subcircuits -> vectorize subcircuits -> do layout -> tweak subcircuits}
+Our key insight is that because rotations are so expensive, data layout and vector packing are fundamentally intertwined; rather than treat these as separate problems, we optimize them {\em together} when finding a schedule.
+The main obstacle to optimality when using the classical approach is simple: vectorizing across instructions by aggressively packing them into vectors can often incur so much rotation overhead that no amount of data layout makes it worth it.
+Instead, we want to work at the level of {\em subcircuits}, splitting the program up into smaller pieces in which all the computations are locked into a single lane to avoid doing any rotations.
+We use an iterative process, using data layouts from previous iterations to identify profitable subcircuits to merge.
+By splitting the program up this way, we can {\em vectorize across subcircuits}, and incur fewer rotations in the process.
+\milind{High level idea of find subcircuits -> vectorize subcircuits -> do layout -> tweak subcircuits}\raghav{Is this the right level of generality?}
 
 \subsection*{Contributions}
-This paper presents \system, the first vectorizing FHE-aware compiler for programs that do not have any regular structure. \raghav{feels weird explicitly saying irregular here, should I say `arbitrary' instead?}\milind{How's that?}
+This paper presents \system, the first vectorizing FHE-aware compiler for programs that do not have any regular structure. \raghav{feels weird explicitly saying irregular here, should I say `arbitrary' instead?}\milind{How's that?}\raghav{Good, I think. I just don't want to seem like we're claiming that Coyote is {\em specifically for irregular things} and then be left with a disconnect between that claim and the fact that many of our benchmarks are, ostensibly, pretty regular.}
 
-Rather than incurring many expensive data shuffles by aggressively vectorizing the whole program, \system uses an FHE-specific cost model to co-optimize the data layout and vector packing, producing a schedule that enjoys the benefits of vectorization while still being able to efficiently realize the necessary rotations. For example, \system is able to correctly generate the better vectorization schedule in Figure~\ref{fig:example-circuit}.\raghav{Wording?}\milind{Seems OK}
+Rather than incurring many expensive data shuffles by aggressively vectorizing the whole program, \system uses an FHE-specific cost model to co-optimize the data layout and vector packing, producing a schedule that enjoys the benefits of vectorization while still being able to efficiently realize the necessary rotations. For example, \system is able to correctly generate the better vectorization schedule in Figure~\ref{fig:example-circuit}.
 
-\system realizes our key insight by doing \milind{two sentences or so about simulated annealing...}
+\system realizes our key insight with a two-level search strategy to simultaneously explore the space of data layouts and vector packs.
+We use simulated annealing to find optimal data layouts, and use these to guide a best-first search towards optimal vector packs. \milind{two sentences or so about simulated annealing...}\raghav{Is this accurate? Does it make sense? Right level of generality?}
 
 The specific contributions we make are:
 \begin{enumerate}
