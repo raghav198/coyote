@@ -56,7 +56,7 @@ This means that we need a new arbitrary vectorization strategy that is {\em FHE-
 %% Contributions
 This paper presents \system, the first vectorizing FHE-aware compiler for programs that do not have any regular structure. \raghav{feels weird explicitly saying irregular here, should I say `arbitrary' instead?}\milind{How's that?}
 
-Rather than incurring many expensive data shuffles by aggressively vectorizing the whole program, \system uses an FHE-specific cost model to co-optimize the data layout and vector packing, producing a schedule that enjoys the benefits of vectorization while still being able to efficiently realize the necessary rotations. \raghav{Wording?}\milind{Seems OK}
+Rather than incurring many expensive data shuffles by aggressively vectorizing the whole program, \system uses an FHE-specific cost model to co-optimize the data layout and vector packing, producing a schedule that enjoys the benefits of vectorization while still being able to efficiently realize the necessary rotations. For example, \system is able to correctly generate the better vectorization schedule in Figure~\ref{fig:example-circuit}.\raghav{Wording?}\milind{Seems OK}
 
 The specific contributions we make are:
 \begin{enumerate}
