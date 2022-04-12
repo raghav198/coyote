@@ -92,3 +92,24 @@ plt.title('Random Polynomial Vectorized Speedups')
 plt.axhline(1, color='red')
 plt.ylabel('(Normalized) Speedup')
 plt.savefig('writeup/figures/graphs/trees.png')
+plt.close()
+
+
+#######################
+## PLOTTING SCHEDULE ##
+#######################
+schedule_10k = np.genfromtxt('csvs/dist10k.csv', delimiter=',')
+schedule_15k = np.genfromtxt('csvs/dist15k.csv', delimiter=',')
+schedule_20k = np.genfromtxt('csvs/dist20k.csv', delimiter=',')
+schedule_50k = np.genfromtxt('csvs/dist50k.csv', delimiter=',')
+
+
+plt.plot(schedule_10k[1, :])
+plt.plot(schedule_15k[1, :])
+plt.plot(schedule_20k[1, :])
+plt.plot(schedule_50k[1, :])
+plt.title('Schedule cost over time')
+plt.xlabel('Number of rounds')
+plt.ylabel('Cost')
+plt.legend(['10k', '15k', '20k', '50k'])
+plt.savefig('writeup/figures/graphs/schedules.png')

@@ -474,6 +474,9 @@ def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], rounds=200):
     grade_nx_graph(graph, groups)
     nx_columnize(graph)
 
+    cost_history = []
+    best_history = []
+
     current_cost = lane_placement(graph, t=50, beta=0.001, rounds=50000)
     current_cost += schedule_height(graph)
 
@@ -482,12 +485,14 @@ def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], rounds=200):
     pqueue: List[schedule] = []
     heappush(pqueue, schedule(cost=best.cost, graph=best.graph, edges=None))
     for r in range(rounds):
-
         if not len(pqueue):
             print('No more graphs to try!')
             break
 
         cur = heappop(pqueue)
+
+        best_history.append(best.cost)
+        cost_history.append(cur.cost)
         if len(pqueue):
             print(f'Round {r}/200: exploring {cur.cost}{" (new best!)" if cur < best else ""}')
         if cur < best:
@@ -533,6 +538,14 @@ def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], rounds=200):
         if len(cur.edges): # if there are still unexplored edges
             heappush(pqueue, schedule(cost=cur.cost, graph=nx.DiGraph(cur.graph), edges=cur.edges[:])) # put this back into the queue
 
+    """from matplotlib import pyplot as plt
+    plt.plot(cost_history)
+    plt.plot(best_history)
+    plt.show()"""
+
+    with open('trace.csv', 'w') as f:
+        f.write(','.join(map(str, cost_history)) + '\n')
+        f.write(','.join(map(str, best_history)) + '\n')
 
     return best
             
@@ -569,6 +582,7 @@ def vectorize(comp: CompilerV2):
     graph = nx.DiGraph(nx.subgraph(graph, actual_instrs))
 
     relaxed_schedule = pq_relax_schedule(graph, loaded_groups).graph
+
     # relaxed_schedule, _ = anneal_relax_schedule(graph, loaded_groups, t=20, beta=0.001, rounds=200)
 
     print('Column mapping:')
