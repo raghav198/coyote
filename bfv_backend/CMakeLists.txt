@@ -22,7 +22,11 @@ add_executable(${BENCHMARK} main.cpp util.cpp
 )
 set_target_properties(${BENCHMARK} PROPERTIES COMPILE_FLAGS "-DBENCHMARK_NAME=${BENCHMARK}")
 find_package(SEAL 3.7 REQUIRED)
-target_link_libraries(${BENCHMARK} SEAL::seal)
+if(TARGET SEAL::seal)
+	target_link_libraries(${BENCHMARK} SEAL::seal)
+elseif(TARGET SEAL::seal_shared)
+	target_link_libraries(${BENCHMARK} SEAL::seal_shared)
+endif()
 endforeach(BENCHMARK)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
