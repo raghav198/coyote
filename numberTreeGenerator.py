@@ -22,7 +22,7 @@ def treeGenerator(originalDepth, maxDepth, inputSeed) -> Expression:
     seed = inputSeed
     rand.seed(seed)
     localString = ""
-    if (originalDepth == maxDepth):
+    if (originalDepth == maxDepth or maxDepth == originalDepth - 1):
         randomNum = rand.randrange(0,2)
         lhs = treeGenerator(originalDepth, maxDepth-1, seed)
         rhs = treeGenerator(originalDepth, maxDepth-1, seed)
@@ -36,7 +36,7 @@ def treeGenerator(originalDepth, maxDepth, inputSeed) -> Expression:
         if (randomNum > 1):
             localString+=str(rand.randrange(0,1024))
             seed+=1
-            print(maxDepth)
+            print(10 - maxDepth)
             return Tree(Var(localString))
         else:
             lhs = treeGenerator(originalDepth, maxDepth-1, seed)
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     coyote = coyote_compiler()
 
     depth = 10
-    seed = 1062
+    seed = 2400
 
     # total_rotates = []
     # for i in range(20):
