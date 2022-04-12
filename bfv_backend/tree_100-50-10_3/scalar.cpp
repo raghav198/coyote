@@ -7,7 +7,7 @@ int ScalarProgram::num_registers()
 
 std::vector<std::string> ScalarProgram::vars_used()
 {
-    return {"833", "173", "624", "575", "474", "468", "266", "825", "514", "928", "581", "618", "276", "664", "228", "459", "922"};
+    return {"514", "825", "474", "581", "173", "459", "928", "575", "468", "276", "833", "266", "228", "624", "922", "618", "664"};
 }
 
 std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, RuntimeContext &info)

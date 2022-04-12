@@ -14,3 +14,4 @@
 **/bfv_backend/build/*
 **/.vscode/*
 **/outputs/*
+**/vector_synth/*
