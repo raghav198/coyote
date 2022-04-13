@@ -77,16 +77,19 @@ for disc in os.listdir('csvs/tree/'):
     labels.append(discs[disc])
     value = []
     for size in os.listdir(f'csvs/tree/{disc}'):
+        if size not in ['5', '10']:
+            continue
         speedups = np.array([1 / csv_speedup(f'csvs/tree/{disc}/{size}/{tree}') for tree in os.listdir(f'csvs/tree/{disc}/{size}')])
         print(f'{disc}.{size}:{speedups.mean()}')
         value.append(speedups.mean())
 
     values.append(tuple(value))
 
-s3, s6 = zip(*values)
+s10, s5 = zip(*values)
 x = np.arange(len(labels))
-plt.bar(x - width, s3, width=2 * width, color='#253494')
-plt.bar(x + width, s6, width=2 * width, color='#2c7fb8')
+plt.bar(x - width, s5, width=2 * width, color='#253494')
+plt.bar(x + width, s10, width=2 * width, color='#2c7fb8')
+plt.legend(['Depth 5', 'Depth 10'])
 plt.xticks(x, labels)
 plt.title('Random Polynomial Vectorized Speedups')
 plt.axhline(1, color='red')
