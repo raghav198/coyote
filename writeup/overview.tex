@@ -68,13 +68,16 @@ The compilation proceeds as follows:
     \item \system \textit{quotients} an input circuit (identifies subcircuits, and collapses them into single vertices) and assigns lanes to resulting vertices to produce a new circuit (a {\em pre-schedule}) that can be realized into a more efficient vector program. The result is a graph whose vertices correspond to connected subgraphs of the original circuit, such that no two vertices at the same height have the same lane (and hence are eligible to be vectorized together). In this quotient graph, a subcircuit gets identified if \system determines that the overhead of internally vectorizing it is not worth the gain from vectorization, so this step essentially forces certain operations to happen in scalar on a single lane. \raghav{I feel I haven't done a good enough job of justifying this.}
     
     In the example in Figure~\ref{fig:subcircuits-identified}, the two circled pairs of vertices are identified in the quotient, yielding the quotient circuit in Figure~\ref{fig:quotiented-circuit}.
-    The lane assignment for this pre-schedule puts each un-quotiented addition on the same lane as its quotiented parent vertex, and chooses one of these lanes on which to place the root of the tree. \raghav{better?}\milind{This is confusing. Does ``bottom level addition'' mean the addition {\em inside} the subcircuit? Or the other addition that isn't quotiented? I think you need to be more explicit about which operations you're talking about here.} Note that this lane assignment is not intended to be optimal (hence, is a pre-schedule).\raghav{what does this last part mean?}
+    The lane assignment for this pre-schedule puts each un-quotiented addition on the same lane as its quotiented parent vertex, and chooses one of these lanes on which to place the root of the tree.
+%     \raghav{better?}\milind{This is confusing. Does ``bottom level addition'' mean the addition {\em inside} the subcircuit? Or the other addition that isn't quotiented? I think you need to be more explicit about which operations you're talking about here.} Note that this lane assignment is not intended to be optimal (hence, is a pre-schedule).\raghav{what does this last part mean?}
 
-    Section~\ref{sec:schedule-search} describes how \system searches for such a quotient. \raghav{where do I put this?}
+    Section~\ref{sec:schedule-search} describes how \system searches for such a quotient. 
+%    \raghav{where do I put this?}
     
     \item The (equivalence classes of) vertices at each height are aligned to pack together isomorphic nodes, turning the pre-schedule into an actual vector schedule. 
     In our running example, the two adds at a height of 1 get trivially aligned, and the two ``supernodes'' at height 2 get aligned by packing together the two adds and the two multiplies.
-    Since there is a single vertex at height 3, no alignment needs to be done there. \raghav{Is this description clear?}
+    Since there is a single vertex at height 3, no alignment needs to be done there. 
+%    \raghav{Is this description clear?}
     The details of the alignment procedure are given in Section~\ref{sec:instruction-alignment}.
     Figure~\ref{fig:aligned-schedule} shows the result of this alignment.
     
