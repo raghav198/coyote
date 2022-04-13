@@ -264,3 +264,39 @@ keywords = {Homomorphic Encryption Circuit, Term Rewriting, Program Synthesis},
 location = {London, UK},
 series = {PLDI 2020}
 }
+
+@inproceedings{ALCHEMY,
+author = {Crockett, Eric and Peikert, Chris and Sharp, Chad},
+title = {ALCHEMY: A Language and Compiler for Homomorphic Encryption Made EasY},
+year = {2018},
+isbn = {9781450356930},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3243734.3243828},
+doi = {10.1145/3243734.3243828},
+abstract = {Fully Homomorphic Encryption (FHE) is a cryptographic "holy grail" that allows a worker to perform arbitrary computations on client-encrypted data, without learning anything about the data itself. Since the first plausible construction in 2009, a variety of FHE implementations have been given and used for particular applications of interest. Unfortunately, using FHE is currently very complicated, and a great deal of expertise is required to properly implement nontrivial homomorphic computations. This work introduces ALCHEMY, a modular and extensible system that simplifies and accelerates the use of FHE. ALCHEMY compiles "in-the-clear" computations on plaintexts, written in a modular domain-specific language~(DSL), into corresponding homomorphic computations on ciphertexts---with no special knowledge of FHE required of the programmer. The compiler automatically chooses (most of the) parameters by statically inferring ciphertext noise rates, generates keys and "key-switching hints," schedules appropriate ciphertext "maintenance" operations, and more. In addition, its components can be combined modularly to provide other useful functionality, such logging the empirical noise rates of ciphertexts throughout a computation, without requiring any changes to the original DSL code. As a testbed application, we demonstrate fast homomorphic evaluation of a pseudorandom function~(PRF) based on Ring-LWR, whose entire implementation is only a few dozen lines of simple DSL code. For a single (non-batched) evaluation, our unoptimized implementation takes only about 10 seconds on a commodity PC, which is more than an order of magnitude faster than state-of-the-art homomorphic evaluations of other PRFs, including some specifically designed for amenability to homomorphic evaluation.},
+booktitle = {Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications Security},
+pages = {1020–1037},
+numpages = {18},
+keywords = {domain-specific languages, fully homomorphic encryption, compilers},
+location = {Toronto, Canada},
+series = {CCS '18}
+}
+
+@inproceedings{Cingulata,
+author = {Carpov, Sergiu and Dubrulle, Paul and Sirdey, Renaud},
+title = {Armadillo: A Compilation Chain for Privacy Preserving Applications},
+year = {2015},
+isbn = {9781450334471},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/2732516.2732520},
+doi = {10.1145/2732516.2732520},
+abstract = {In this work we present Armadillo a compilation chain used for compiling applications written in a high-level language (C++) to work on encrypted data. The back-end of the compilation chain is based on homomorphic encryption. The tool-chain further automatically handle a huge amount of parallelism so as to mitigate the performance overhead of using homomorphic encryption.},
+booktitle = {Proceedings of the 3rd International Workshop on Security in Cloud Computing},
+pages = {13–19},
+numpages = {7},
+keywords = {parallel execution, homomorphic encryption, compilation chain},
+location = {Singapore, Republic of Singapore},
+series = {SCC '15}
+}

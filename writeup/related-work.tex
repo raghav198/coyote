@@ -27,6 +27,7 @@ Gazelle \cite{Gazelle} is a framework for secure neural network inference in FHE
 While it is very optimized for a particular use case, Gazelle is not {\em general}: it consists of a library of highly efficient vectorized kernels that useful in neural network applications.
 By contrast, \system can take arbitrary kernels and generate efficient vectorized code on the fly. \raghav{Not sure how to put this nicely, actually.}
 
+\raghav{Remove this since I folded EVA into the (ramparts, alchemy, etc.) sentence earlier?}
 Encrypted Vector Arithmetic (EVA) \cite{EVA} is another Python DSL that aims to make FHE programming more accessible; in particular, it also supports writing vector computation.
 However, unlike \system, EVA requires the program to write their vectorized code directly: it does not support automatically vectorizing arbitrary kernels.
 \raghav{Mention that EVA automatically does parameter selection? Or the fact that we could potentially target EVA as a backend if it weren't restricted to CKKS?}
@@ -55,8 +56,8 @@ By contrast, \system's cooperative scheduling strategy ensures that this does no
 % While goSLP does reason globally about lane placement, it has two drawbacks in an FHE context. First, it packs instructions into vectors before considering shuffling costs, so may over-aggressively vectorize, while \system may forego some vectorization opportunities in the name of getting packing larger expressions without rotation. Second, its lane placement algorithm considers arbitrary permutations, which are impractically expensive in FHE.
 % \raghav{goSLP frames vectorization overhead in terms of the number of {\em pack} and {\em unpack} operations incurred. For example, permuting the slots of a single vector incurs one unpack, whereas blending the contents of N vectors (without any permutation) incurs N unpacks. In other words, goSLP bakes in the assumption that wide blends are much more expensive than arbitrary permutations. This is fundamentally incompatible with FHE, since blends are almost free, whereas bad permutations can require several expensive rotations to realize. Essentially, in the FHE world, its often better to produce a schedule that {\em looks much worse} than to produce the traditionally optimal one.}
 
-Ramparts \cite{Ramparts} is a compiler that automatically lifts a program written in Julia into an optimized FHE circuit that perform the same computation.
-Unlike \system, the circuit optimizations Ramparts performs do not include vectorization.
+One class of related work consists of compilers \cite{Ramparts,ALCHEMY, EVA, Cingulata} that automatically lift programs written in a high level DSL into optimized FHE circuits that perform the same computation.
+Unlike \system, these circuit optimizations do not include automatic vectorization \footnote{Although \citet{ALCHEMY} and \citet{EVA} do support ciphertext packing, they require the programmer to manually express their computation over vectors.}.
 
 Swizzle Inventor \cite{SwizzleInventor} is a system which automatically synthesizes efficient data movement kernels for vectorized GPU code.
 There are two primary obstacles \system faces in directly applying this approach to our setting:
