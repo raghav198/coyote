@@ -1,0 +1,20 @@
+%6 %12 %18
+%0 = conv_4x2_partially(sig):0 ~ conv_4x2_partially(sig):0
+%1 = conv_4x2_partially(ker):0 ~ conv_4x2_partially(ker):0
+%2 = %0 * %1
+%3 = conv_4x2_partially(sig):1 ~ conv_4x2_partially(sig):1
+%4 = conv_4x2_partially(ker):1 ~ conv_4x2_partially(ker):1
+%5 = %3 * %4
+%6 = %2 + %5
+%7 = conv_4x2_partially(ker):0 ~ conv_4x2_partially(ker):0
+%8 = %3 * %7
+%9 = conv_4x2_partially(sig):2 ~ conv_4x2_partially(sig):2
+%10 = conv_4x2_partially(ker):1 ~ conv_4x2_partially(ker):1
+%11 = %9 * %10
+%12 = %8 + %11
+%13 = conv_4x2_partially(ker):0 ~ conv_4x2_partially(ker):0
+%14 = %9 * %13
+%15 = conv_4x2_partially(sig):3 ~ conv_4x2_partially(sig):3
+%16 = conv_4x2_partially(ker):1 ~ conv_4x2_partially(ker):1
+%17 = %15 * %16
+%18 = %14 + %17
