@@ -73,7 +73,7 @@ def composed_kernels(A, sig, ker):
 As the example in Figure~\ref{fig:coyote-program} shows, \system programs are just decorated Python functions.
 The decorator registers the function as defining a \system circuit, and allows the programmer to specify the function signature (i.e. the size and shape of each of its inputs).
 \system currently supports three input datatypes: {\sf scalar()}, {\sf vector(size)}, and {\sf matrix(rows, cols)}.
-Inputs annotated with {\sf scalar()} are always replicated and free to be placed anywhere in the vector schedule; by contrast, {\sf matrix} and {\sf vector} inputs are always packed together and by default unreplicated, although the latter option can be overridden.
+Inputs annotated with {\sf scalar()} are always replicated \milind{It's not clear what ``replicated'' means in this context. I'd add a section 4.5 to Design that is about replicating (or not) inputs} and free to be placed anywhere in the vector schedule; by contrast, {\sf matrix} and {\sf vector} inputs are always packed together and by default unreplicated, although the latter option can be overridden.
 For a full discussion of these packing and replication options, see Section~\ref{sec:duplicating-inputs}. \raghav{Should I include these sentences here, or just move them down to Section~\ref{sec:duplicating-inputs}?}
 
 \system internally uses a {\sf CoyoteVar} datatype which represents a symbolic encrypted value, and currently supports addition, subtraction, and multiplication.
@@ -95,19 +95,18 @@ The generated circuit is then passed to \system's back end, which vectorizes the
 \subsection{Code Generation}\label{sec:codegen}
 The output of the algorithm in Section~\ref{sec:design} is a vector schedule (i.e. a lane and schedule slot for each scalar, where the schedule slot determines the order in which instructions get executed).
 
-The available vector instructions and their semantics are as follows:
-\raghav{Is this table clear?}
+This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction. The available vector instructions and their semantics are as follows:
+%\raghav{Is this table clear?}\milind{Add plain English sentence for each explaining what it's doing.}
 \begin{description}
-    \item[Vector Add ($dest = v_1 + v_2$)] $dest[i] = v_1[i] + v_2[i]$
-    \item[Vector Multiply ($dest = v_1 * v_2$)] $dest[i] = v_1[i] * v_2[i]$
-    \item[Rotate ($dest = v \gg n$)] $dest[i] = v[i - n]$
-    \item[Blend ($dest = blend(v_1, \dots, v_n)$)] $dest[i] = v_i[i]$
+    \item[Vector Add ($dest = v_1 + v_2$)] adds two vectors of values together: $dest[i] = v_1[i] + v_2[i]$
+    \item[Vector Multiply ($dest = v_1 * v_2$)] multiplies two vectors of values together: $dest[i] = v_1[i] * v_2[i]$
+    \item[Rotate ($dest = v \gg n$)] performs a circular rotation of a vector $n$ slots to the right: $dest[i] = v[i - n]$ \milind{need to have some modular operation here?}
+    \item[Blend ($dest = blend(v_1, \dots, v_n)$)] creates a new length-$n$ vector from $n$ input vectors by picking the $i$th slot from the $i$th vector: $dest[i] = v_i[i]$. This operation is implemented by multiplying the input vectors by plain-text mask vectors, and adding them together.
 \end{description}
 
-\raghav{Does the table above make this paragraph redundant?}
-This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction.
-A blend instruction does no data movement, but takes several vectors and ``blends'' them together by choosing specific lanes to take from each one.
-In practice, this is implemented as a series of plaintext/ciphertext multiplies (where each ciphertext vector is multiplied by a plaintext ``bitmask'' to hide certain lanes), followed by several ciphertext/ciphertext adds, where each of the masked vectors is added together.
+%\raghav{Does the table above make this paragraph redundant?}
+%A blend instruction does no data movement, but takes several vectors and ``blends'' them together by choosing specific lanes to take from each one.
+%In practice, this is implemented as a series of plaintext/ciphertext multiplies (where each ciphertext vector is multiplied by a plaintext ``bitmask'' to hide certain lanes), followed by several ciphertext/ciphertext adds, where each of the masked vectors is added together.
 
 
 Throughout the compilation, we keep a lookup table that maps a (scalar, lane) pair to the name of the vector register containing it.
@@ -127,16 +126,12 @@ This is a straightforward process, and essentially consists of transliterating t
 SEAL does not support a built-in blend instruction, though, so each of these generate several ciphertext/plaintext multiplies followed by a single ciphertext add.
 While lowering to C++, we also precompute all the blending masks, so that we can encode all of them into the plaintext space once at the beginning of the program and just look up the appropriate one to use each time.
 
-\subsection{Optimality Tradeoffs}\label{sec:optimality-tradeoffs} \raghav{Is this the right name for the section?}
+\subsection{Optimality Tradeoffs}\label{sec:optimality-tradeoffs} 
+%\raghav{Is this the right name for the section?}
 Because the instruction alignment phase only happens once a pre-schedule has been computed, the results of alignment are not available to our cost model.
 This is by design, since the instruction alignment problem is formulated as an ILP (Section~\ref{sec:instruction-alignment}), and making multiple expensive calls to an ILP solver in each round of the pre-schedule search would quickly make the entire search procedure intractable.
-However, this does bear an impact on the cost model, as without alignment results, we are forced to work at the level of granularity of entire epochs, resulting in approximations of the schedule height and number of rotation rotations.
-
-In particular, the approximations tend to underestimate the true cost of the final realized schedule in two ways:
-\begin{itemize}
-    \item Undercounting the number of rotations
-    \item Underestimating the height of a given epoch
-\end{itemize}
+However, this does have an impact on the cost model, as without alignment results, we are forced to work at the level of granularity of entire epochs, resulting in approximations of the schedule height and number of rotation rotations.
+In particular, the approximations tend to underestimate the true cost of the final realized schedule in two ways: (i) undercounting the number of rotations; and (ii) underestimating the height of a given epoch.
 
 When counting rotations, we assume that if two cross-lane arcs originate from the same epoch and have the same span, they can be realized with a single rotation instrution.
 This assumption fails if the instructions each arc rotates \raghav{(?)} do not get aligned in the final schedule, since there are now multiple vectors in that epoch that require the same rotation.
@@ -168,6 +163,7 @@ We could do a more sophisticated analysis at this step to get estimates that are
 % Once again, this amounts to sacrificing optimality for compilation time: by increasing the time limit on finding the paths, we can avoid missing relations, and ensure that we never have to do this.
 
 \subsection{Input Layout}\label{sec:duplicating-inputs}
+\milind{The first paragraph of this, or some variation of it, should go in design...}
 The arithmetic circuits input to \system are DAGs, which fail to be trees exactly when values are used as inputs to multiple computations (for instance, in the expression $ab + ac$, the value $a$ is used as an input to both multiplies).
 Any such DAG can be turned into a tree, however, simply by creating copies of each repeated value, in a ``reverse-CSE'' process.
 %Applying this to the example expression yields $a_1b + a_2c$ where $a_1$ and $a_2$ are fresh input variables that both have the same value passed into them.
