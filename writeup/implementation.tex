@@ -72,17 +72,16 @@ def composed_kernels(A, sig, ker):
 \system consists of an embedded DSL (eDSL) in Python that can be used to write FHE programs.
 As the example in Figure~\ref{fig:coyote-program} shows, \system programs are just decorated Python functions.
 The decorator registers the function as defining a \system circuit, and allows the programmer to specify the function signature (i.e. the size and shape of each of its inputs).
-\system currently supports three input datatypes: \texttt{scalar()}, \texttt{vector(size)}, and \texttt{matrix(rows, cols)}.
-Inputs annotated with \texttt{scalar()} are always replicated and free to be placed anywhere in the vector schedule; by contrast, \texttt{matrix} and \texttt{vector} inputs are always packed together and by default unreplicated, although the latter option can be overridden.
+\system currently supports three input datatypes: {\sf scalar()}, {\sf vector(size)}, and {\sf matrix(rows, cols)}.
+Inputs annotated with {\sf scalar()} are always replicated and free to be placed anywhere in the vector schedule; by contrast, {\sf matrix} and {\sf vector} inputs are always packed together and by default unreplicated, although the latter option can be overridden.
 For a full discussion of these packing and replication options, see Section~\ref{sec:duplicating-inputs}. \raghav{Should I include these sentences here, or just move them down to Section~\ref{sec:duplicating-inputs}?}
 
-\system internally uses a \texttt{CoyoteVar} datatype which represents a symbolic encrypted value, and currently supports addition, subtraction, and multiplication.
-To produce a circuit, \system creates a number of these \texttt{CoyoteVar} variables (as defined by the signature provided in the decorator) and executes the function with these as parameters.
-This method of generating circuits means that any Python construct that does not involve performing unsupported operations on encrypted values\footnote{Unsupported operations include using ciphertexts in branching conditions, loop bounds, or array indices.} can be used as normal in a \system program (for instance, \texttt{zip}s and list comprehensions as in Figure~\ref{fig:coyote-program} on line~\ref{code:zip}).
+\system internally uses a {\sf CoyoteVar} datatype which represents a symbolic encrypted value, and currently supports addition, subtraction, and multiplication.
+To produce a circuit, \system creates a number of these {\sf CoyoteVar} variables (as defined by the signature provided in the decorator) and executes the function with these as parameters.
+This method of generating circuits means that any Python construct that does not involve performing unsupported operations on encrypted values\footnote{Unsupported operations include using ciphertexts in branching conditions, loop bounds, or array indices.} can be used as normal in a \system program (for instance, the {\sf zip} and list comprehension in Figure~\ref{fig:coyote-program} on line~\ref{code:zip}).
 Notably, \system-decorated functions can include for loops with plaintext induction variables (as on line~\ref{code:for_loop} in Figure~\ref{fig:coyote-program}), and can call other Python functions (including other \system programs, as in Figure~\ref{fig:coyote-programs-compose} on lines~\ref{code:call_conv} and \ref{code:call_matvec}) allowing programmers to write individual kernels and then easily compose them into a larger program.
 All loops all fully unrolled and nested function calls are fully inlined before compilation.
 The generated circuit is then passed to \system's back end, which vectorizes the computation as described in the previous sections, yielding a sequence of primitive vector operations that can be furter lowered into C++ code targeting Microsoft SEAL's backend for BFV~\cite{seal}.
-
 
 
 % \system provides an embedded DSL (eDSL) in Python for expressing FHE programs. \system provides a \texttt{CoyoteVar} datatype which represents a symbolic encrypted value, and supports addition, subtraction, and multiplication. Executing a program that uses \texttt{CoyoteVar}s stages the execution into an arithmetic circuit (e.g., adding together two \texttt{CoyoteVar}s produces a \texttt{CoyoteExpr} that captures an abstract syntax tree representing the addition). 
@@ -95,13 +94,25 @@ The generated circuit is then passed to \system's back end, which vectorizes the
 
 \subsection{Code Generation}\label{sec:codegen}
 The output of the algorithm in Section~\ref{sec:design} is a vector schedule (i.e. a lane and schedule slot for each scalar, where the schedule slot determines the order in which instructions get executed).
+
+The available vector instructions and their semantics are as follows:
+\raghav{Is this table clear?}
+\begin{description}
+    \item[Vector Add ($dest = v_1 + v_2$)] $dest[i] = v_1[i] + v_2[i]$
+    \item[Vector Multiply ($dest = v_1 * v_2$)] $dest[i] = v_1[i] * v_2[i]$
+    \item[Rotate ($dest = v \gg n$)] $dest[i] = v[i - n]$
+    \item[Blend ($dest = blend(v_1, \dots, v_n)$)] $dest[i] = v_i[i]$
+\end{description}
+
+\raghav{Does the table above make this paragraph redundant?}
 This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction.
 A blend instruction does no data movement, but takes several vectors and ``blends'' them together by choosing specific lanes to take from each one.
 In practice, this is implemented as a series of plaintext/ciphertext multiplies (where each ciphertext vector is multiplied by a plaintext ``bitmask'' to hide certain lanes), followed by several ciphertext/ciphertext adds, where each of the masked vectors is added together.
 
+
 Throughout the compilation, we keep a lookup table that maps a (scalar, lane) pair to the name of the vector register containing it.
 In particular, there may be several vector registers that contain a particular scalar, but on separate lanes (this results from a rotation of the original register where the instruction was produced).
-(For example, the table might say ``The vector register {\texttt s2} has scalar 11 on lane 3'').
+(For example, the table might say ``The vector register {\sf s2} has scalar 11 on lane 3'').
 
 At every time step, the schedule compiler finds all scalar instructions scheduled to execute.
 For each operand, we use the table to look up the name of the register containing that scalar in the appropriate lane.
