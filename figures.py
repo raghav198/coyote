@@ -11,11 +11,10 @@ csv_speedup = lambda name: (lambda arr: (arr[1:, 2] / arr[1:, 6]).mean())(np.gen
 
 benchmarks = ['distances', 'conv', 'matmul', 'dot_product']
 
-labels = []
-values = []
-
 names = {'distances': 'dist', 'conv': 'conv', 'matmul': 'mm', 'dot_product': 'dot'}
 sizes = lambda s: (lambda a, b: a if a == b else f'{a}.{b}')(*s.split('x'))
+
+speedups = {}
 
 for benchmark in benchmarks:
     for size in os.listdir(f'csvs/{benchmark}'):
@@ -23,18 +22,20 @@ for benchmark in benchmarks:
         p = 1 / csv_speedup(f'csvs/{benchmark}/{size}/{benchmark}_{size}_partially.csv')
         f = 1 / csv_speedup(f'csvs/{benchmark}/{size}/{benchmark}_{size}_fully.csv')
 
-        labels.append(f'{names[benchmark]}.{sizes(size)}')
-        values.append((u, p, f))
+        speedups[f'{names[benchmark]}.{sizes(size)}'] = (u, p, f)
 
 width = 0.2
 
-labels.append('zdtree')
-values.append(tuple(1 / csv_speedup(f'csvs/decision_tree/decision_tree_packed_{suf}.csv') for suf in 'un,partially,fully'.split(',')))
+speedups['dtree'] = tuple(1 / csv_speedup(f'csvs/decision_tree/decision_tree_packed_{suf}.csv') for suf in 'un,partially,fully'.split(','))
 dtree_scalar_speedup = 1 / csv_speedup('csvs/decision_tree/decision_tree.csv')
 
+labels = [(lambda n, s: (n, eval(s)))(*l.split('.', 1)) for l in speedups.keys() if '.' in l]
+labels = list(map(lambda l: f'{l[0]}.{l[1]}', sorted(labels))) + ['dtree']
+values = [speedups[l] for l in labels]
+
 x = np.arange(len(labels))
-labels, values = zip(*sorted(zip(labels, values)))
-labels = labels[:-1] + ('dtree',)
+# labels, values = zip(*sorted(zip(labels, values)))
+# labels = labels[:-1] + ('dtree',)
 
 
 us, ps, fs = zip(*values)
@@ -104,15 +105,15 @@ plt.close()
 schedule_10k = np.genfromtxt('csvs/dist10k.csv', delimiter=',')
 schedule_15k = np.genfromtxt('csvs/dist15k.csv', delimiter=',')
 schedule_20k = np.genfromtxt('csvs/dist20k.csv', delimiter=',')
-schedule_50k = np.genfromtxt('csvs/dist50k.csv', delimiter=',')
+# schedule_50k = np.genfromtxt('csvs/dist50k.csv', delimiter=',')
 
 
 plt.plot(schedule_10k[1, :])
 plt.plot(schedule_15k[1, :])
 plt.plot(schedule_20k[1, :])
-plt.plot(schedule_50k[1, :])
+# plt.plot(schedule_50k[1, :])
 plt.title('Schedule cost over time')
 plt.xlabel('Number of rounds')
 plt.ylabel('Cost')
-plt.legend(['10k', '15k', '20k', '50k'])
+plt.legend(['10k', '15k', '20k'])
 plt.savefig('writeup/figures/graphs/schedules.png')
