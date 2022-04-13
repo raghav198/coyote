@@ -291,7 +291,7 @@ In practice, this is enough to find highly efficient schedules.
 % And it can consider whether larger subexpressions should be vectorized even if their component pieces may not play nicely together.
 
 \subsection{Instruction Alignment}\label{sec:instruction-alignment}\raghav{I just lifted this from the old version, is it still good or do we need to update it?}
-Given a set of subexpressions to compute in a single epoch of the program, we can align the instructions between subexpressions to actually produce a vector schedule.
+Given a set of subcircuits to compute in a single epoch of the program, we can align the instructions between subcircuits to actually produce a vector schedule.
 It may seem like the solution to this is just sequence alignment, but aligning circuits is actually more complicated than that.
 At each step, the number of available children that can be aligned roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
 This causes the dynamic programming strategy of sequence alignment to quickly blow up.
