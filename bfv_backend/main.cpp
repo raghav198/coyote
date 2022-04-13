@@ -16,8 +16,8 @@
 
 using _clock = std::chrono::high_resolution_clock;
 using ms = std::chrono::milliseconds;
-constexpr int ITERATIONS = 50;
-constexpr int RUNS = 50;
+constexpr int ITERATIONS = 20;
+constexpr int RUNS = 20;
 
 int main(int argc, char** argv)
 { 

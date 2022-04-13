@@ -52,7 +52,7 @@ std::vector<std::string> ScalarProgram::vars_used()
 
 std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, RuntimeContext &info)
 {{
-    seal::RelinKeys rk = info.keys->rk;
+    seal::RelinKeys& rk = info.keys->rk;
     ctxt regs[num_registers()];
     {}
 }}
@@ -161,8 +161,8 @@ std::vector<ctxt> VectorProgram::initialize_temps(RuntimeContext &info)
 
 ctxt VectorProgram::computation(std::vector<ctxt> ts, std::map<std::string, ptxt> bits, RuntimeContext &info)
 {{
-    seal::RelinKeys rk = info.keys->rk;
-    seal::GaloisKeys gk = info.keys->gk;
+    seal::RelinKeys& rk = info.keys->rk;
+    seal::GaloisKeys& gk = info.keys->gk;
 
     ctxt vs[{}];
     ctxt ss[{}];

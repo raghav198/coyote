@@ -4,10 +4,10 @@
 std::map<std::string, ptxt> VectorProgram::make_bits(RuntimeContext &info)
 {
     std::map<std::string, ptxt> bits;
-    add_bitstring(bits, "1000", info);
-    add_bitstring(bits, "0010", info);
-    add_bitstring(bits, "0110", info);
     add_bitstring(bits, "0001", info);
+    add_bitstring(bits, "0110", info);
+    add_bitstring(bits, "0010", info);
+    add_bitstring(bits, "1000", info);
     return bits;
 }
 
@@ -34,8 +34,8 @@ std::vector<ctxt> VectorProgram::initialize_temps(RuntimeContext &info)
 
 ctxt VectorProgram::computation(std::vector<ctxt> ts, std::map<std::string, ptxt> bits, RuntimeContext &info)
 {
-    seal::RelinKeys rk = info.keys->rk;
-    seal::GaloisKeys gk = info.keys->gk;
+    seal::RelinKeys& rk = info.keys->rk;
+    seal::GaloisKeys& gk = info.keys->gk;
 
     ctxt vs[14];
     ctxt ss[2];

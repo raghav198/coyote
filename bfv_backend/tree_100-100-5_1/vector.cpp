@@ -4,12 +4,12 @@
 std::map<std::string, ptxt> VectorProgram::make_bits(RuntimeContext &info)
 {
     std::map<std::string, ptxt> bits;
-    add_bitstring(bits, "0100000", info);
-    add_bitstring(bits, "0001000", info);
-    add_bitstring(bits, "0000100", info);
-    add_bitstring(bits, "0100010", info);
-    add_bitstring(bits, "1000000", info);
     add_bitstring(bits, "0000001", info);
+    add_bitstring(bits, "0001000", info);
+    add_bitstring(bits, "0100010", info);
+    add_bitstring(bits, "0000100", info);
+    add_bitstring(bits, "0100000", info);
+    add_bitstring(bits, "1000000", info);
     return bits;
 }
 
@@ -29,8 +29,8 @@ std::vector<ctxt> VectorProgram::initialize_temps(RuntimeContext &info)
 
 ctxt VectorProgram::computation(std::vector<ctxt> ts, std::map<std::string, ptxt> bits, RuntimeContext &info)
 {
-    seal::RelinKeys rk = info.keys->rk;
-    seal::GaloisKeys gk = info.keys->gk;
+    seal::RelinKeys& rk = info.keys->rk;
+    seal::GaloisKeys& gk = info.keys->gk;
 
     ctxt vs[7];
     ctxt ss[4];
