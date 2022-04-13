@@ -5,7 +5,9 @@ The problem with this naive strategy is it makes no guarantees about values bein
 Unlike in normal vectorization, where applying arbitrary permutations to the lanes is relatively cheap, in FHE we are only allowed to rotate the entire vector by a fixed number of slots, and this rotation operation is expensive.
 Hence, the cost of bookkeeping quickly outweighs whatever benefit we might get from vectorization, making this approach not worth it.
 
-In effect, when trying to compute an efficient vector schedule \raghav{Terminology things once again: I need a word for ``vertical alignment'' that isn't ``schedule'', since I want to use ``schedule'' to refer to the combination of vertical {\em and} horizontal alignment\dots} for an FHE program, we have two optimization problems to solve: instruction scheduling, and data layout.
+In effect, when trying to compute an efficient vectorization 
+%\raghav{Terminology things once again: I need a word for ``vertical alignment'' that isn't ``schedule'', since I want to use ``schedule'' to refer to the combination of vertical {\em and} horizontal alignment\dots} 
+for an FHE program, we have two optimization problems to solve: instruction scheduling, and data layout.
 Optimizing only for instruction scheduling essentially gives us the SLP approach: aggressively pack together isomorphic instructions without worrying about the incurred data movement overhead.
 Optimizing for data layout places us on the other end of the spectrum: to avoid having to do any rotates, we must place each connected component of the circuit on a single lane, effectively precluding any vectorization and forcing us to execute everything as scalar operations.
 
@@ -42,7 +44,8 @@ Taking successive quotients of the circuit reduces the total number of edges, an
 To account for this, and to prevent the optimal schedule from being the trivial one described above, we need a way of quantifying the amount of vectorization we're ``giving up'' with each quotient.
 
 Unfortunately, directly computing the opportunity cost is very messy: the amount of vectorization we give up by identifying a set of vertices is not a property local to the vertices, but rather requires us to look globally at {\em all possible vertices} in those epochs, to see which vectorization opportunities are no longer available after the identification.
-Instead, we use an estimated {\em schedule height} as a proxy, with the justification being that giving up a lot of vectorization generally results in taller, less efficient final schedules. \raghav{Is it enough to say this? Or do I need to justify it further? Or should I remove these paragraphs entirely and just directly describe the schedule height computation?}
+Instead, we use an estimated {\em schedule height} as a proxy, with the justification being that giving up a lot of vectorization generally results in taller, less efficient final schedules. 
+%\milind{this is good.}\raghav{Is it enough to say this? Or do I need to justify it further? Or should I remove these paragraphs entirely and just directly describe the schedule height computation?}
 
 The schedule height computation once again proceeds epoch-by-epoch.
 For each epoch, we estimate the minimum number of vector instructions required after packing by taking the maximum number of each type of operation across all the subcircuits associated to the vertices in that epoch\footnote{Once again, this is an underestimate of the actual height when the schedule is fully realized, since it doesn't take into account any dependences between the instructions. This is addressed in Section~\ref{sec:optimality-tradeoffs}}.
@@ -52,7 +55,8 @@ The estimated height for this epoch would be 3 adds and 4 multiplies.
 \subsubsection*{Overall Cost}
 The analysis presented above computes an estimate for the number of each type of instruction in the generated vector program.
 The final cost used a linear combination of all of these, with weights determined empirically by how expensive each instruction type is relative to the rest.
-In our implementation, we scale rotates and multiplies by $1$, and addition and subtraction by $0.1$. \raghav{Should this last sentence go here, or in implementation? Or both?}
+For example, in our implementation, we scale rotates and multiplies by $1$, and addition and subtraction by $0.1$. 
+%\raghav{Should this last sentence go here, or in implementation? Or both?}\milind{Both is good.}
 
 \subsection{Schedule Search}\label{sec:schedule-search}
 Given a cost model, we use a two-layer optimization strategy to produce a schedule that has good packing properties without incurring too much data movement overhead.
@@ -146,7 +150,7 @@ The outer layer searches the space of quotients for a graph that admits a good l
 Here, we use a priority queue to implement a simple best-first search.
 Each graph in the queue is assumed to already be equipped with an optimal lane placement, via the algorithm described above.
 At each step, a graph is dequeued, and a new candidate solution is generated by looking at its set of cross-lane arcs and choosing one to contract.
-The contracted graph may not be acyclic, so we first mod out by all cycles before running the lane placement algorithm again.
+The contracted graph may not be acyclic, so we first mod out by all cycles before running the lane placement algorithm again.\milind{It's not clear what ``mod out by all cycles'' means -- add more meat here...}
 The candidate solution is then enqueued with a priority based on its cost from the annealed lane placement.
 If there are more available arcs to contract, the original graph is enqueued again.
 
@@ -290,7 +294,9 @@ In practice, this is enough to find highly efficient schedules.
 % It can consider the similarity of small subexpressions when deciding what larger subexpressions to pack together. 
 % And it can consider whether larger subexpressions should be vectorized even if their component pieces may not play nicely together.
 
-\subsection{Instruction Alignment}\label{sec:instruction-alignment}\raghav{I just lifted this from the old version, is it still good or do we need to update it?}
+\subsection{Instruction Alignment}\label{sec:instruction-alignment}
+%\raghav{I just lifted this from the old version, is it still good or do we need to update it?}
+
 Given a set of subcircuits to compute in a single epoch of the program, we can align the instructions between subcircuits to actually produce a vector schedule.
 It may seem like the solution to this is just sequence alignment, but aligning circuits is actually more complicated than that.
 At each step, the number of available children that can be aligned roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
