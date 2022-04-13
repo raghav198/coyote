@@ -7,12 +7,12 @@ int ScalarProgram::num_registers()
 
 std::vector<std::string> ScalarProgram::vars_used()
 {
-    return {"571", "533", "522", "621", "413", "65", "134", "231", "1017", "114", "779", "941", "707", "755", "1011", "30", "379", "603", "390", "234", "840", "145", "35", "702", "362", "967", "761", "805", "133", "290", "67", "894", "816", "530", "318"};
+    return {"533", "530", "1017", "761", "1011", "816", "290", "522", "114", "702", "621", "755", "413", "779", "35", "234", "134", "805", "894", "603", "362", "133", "65", "379", "571", "30", "145", "67", "318", "707", "390", "941", "231", "840", "967"};
 }
 
 std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, RuntimeContext &info)
 {
-    seal::RelinKeys rk = info.keys->rk;
+    seal::RelinKeys& rk = info.keys->rk;
     ctxt regs[num_registers()];
     info.eval->multiply(locs["145"], locs["967"], regs[0]);
     info.eval->relinearize_inplace(regs[0], rk);

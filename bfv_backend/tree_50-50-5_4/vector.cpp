@@ -5,9 +5,9 @@ std::map<std::string, ptxt> VectorProgram::make_bits(RuntimeContext &info)
 {
     std::map<std::string, ptxt> bits;
     add_bitstring(bits, "001000", info);
+    add_bitstring(bits, "000100", info);
     add_bitstring(bits, "100000", info);
     add_bitstring(bits, "000001", info);
-    add_bitstring(bits, "000100", info);
     return bits;
 }
 

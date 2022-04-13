@@ -4,23 +4,23 @@
 std::map<std::string, ptxt> VectorProgram::make_bits(RuntimeContext &info)
 {
     std::map<std::string, ptxt> bits;
-    add_bitstring(bits, "0000000010000", info);
-    add_bitstring(bits, "0100000000000", info);
-    add_bitstring(bits, "0000000100000", info);
-    add_bitstring(bits, "0000000101000", info);
-    add_bitstring(bits, "0000000001000", info);
-    add_bitstring(bits, "0000010000000", info);
-    add_bitstring(bits, "0000000000001", info);
-    add_bitstring(bits, "0000000000010", info);
-    add_bitstring(bits, "0001100000000", info);
-    add_bitstring(bits, "0000000100010", info);
-    add_bitstring(bits, "0010000000000", info);
-    add_bitstring(bits, "0001010000000", info);
-    add_bitstring(bits, "0010000000100", info);
     add_bitstring(bits, "0000001100000", info);
+    add_bitstring(bits, "0100000000000", info);
+    add_bitstring(bits, "0000000001000", info);
     add_bitstring(bits, "0000001000000", info);
-    add_bitstring(bits, "0000100000000", info);
+    add_bitstring(bits, "0001100000000", info);
+    add_bitstring(bits, "0000000100000", info);
     add_bitstring(bits, "0001000001000", info);
+    add_bitstring(bits, "0000100000000", info);
+    add_bitstring(bits, "0010000000100", info);
+    add_bitstring(bits, "0000010000000", info);
+    add_bitstring(bits, "0001010000000", info);
+    add_bitstring(bits, "0000000000001", info);
+    add_bitstring(bits, "0000000101000", info);
+    add_bitstring(bits, "0010000000000", info);
+    add_bitstring(bits, "0000000010000", info);
+    add_bitstring(bits, "0000000100010", info);
+    add_bitstring(bits, "0000000000010", info);
     return bits;
 }
 
