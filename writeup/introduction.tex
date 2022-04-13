@@ -44,28 +44,64 @@ In general, without carefully accounting for, and controlling, rotation, traditi
     \Description{A figure of an arithmetic circuit computing ((a + b) * (c + d)) + ((e + f) * (g + h))}
 \end{figure*}
 
+
+\begin{figure}
+    \begin{subfigure}{0.2\columnwidth}
+        \begin{verbatim}
+%0 = a + b
+%1 = c + d
+%2 = %0 * %1
+%3 = e + f
+%4 = g + h
+%5 = %3 * %4
+%6 = %2 + %5
+        \end{verbatim}
+        \caption{No vectorization}\label{fig:no-vectorization}
+    \end{subfigure}
+    \begin{subfigure}{0.6\columnwidth}
+        \begin{verbatim}
+[%0, %1, %3, %4] = [a, c, e, g] + [b, d, f, h]
+[%2, _, %5, _] = [%0, _, %3, _] * [%1, _, %4, _]
+[%6, _, _, _] = [%2, _, _, _] + [%5, _, _, _]
+        \end{verbatim}
+        \caption{Aggressive vectorization, incurs two rotates}\label{fig:aggressive-vectorization}
+    \end{subfigure}
+    \begin{subfigure}{0.4\columnwidth}
+        \begin{verbatim}
+[%1, %3] = [c, e] + [d, f]
+[%0, %4] = [a, g] + [b, h]
+[%2, %5] = [%0, %3] * [%1, %4]
+[%6, _] = [%2, _] + [%5, _]
+        \end{verbatim}
+        \caption{Optimal schedule, incurs one rotate}\label{fig:optimal-schedule}
+    \end{subfigure}
+    \caption{Possible schedules for Figure~\ref{fig:example-circuit}}
+\end{figure}
+
 %\raghav{TODO: find a better place to put this paragraph, maybe?}
 %
 Consider the arithmetic circuit in Figure~\ref{fig:example-circuit} implementing $((a + b) * (c + d)) + ((e + f) * (g + h))$.\footnote{We adopt the FHE-standard representation of arithmetic circuits as the intermediate representation for our programs~\cite{Gentry,CircuitRewriting,Ramparts,Porcupine}.}
-A naive attempt at vectorizing this circuit packs together the four additions at the first level, and the two multiplies at the second level.
-This produces a schedule with a vector add, followed by a vector multiply, followed by an add. Rotations are needed between each operation to align the outputs of each operation with the next operation..
+A naive attempt at vectorizing this circuit packs together the four additions at the first level, and the two multiplies at the second level (as in the schedule in Figure~\ref{fig:aggressive-vectorization}).
+This produces a schedule with a vector add, followed by a vector multiply, followed by an add. Rotations are needed between each operation to align the outputs of each operation with the next operation.
 Using an approximate model\footnote{\citet{AlgosHElib} assign a ``high latency'' to both multiplies and rotates and a ``low latency'' to adds. For both simplicity and concreteness, we assume a 10:1 ratio between ``high latency'' and ``low latency''} of the relative latencies of each instruction in which multiplies and rotates have a latency of 1 and addition has a latency of 0.1, the total cost of this schedule is 3.2.
-However, by doing no vectorization and executing the circuit entirely with scalar operations, we have 5 adds and two multiplies, with an overall cost of 2.5.
+However, by doing no vectorization and executing the circuit entirely with scalar operations (Figure~\ref{fig:no-vectorization}), we have 5 adds and two multiplies, with an overall cost of 2.5.
 In this case, vectorization actually makes the performance {\em worse}!
-We can do better, though. though.
+We can do better, though, as shown in Figure~\ref{fig:optimal-schedule}.
 We can pack the the first and the third adds ($a + b$ and $e + f$) separately from the second and the fourth ($c + d$ and $g + h$), so that neither of them require a rotation to align with the multiply above them.
-We are effectively saving one rotation at the cost of an extra vector addition, resulting in a schedule with an overall cost of only 2.3. \raghav{further TODO: dunno how much detail I should be going into here. Should I enumerate the nodes of the circuit and refer to them explicitly? Or insert a sample of the vectorized code in both cases? Or something else? As it is, I'm certain this is pretty hard to follow.}\milind{I tried to make this simpler, but it might be good to shrink the tree in Figure 1, and put three subfigures next to it showing the three schedules.}\raghav{Schedules like the ones in Figure~\ref{fig:aligned-schedule}?}\milind{yes.}
+We are effectively saving one rotation at the cost of an extra vector addition, resulting in a schedule with an overall cost of only 2.3.
+% \raghav{further TODO: dunno how much detail I should be going into here. Should I enumerate the nodes of the circuit and refer to them explicitly? Or insert a sample of the vectorized code in both cases? Or something else? As it is, I'm certain this is pretty hard to follow.}
+% \milind{I tried to make this simpler, but it might be good to shrink the tree in Figure 1, and put three subfigures next to it showing the three schedules.}\raghav{Schedules like the ones in Figure~\ref{fig:aligned-schedule}?}\milind{yes.}
 
 This means that we need a new arbitrary vectorization strategy that is {\em FHE-aware}; i.e., it packs instructions without relying on regularity in the original computation, and can still account for the high cost of data movement throughout the program.
 
 \subsection*{Co-optimization of vector packing and data layout}
-\milind{check}
+\milind{check}\raghav{I like it}
 Our key insight is that because rotations are so expensive, data layout and vector packing are fundamentally intertwined. Rather than treat these as separate problems, we must optimize them {\em together} when finding a schedule.
 The main obstacle to optimality when using the classical approach is simple: vectorizing across instructions by aggressively packing them into vectors can require substantial, and complex, data movement to align operands for downstream vector instructions (e.g., \citet{SwizzleInventor}, which resorts to sketch-based synthesis to generate the appropriate permutations). In a setting where permuting operands between lanes can only be done with expensive rotations, an aggressively packed schedule can often incur so much rotation overhead that no amount of vectorization makes it worth it.
 
-Instead, we develop an approach that works at the level of {\em subcircuits}, splitting the program up into smaller pieces within which all the computations are locked into a single lane to avoid doing any rotations at all. While vectorizing across subcircuits gives up some packing potential (because operations within a subcircuit cannot be vectorized together), the savings on rotation costs can make up the difference. The optimal schedule of Figure~\ref{fig:example-circuit} can be viewed as grouping $(a + b)$ with its downstream multiply in one subciruit, and $(g + h)$ with its downstream multiply in another subcircuit, and then vectorizing those two subcircuits together.
+Instead, we develop an approach that works at the level of {\em subcircuits}, splitting the program up into smaller pieces within which all the computations are locked into a single lane to avoid doing any rotations at all. While vectorizing across subcircuits gives up some packing potential (because operations within a subcircuit cannot be vectorized together), the savings on rotation costs can make up the difference: the subcircuits prevent over-vectorization that incurs too many rotations. The optimal schedule of Figure~\ref{fig:example-circuit} can be viewed as grouping $(a + b)$ with its downstream multiply in one subciruit, and $(g + h)$ with its downstream multiply in another subcircuit, and then vectorizing those two subcircuits together.
 
-This approach yields a natural question: how do we decide which computations to merge into a subcircuit? This seems inherently circular: subcircuit merging is intended to yield fewer rotations, but which rotations rotations are necessary is determined by data layout decisions, and data layout decisions are driven by which operations are vectorized together, which in turn is constrained by subcircuit identification.
+This approach yields a natural question: how do we decide which computations to merge into a subcircuit? This seems inherently circular: subcircuit merging is intended to yield fewer rotations, but which rotations are necessary is determined by data layout decisions, and data layout decisions are driven by which operations are vectorized together, which in turn is constrained by subcircuit identification.
 
 \subsection*{Contributions}
 

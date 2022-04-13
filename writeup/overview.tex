@@ -13,10 +13,16 @@
     %     \caption{Original circuit}
     %     \label{fig:original-circuit}
     % \end{subfigure}
-    \begin{subfigure}{0.6\columnwidth}
+    \begin{subfigure}{0.4\columnwidth}
         \includegraphics[width=0.9\linewidth]{figures/compilation_overview/running_example_quotiented.drawio.png}
+        \caption{Circuit with subcircuits identified}
+        \label{fig:subcircuits-identified}
+    \end{subfigure}
+    \begin{subfigure}{0.4\columnwidth}
+        \includegraphics[width=0.9\linewidth]{figures/compilation_overview/running_example_identified.drawio.png}
         \caption{Quotiented circuit}
-        \label{fig:quotient-circuit}
+        \label{fig:quotiented-circuit}
+        
     \end{subfigure}
     \begin{subfigure}{0.45\columnwidth}
         \begin{verbatim}
@@ -61,8 +67,8 @@ The compilation proceeds as follows:
 \begin{enumerate}
     \item \system \textit{quotients} an input circuit (identifies subcircuits, and collapses them into single vertices) and assigns lanes to resulting vertices to produce a new circuit (a {\em pre-schedule}) that can be realized into a more efficient vector program. The result is a graph whose vertices correspond to connected subgraphs of the original circuit, such that no two vertices at the same height have the same lane (and hence are eligible to be vectorized together). In this quotient graph, a subcircuit gets identified if \system determines that the overhead of internally vectorizing it is not worth the gain from vectorization, so this step essentially forces certain operations to happen in scalar on a single lane. \raghav{I feel I haven't done a good enough job of justifying this.}
     
-    In the example in Figure~\ref{fig:quotient-circuit}, the two circled pairs of vertices are identified in the quotient, yielding the quotient circuit in Figure~\ref{fig:xxx}. \milind{I changed my mind -- I think you do want a graph that shows the subcircuits collapsed into a single vertex, since this paragraph talks about exactly that. Plus, it's hard to know what ``height'' means if you don't visualize a subcircuit as a single vertex}
-    The lane assignment for this pre-schedule puts each bottom level addition on the same lane as its corresponding quotiented vertex, and chooses one of these lanes to place the top addition on.\milind{This is confusing. Does ``bottom level addition'' mean the addition {\em inside} the subcircuit? Or the other addition that isn't quotiented? I think you need to be more explicit about which operations you're talking about here.} Note that this lane assignment is not intended to be optimal (hence, is a pre-schedule).
+    In the example in Figure~\ref{fig:subcircuits-identified}, the two circled pairs of vertices are identified in the quotient, yielding the quotient circuit in Figure~\ref{fig:quotiented-circuit}.
+    The lane assignment for this pre-schedule puts each un-quotiented addition on the same lane as its quotiented parent vertex, and chooses one of these lanes on which to place the root of the tree. \raghav{better?}\milind{This is confusing. Does ``bottom level addition'' mean the addition {\em inside} the subcircuit? Or the other addition that isn't quotiented? I think you need to be more explicit about which operations you're talking about here.} Note that this lane assignment is not intended to be optimal (hence, is a pre-schedule).\raghav{what does this last part mean?}
 
     Section~\ref{sec:schedule-search} describes how \system searches for such a quotient. \raghav{where do I put this?}
     
@@ -76,15 +82,14 @@ The compilation proceeds as follows:
     When the lane an operand is used in is different from the lane it was produced in, \system emits a rotation instruction to move the operand into the correct lane. Notice that each arc in the pre-schedule connecting vertices of different lanes corresponds to a rotation in the generated vector IR.
     Figure~\ref{fig:generated-code} shows the vector code \system generates for our running example.
     Notice that the generated code contains two blends and one rotate.
-    The blends are necessary\footnote{In this particular example, exchanging the positions of \texttt{\%3} and \texttt{\%4} would have produced semantically equivalent code that does not require the blends. However, automatically performing arithmetic rewrites such as this one is outside the scope of this work. \raghav{Something something future work may involve searching the space of semanticaly equivalent circuits to synthesize ones that admit more efficient vector schedules? or nah?}\milind{nah...}} because on line 3 of the schedule, \texttt{\%0} and \texttt{\%3} are used in the same vector despite being produced in two separate vectors on lines 1 and 2. 
-    Since none of the operands need to shift lanes, the vector instruction \texttt{t0 = blend(v0[10], v1[01])} takes \texttt{[\%0, \%4]} and \texttt{[\%1, \%3]} and blends them together to produce \texttt{[\%0, \%3]}, which is exactly the operand used on line 3. 
+    The blends are necessary\footnote{In this particular example, exchanging the positions of {\sf \%3} and {\sf \%4} would have produced semantically equivalent code that does not require the blends. However, automatically performing arithmetic rewrites such as this one is outside the scope of this work.} because on line 3 of the schedule, {\sf \%0} and {\sf \%3} are used in the same vector despite being produced in two separate vectors on lines 1 and 2. 
+    Since none of the operands need to shift lanes, the vector instruction {\sf t0 = blend(v0[10], v1[01])} takes {\sf [\%0, \%4]} and {\sf [\%1, \%3]} and blends them together to produce {\sf [\%0, \%3]}, which is exactly the operand used on line 3. 
 
-    \system emits a rotation because \texttt{\%5} gets used (line 4) on a different lane than its produced (line 3).
-    The vector instruction \texttt{s0 = v2 >> 1} takes \texttt{[\%2, \%5]} in \texttt{v2} and produces \texttt{[\%5, \%2]} in \texttt{s0}.
-    \raghav{I don't like this wording but I'm not sure how to make it better}.\milind{I think this is OK}
+    \system emits a rotation because {\sf \%5} gets used (line 4) on a different lane than its produced (line 3).
+    The vector instruction {\sf s0 = v2 $\gg$ 1} takes {\sf [\%2, \%5]} in {\sf v2} and produces {\sf [\%5, \%2]} in {\sf s0}.
     Section~\ref{sec:codegen} describes the specifics of code generation.
 \end{enumerate}
-\raghav{TODO: maybe change the inline texttt stuff so it looks better?}\milind{I tend to prefer {\em {\sf sans serif}} for typesetting inline code, even though it's not monospace}
+% \raghav{TODO: maybe change the inline texttt stuff so it looks better?}\milind{I tend to prefer {\em {\sf sans serif}} for typesetting inline code, even though it's not monospace}
 
 % \begin{enumerate}
 %     \item \system first identifies highly vectorizable subcircuits (shown highlighted in Figure~\ref{fig:small-expr-circuit})
