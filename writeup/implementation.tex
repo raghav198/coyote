@@ -73,7 +73,7 @@ def composed_kernels(A, sig, ker):
 As the example in Figure~\ref{fig:coyote-program} shows, \system programs are just decorated Python functions.
 The decorator registers the function as defining a \system circuit, and allows the programmer to specify the function signature (i.e. the size and shape of each of its inputs).
 \system currently supports three input datatypes: {\sf scalar()}, {\sf vector(size)}, and {\sf matrix(rows, cols)}.
-Inputs annotated with {\sf scalar()} are always replicated and free to be placed anywhere in the vector schedule; by contrast, {\sf matrix} and {\sf vector} inputs are always packed together and by default unreplicated, although the latter option can be overridden.
+Inputs annotated with {\sf scalar()} are always replicated and free to be placed anywhere in the vector schedule; by contrast, {\sf matrix} and {\sf vector} inputs are always packed together and by default unreplicated, although the latter option can be overridden by, for example, annotating the type of an input as {\sf vector(size, replicate=True)}.
 For a full discussion of these packing and replication options, see Section~\ref{sec:duplicating-inputs}. %\raghav{Should I include these sentences here, or just move them down to Section~\ref{sec:duplicating-inputs}?}
 
 \system internally uses a {\sf CoyoteVar} datatype which represents a symbolic encrypted value, and currently supports addition, subtraction, and multiplication.
@@ -81,7 +81,7 @@ To produce a circuit, \system creates a number of these {\sf CoyoteVar} variable
 This method of generating circuits means that any Python construct that does not involve performing unsupported operations on encrypted values\footnote{Unsupported operations include using ciphertexts in branching conditions, loop bounds, or array indices.} can be used as normal in a \system program (for instance, the {\sf zip} and list comprehension in Figure~\ref{fig:coyote-program} on line~\ref{code:zip}).
 Notably, \system-decorated functions can include for loops with plaintext induction variables (as on line~\ref{code:for_loop} in Figure~\ref{fig:coyote-program}), and can call other Python functions (including other \system programs, as in Figure~\ref{fig:coyote-programs-compose} on lines~\ref{code:call_conv} and \ref{code:call_matvec}) allowing programmers to write individual kernels and then easily compose them into a larger program.
 All loops all fully unrolled and nested function calls are fully inlined before compilation.
-The generated circuit is then passed to \system's back end, which vectorizes the computation as described in the previous sections, yielding a sequence of primitive vector operations that can be furter lowered into C++ code targeting Microsoft SEAL's backend for BFV~\cite{seal}.
+The generated circuit is then passed to \system's back end, which vectorizes the computation as described in the previous sections, yielding a sequence of primitive vector operations that can be further lowered into C++ code targeting Microsoft SEAL's backend for BFV~\cite{seal}.
 
 
 % \system provides an embedded DSL (eDSL) in Python for expressing FHE programs. \system provides a \texttt{CoyoteVar} datatype which represents a symbolic encrypted value, and supports addition, subtraction, and multiplication. Executing a program that uses \texttt{CoyoteVar}s stages the execution into an arithmetic circuit (e.g., adding together two \texttt{CoyoteVar}s produces a \texttt{CoyoteExpr} that captures an abstract syntax tree representing the addition). 
@@ -131,7 +131,7 @@ While lowering to C++, we also precompute all the blending masks, so that we can
 %\raghav{Is this the right name for the section?}
 Because the instruction alignment phase only happens once a pre-schedule has been computed, the results of alignment are not available to our cost model.
 This is by design, since the instruction alignment problem is formulated as an ILP (Section~\ref{sec:instruction-alignment}), and making multiple expensive calls to an ILP solver in each round of the pre-schedule search would quickly make the entire search procedure intractable.
-However, this does have an impact on the cost model, as without alignment results, we are forced to work at the level of granularity of entire epochs, resulting in approximations of the schedule height and number of rotation rotations.
+However, this does have an impact on the cost model, as without alignment results, we are forced to work at the level of granularity of entire epochs, resulting in approximations of the schedule height and number of rotations.
 In particular, the approximations tend to underestimate the true cost of the final realized schedule in two ways: (i) undercounting the number of rotations; and (ii) underestimating the height of a given epoch.
 
 When counting rotations, we assume that if two cross-lane arcs originate from the same epoch and have the same span, they can be realized with a single rotation instruction.
@@ -173,12 +173,13 @@ By duplicating the data, the new circuit, while strictly bigger, may have better
 This is because if $a$ were to be used on two different lanes it would have incurred at least one rotation, but by having two copies of $a$ we can avoid this rotation entirely. The frontend DSL for \system exposes an API by which the programmer can specify which of the input variables to the computation should be duplicated, and which ones should not.
 
 Another input layout control the \system DSL exposes is the {\em input grouping} API, which allows a programmer to specify sets of inputs which are forced to be packed together into a single vector.
-This is useful, for example, when doing a matrix computation.
-By default, \system treats the 9 elements of a $3 \times 3$ matrix as independent inputs to the computation.
-However, by putting all of them into the same input group, the programmer can prevent the matrix from having to be split across multiple ciphertext vectors when input to the computation, and generate vector code that operates on a single packed matrix. 
+This is useful, for example, when doing a matrix computation: \system treats the 9 elements of a {\sf matrix(3, 3)} input as all being packed into a single vector.
+This prevents the matrix from having to be split across multiple ciphertext vectors when input to the computation, and generate vector code that operates on a single packed matrix.
 There is a tradeoff: \system may have been able to find a schedule with fewer rotates with two matrix entries on the same lane, but forcing the entire matrix to packed into a single vector precludes any such schedule.
+Different data layouts can be realized by, e.g. specifying three {\sf vector(3)} inputs or nine {\sf scalar()} inputs.
 
 Both of these input controls allow programmers to trade off between predictable input layouts, that are good for composing kernels without too much rotation, and flexible input layouts, that can give \system more flexibility to manage data flow. Rather than automatically trying to balance these factors, \system leaves it up to the programmer.
+We specifically investigate the effects of choosing different packing strategies in Section~\ref{sec:eval}, with our matrix multiply case studies.
 
 
 
