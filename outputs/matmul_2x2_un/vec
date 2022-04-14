@@ -1,0 +1,13 @@
+__t0 = [matmul_2x2_un(a):1;1, matmul_2x2_un(a):1;0, 0, 0, matmul_2x2_un(a):0;1, matmul_2x2_un(a):0;0, 0, 0]
+__t1 = [matmul_2x2_un(a):1;1, matmul_2x2_un(a):1;0, 0, 0, matmul_2x2_un(a):0;1, matmul_2x2_un(a):0;0, 0, 0]
+__v0 = __t0 ~ __t1
+__s0 = __v0 >> 2
+__t2 = [0, matmul_2x2_un(b):1;1, 0, matmul_2x2_un(b):0;1, 0, matmul_2x2_un(b):1;0, 0, matmul_2x2_un(b):0;0]
+__t3 = [0, matmul_2x2_un(b):1;1, 0, matmul_2x2_un(b):0;1, 0, matmul_2x2_un(b):1;0, 0, matmul_2x2_un(b):0;0]
+__v1 = __t2 ~ __t3
+__s1 = __v1 >> 7
+__t4 = blend(__v0@11001100, __s0@00110011)
+__t5 = blend(__s1@10101010, __v1@01010101)
+__v2 = __t4 * __t5
+__s2 = __v2 >> 4
+__v3 = __v2 + __s2

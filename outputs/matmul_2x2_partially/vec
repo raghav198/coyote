@@ -1,0 +1,11 @@
+__t0 = [matmul_2x2_partially(a):1;1, matmul_2x2_partially(a):1;0, matmul_2x2_partially(a):1;1, matmul_2x2_partially(a):1;0, matmul_2x2_partially(a):0;1, matmul_2x2_partially(a):0;0, matmul_2x2_partially(a):0;1, matmul_2x2_partially(a):0;0]
+__t1 = [matmul_2x2_partially(a):1;1, matmul_2x2_partially(a):1;0, matmul_2x2_partially(a):1;1, matmul_2x2_partially(a):1;0, matmul_2x2_partially(a):0;1, matmul_2x2_partially(a):0;0, matmul_2x2_partially(a):0;1, matmul_2x2_partially(a):0;0]
+__v0 = __t0 ~ __t1
+__t2 = [matmul_2x2_partially(b):0;1, matmul_2x2_partially(b):0;0, matmul_2x2_partially(b):1;1, matmul_2x2_partially(b):1;0, 0, 0, 0, 0]
+__t3 = [matmul_2x2_partially(b):0;1, matmul_2x2_partially(b):0;0, matmul_2x2_partially(b):1;1, matmul_2x2_partially(b):1;0, 0, 0, 0, 0]
+__v1 = __t2 ~ __t3
+__s0 = __v1 >> 4
+__t4 = blend(__v1@11110000, __s0@00001111)
+__v2 = __v0 * __t4
+__s1 = __v2 >> 7
+__v3 = __s1 + __v2

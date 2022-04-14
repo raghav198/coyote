@@ -1,0 +1,24 @@
+%10 %16 %22
+%0 = conv_5x3_un(sig):0 ~ conv_5x3_un(sig):0
+%1 = conv_5x3_un(ker):0 ~ conv_5x3_un(ker):0
+%2 = %0 * %1
+%3 = conv_5x3_un(sig):1 ~ conv_5x3_un(sig):1
+%4 = conv_5x3_un(ker):1 ~ conv_5x3_un(ker):1
+%5 = %3 * %4
+%6 = conv_5x3_un(sig):2 ~ conv_5x3_un(sig):2
+%7 = conv_5x3_un(ker):2 ~ conv_5x3_un(ker):2
+%8 = %6 * %7
+%9 = %5 + %8
+%10 = %2 + %9
+%11 = %3 * %1
+%12 = %6 * %4
+%13 = conv_5x3_un(sig):3 ~ conv_5x3_un(sig):3
+%14 = %13 * %7
+%15 = %12 + %14
+%16 = %11 + %15
+%17 = %6 * %1
+%18 = %13 * %4
+%19 = conv_5x3_un(sig):4 ~ conv_5x3_un(sig):4
+%20 = %19 * %7
+%21 = %18 + %20
+%22 = %17 + %21

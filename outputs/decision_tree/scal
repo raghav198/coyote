@@ -1,0 +1,21 @@
+%19
+%0 = decision_tree(c23) * decision_tree(o123)
+%1 = 1 + decision_tree(c23)
+%2 = decision_tree(c13) * decision_tree(o132)
+%3 = 1 + decision_tree(c13)
+%4 = %3 * decision_tree(o312)
+%5 = %2 + %4
+%6 = %1 * %5
+%7 = %0 + %6
+%8 = decision_tree(c12) * %7
+%9 = 1 + decision_tree(c12)
+%10 = decision_tree(c13) * decision_tree(o213)
+%11 = 1 + decision_tree(c13)
+%12 = decision_tree(c23) * decision_tree(o231)
+%13 = 1 + decision_tree(c23)
+%14 = %13 * decision_tree(o321)
+%15 = %12 + %14
+%16 = %11 * %15
+%17 = %10 + %16
+%18 = %9 * %17
+%19 = %8 + %18
