@@ -7,11 +7,12 @@
 % }
 
 %\raghav{how's this?}
+
 \raghav{TODO: talk about instruction count scalability and ablation study (graphs of rounds vs. cost for different inner loop cutoffs?)}
-We would like to know whether \system's vectorization strategy actually leads to significant speedups on realistic applications, as well as what properties of a program affect \system's ability to vectorize it.
-To answer these questions, we evaluate \system on a number of real-world kernels that represent both regular and irregular computation.
-We also evaluate \system on a set of randomly fuzzed irregular microbenchmarks that vary aspects like computation density and homogeneity to investigate the effects of these properties on vectorizability. %\raghav{Further explain what that means here? Or wait until the microbenchmarks section?}\milind{wait}
-All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. %\raghav{I don't need to say stuff about the cores etc. since nothing's being multithreaded, right?}\milind{Yeah, I think that's fine.}
+% We would like to know whether \system's vectorization strategy actually leads to significant speedups on realistic applications, as well as what properties of a program affect \system's ability to vectorize it.
+% To answer these questions, we evaluate \system on a number of real-world kernels that represent both regular and irregular computation.
+% We also evaluate \system on a set of randomly fuzzed irregular microbenchmarks that vary aspects like computation density and homogeneity to investigate the effects of these properties on vectorizability. %\raghav{Further explain what that means here? Or wait until the microbenchmarks section?}\milind{wait}
+% All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. %\raghav{I don't need to say stuff about the cores etc. since nothing's being multithreaded, right?}\milind{Yeah, I think that's fine.}
 
 \subsection{Computational Kernels}
 \begin{figure}
@@ -20,67 +21,133 @@ All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. %\r
     \Description{Bar graph showing speedup from vectorization for each benchmark}
 \end{figure}
 
-\begin{figure}
-    \includegraphics[width=0.7\linewidth]{figures/graphs/case_study.png}
-    \caption{Speedups for the five data layout case studies (higher is better). Note that the second bar (``Separate'') corresponds to the leftmost bar of {\sf mm.3} in Figure~\ref{fig:vector-speedups}.}
-    \Description{Bar graph showing speedup from vectorization for five data layout case studies}
-\end{figure}
+\raghav{spot-check my tenses?}
+To assess \system's ability to vectorize general applications, we use a suite of benchmarks that represent a spectrum of both regular and irregular computations, as well as dense and data reuse-heavy ones.
+The benchmarks are as follows:
+\begin{enumerate}
+    \item Matrix multiply ($2\times 2$ and $3\times 3$)
+    \item Dot product (3, 6, and 10)
+    \item 1D convolution ($4\times 2$ and $5\times 3$)
+    \item Point cloud distances \footnote{Given a set of points, compute the square of every pairwise Euclidean distance.}(3, 4, and 5 points)
+    \item Decision tree traversal (inputs packed and unpacked)\footnote{This particular benchmark is a decision tree that represents sorting a list of three elements. It takes as input three ciphertext ``decisions'' representing comparison results, and six ciphertext ``labels'' representing possible arrangements of the sorted list. In particular, each of the three decisions gets used in multiple branches of the tree. ``Packed'' here means the data layout packs the three decisions into one vector and the six labels into another. }
+\end{enumerate}
 
+(Notice that the decision tree benchmark contains irregular computation, and both the packed decision tree and all the point cloud distances have dense data reuse).
+To investigate the effect of data replication (as discussed in Section~\ref{sec:duplicating-inputs}), we used three different replication strategies for each benchmark: (i) {\em unreplicated}, (ii) {\em partially replicated} in which one of the two inputs is replicated but not the other, and (iii) {\em fully replicated} in which both inputs are replicated.
+Notice that for, e.g. dot product, replication makes no difference since each input is used exactly once.
+
+Each benchmark is run 50 times in scalar, and 50 times after vectorization. 
+The average speedup is computed as the total scalar execution time divided by the total vector execution time.
+We find very little variance in execution time across individual runs for any benchmark.
+Figure~\ref{fig:vector-speedups} shows the speedups from vectorization: each benchmark has three bars representing, in order from left to right, the unreplicated, partially replicated, and fully replicated runs. 
+The decision tree benchmark has an extra green bar representing the unpacked run (without packing, all inputs are fully replicated no matter what).
+We speedups ranging from anywhere between $1.5\times$ on the data-dense point cloud distances benchmarks to over $3.5\times$ on the highly vectorizable matrix multiply.
+We also generally notice more speedup as the replication level increases, suggesting that \system is able to take advantage of replicated inputs to eliminate rotations from the schedule.
+
+\subsection{Randomly Generated Irregular Kernels}
 \begin{figure}
     \includegraphics[width=0.7\linewidth]{figures/graphs/trees.png}
-    \caption{Speedups for randomly generated polynomial benchmarks (higher is better).}
+    \caption{Speedups for randomly generated polynomial benchmarks (higher is better).}\label{fig:polynomial-speedups}
     \Description{Bar graph showing speedup from vectorization for randomly generated polynomials}
 \end{figure}
 
+\raghav{How can this be said better?}
+To further investigate \system's ability to vectorize even in the absence of a regular structure on the computation, we randomly generated several polynomials to evaluate as arithmetic expression trees.
+The trees are generated according to three different regimes to cover different kinds of programs:
+\begin{enumerate}
+    \item {\em Sparse}: Many operations have one leaf node input, the tree is not very balanced
+    \item {\em Dense, homogeneous}: The expression tree is both full and complete, and all the operations are isomorphic
+    \item {\em Dense, nonhomogeneous}: The expression tree is both full and complete, each operation has a 50/50 chance of being an add or a multiply.
+\end{enumerate}
+For each regime, we generated ten total polynomials, five with a circuit depth of 5 and five with a circuit depth of 10.
+Each polynomial is run 20 times in scalar and 20 times after vectorization, and we average speedups across the five polynomials in each regime before reporting.
+These speedups are shown in Figure~\ref{fig:polynomial-speedups}.
+We see that \system is able to achieve speedups of up to $1.4\times$ by vectorizing.
+Looking at the depth 5 dense nonhomogeneous polynomials, we found that many of them were too small and irregular to admit any profitable vectorization; in these cases, \system was correctly able to deduce that the scalar execution strategy was optimal rather than attempting to vectorize and incur spurious rotations.
+Since the generated vector code was identical to the scalar code for several of these, the average speedup is very close to $1.0$.
+
+\subsection{Data Layout Case Study}
+To study the effects of different data layout choices, we did a case study with the $3\times 3$ matrix multiply benchmark, measuring \system's ability to vectorize in five different data layouts:
+\begin{itemize}
+    \item[Together]: The matrices $A$ and $B$ are packed into a single vector of $18$ elements
+    \item[Separate]: $A$ and $B$ are packed into individual vectors (this is the normal layout used in benchmarking in Figure~\ref{fig:vector-speedups})
+    \item[Rows/Cols]: The rows of $A$ are packed into three separate vectors, and the columns of $B$ are packed into three separate vectors
+    \item[Cols/Rows]: The columns of $A$ are packed into three separate vectors, and the rows of $B$ are packed into three separate vectors
+    \item[Individual]: Each of the 18 entries are packed into their own vector (note that this is different from simply leaving them as free scalars, because this precludes \system from choosing to put some of them on the same vector anyway).     
+\end{itemize}
+In each layout, all the inputs are unreplicated.
+Figure~\ref{fig:data-layout-case-study} shows the results of this case study.
+Interestingly, we find that packing the matrices together yields greater speedups than keeping them separate.
+When multiple entries are on one vector, \system takes advantage of that fact to get many rotates ``for free'' (i.e., packing them in such a way that rotating one automatically gives useful rotations of the others).
+By contrast, when each entry is on a separate vector, every rotation must necessarily be done separately, so that schedule ends up with much more overhead.
+\raghav{This is a really cool fact that I don't feel I've done justice.}
+
+\begin{figure}
+    \includegraphics[width=0.7\linewidth]{figures/graphs/case_study.png}
+    \caption{Speedups for the five data layout case studies (higher is better). Note that the second bar (``Separate'') corresponds to the leftmost bar of {\sf mm.3} in Figure~\ref{fig:vector-speedups}.}
+    \Description{Bar graph showing speedup from vectorization for five data layout case studies}\label{fig:data-layout-case-study}
+\end{figure}
+
+
+\subsection{Compilation Statistics}
+Figure~\ref{fig:schedule-cost} shows the cost of the vector schedule over time for various levels of data layout.
+The blue line depicts the schedule cost when we use 10k iterations of simulated annealing to find an optimal data layout at each step; the orange line is 15k iterations and the green line is 20k iterations.
+As expected, doing more iterations of simulated annealing has a large effect on the efficiency of the final schedule, since we rely heavily on the fact that the data layout being used to guide each round of the search is close to optimal.
+In compiling all our benchmarks, we use 20k iterations of annealing (the green line).
+
+The main tradeoff to be made here is one of compilation time: obviously, annealing for fewer iterations results in faster compilation, but worse schedules.
+\raghav{include that or delete it?}
 \begin{figure}
     \includegraphics[width=0.7\linewidth]{figures/graphs/schedules.png}
     \caption{Schedule cost over time (lower is better). The blue line represents the schedule cost with 10k data layout iterations in each round. The orange line is the schedule cost with 15k data layout iterations, and the green line is the schedule cost with 20k data layout iterations. Note that in compiling the benchmarks, 20k iterations were used in each round.}
-    \Description{Multiple line graphs showing the schedule cost over time for different optimization parameters}
+    \Description{Multiple line graphs showing the schedule cost over time for different optimization parameters}\label{fig:schedule-cost}
 \end{figure}
+
 
 % We evaluate \system by compiling several computational kernels, of the sort that might be found in machine-learning code, and comparing their vectorized performance against an unvectorized (scalar) baseline implementation. Both the scalar and vector versions use the same FHE backend.
 % Each of the matrix or vector inputs to the kernels are grouped into their own vectors as described in Section~\ref{sec:duplicating-inputs}.
 %Although this can lead to worse schedules than if we didn't force groupings, we expect this to be the most common use case. \raghav{Is that what I wanna say? Or should I just combine it with the previous sentence and say ``yeah we force packings, yeah we know its not optimal.''}
 
-Each kernel is used in two benchmarks with differently sized inputs and three different replication strategies: once with both inputs replicated, once with only one input replicated, and once with neither input duplicated. 
-The exact benchmarks used are:
-\begin{itemize}
-    \item Matrix/Matrix multiply ($2 \times 2$ and $3 \times 3$)
-    \item Matrix/Matrix multiply followed by determinant ($2 \times 2$ and $3 \times 3$)
-    \item Pairwise distance computation (2 points and 3 points)
-    \item Vector dot product (vector size of 3 and 6)
-    \item Matrix convolution ($4 \times 4$ matrix with $2 \times 2$ kernel and $3 \times 3$ kernel)
-\end{itemize}
+% Each kernel is used in two benchmarks with differently sized inputs and three different replication strategies: once with both inputs replicated, once with only one input replicated, and once with neither input duplicated. 
+% The exact benchmarks used are:
+% \begin{itemize}
+%     \item Matrix/Matrix multiply ($2 \times 2$ and $3 \times 3$)
+%     \item Matrix/Matrix multiply followed by determinant ($2 \times 2$ and $3 \times 3$)
+%     \item Pairwise distance computation (2 points and 3 points)
+%     \item Vector dot product (vector size of 3 and 6)
+%     \item Matrix convolution ($4 \times 4$ matrix with $2 \times 2$ kernel and $3 \times 3$ kernel)
+% \end{itemize}
 
-% Figure~\ref{fig:ml-kernels} shows the performance results for these benchmarks.
-The red bars show the scalar execution time (normalized to 1), and the blue bars, the relative vector execution time (a smaller blue bar is better).
-Vector execution ranges from 0.77 to 6.2 times faster than scalar execution.
-Almost all benchmarks are substantially faster with vectorization, except those with lots of dependences (such as pairwise distance) or lots of reuse (such as matrix convolution), both of which result in a lot of data shuffling.
+% % Figure~\ref{fig:ml-kernels} shows the performance results for these benchmarks.
+% The red bars show the scalar execution time (normalized to 1), and the blue bars, the relative vector execution time (a smaller blue bar is better).
+% Vector execution ranges from 0.77 to 6.2 times faster than scalar execution.
+% Almost all benchmarks are substantially faster with vectorization, except those with lots of dependences (such as pairwise distance) or lots of reuse (such as matrix convolution), both of which result in a lot of data shuffling.
 
-% \milind{Start with the punchline -- don't keep people in suspense: vector execution ranges from $0.xxx$ to $y$ times faster than scalar execution. Almost all benchmarks, except those with ... have substantially faster vector than scalar runtimes, and performing full replication, which means less rotation is needed, is uniformly faster -- up to 5 times faster. Once you give them the punchline, then you can explain the rest of the details.}
+% % \milind{Start with the punchline -- don't keep people in suspense: vector execution ranges from $0.xxx$ to $y$ times faster than scalar execution. Almost all benchmarks, except those with ... have substantially faster vector than scalar runtimes, and performing full replication, which means less rotation is needed, is uniformly faster -- up to 5 times faster. Once you give them the punchline, then you can explain the rest of the details.}
 
-% Most of our benchmarks see a greater speedup from vectorization as we move from unreplicated inputs to fully replicated inputs.
-% This is what we expect, because, as discussed in Section~\ref{sec:duplicating-inputs}, replicating a set of inputs leads to fewer rotations necessary to get each of them to the correct lanes.
-% Performing full replication ameliorates these problems (Section~\ref{sec:duplicating-inputs}), and is uniformly faster.
-Fully-replicated vector benchmarks range from a 6.2$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\-\_mul\-\_det3x3}
+% % Most of our benchmarks see a greater speedup from vectorization as we move from unreplicated inputs to fully replicated inputs.
+% % This is what we expect, because, as discussed in Section~\ref{sec:duplicating-inputs}, replicating a set of inputs leads to fewer rotations necessary to get each of them to the correct lanes.
+% % Performing full replication ameliorates these problems (Section~\ref{sec:duplicating-inputs}), and is uniformly faster.
+% Fully-replicated vector benchmarks range from a 6.2$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\-\_mul\-\_det3x3}
 
-In the unreplicated runs, we see some of the vectorized kernels (\texttt{mat\-\_convol\-\_4x4x2x2}, \texttt{mat\-\_mul\-\_det3x3}, and \texttt{pair\-wise\-\_dist2x2}) are actually {\em slower} than the scalar baseline.
-This is because the overhead of all the rotations these benchmarks incur outweighs any benefits gained from vectorization.
-In fact, it makes sense that these benchmarks would behave like that: convolution is a computation with substantial data reuse, leading to a high number of rotations to move data.
-The $2 \times 2$ pairwise distance benchmark has a fully-connected dependence graph, leading to essentially the worst case scenario for vectorization.
-And computing the determinant at the end of \texttt{mat\_mul\_det3x3} requires a reduction of 9 values, with no symmetries between them to exploit.
-However, even in these examples, the vectorized code is no more than 20\% worse than scalar, showing that despite the high rotation costs, \system is still able to properly take advantage of vectorization opportunities.
-%\raghav{This all kind of seems like a jumble but I hope I'm getting the point across}
+% In the unreplicated runs, we see some of the vectorized kernels (\texttt{mat\-\_convol\-\_4x4x2x2}, \texttt{mat\-\_mul\-\_det3x3}, and \texttt{pair\-wise\-\_dist2x2}) are actually {\em slower} than the scalar baseline.
+% This is because the overhead of all the rotations these benchmarks incur outweighs any benefits gained from vectorization.
+% In fact, it makes sense that these benchmarks would behave like that: convolution is a computation with substantial data reuse, leading to a high number of rotations to move data.
+% The $2 \times 2$ pairwise distance benchmark has a fully-connected dependence graph, leading to essentially the worst case scenario for vectorization.
+% And computing the determinant at the end of \texttt{mat\_mul\_det3x3} requires a reduction of 9 values, with no symmetries between them to exploit.
+% However, even in these examples, the vectorized code is no more than 20\% worse than scalar, showing that despite the high rotation costs, \system is still able to properly take advantage of vectorization opportunities.
+% %\raghav{This all kind of seems like a jumble but I hope I'm getting the point across}
 
-Overall, we see that it is almost always better to fully replicate inputs when vectorizing, unless specifically compiling several composable kernels separately. While it may seem that replicating data could increase overheads (e.g., by requiring more time to encrypt the input, or by requiring larger vector widths), in practice it does not. Encryption is vectorized in the same way as computation so does not take appreciably longer if the same data is encrypted multiple times. And vector widths in FHE are very high to begin with, so there is ample lane space to house the replicated data.
+% Overall, we see that it is almost always better to fully replicate inputs when vectorizing, unless specifically compiling several composable kernels separately. While it may seem that replicating data could increase overheads (e.g., by requiring more time to encrypt the input, or by requiring larger vector widths), in practice it does not. Encryption is vectorized in the same way as computation so does not take appreciably longer if the same data is encrypted multiple times. And vector widths in FHE are very high to begin with, so there is ample lane space to house the replicated data.
 
-Visually inspecting the vector code generated by \system reveals that it often automatically finds what known optimal schedules.
-For example, in the dot product kernels, \system first packs all of the multiplications into a single vector operation, then vectorizes the levels of the logarithmic reduction tree.\footnote{Note that the logarithmic reduction tree arises because the eDSL implementation of dot product uses a recursive sum operation---\system does not introduce new parallelism. Nevertheless, \system correctly exploits the parallelism that {\em does} exist in the circuit.}
-In the \texttt{mat\_mul\_det} kernels, \system first identifies the the highly vectorizable matrix multiply part of the computation, vectorizes that, and then essentially computes the highly irregular determinant on a single lane.
+% Visually inspecting the vector code generated by \system reveals that it often automatically finds what known optimal schedules.
+% For example, in the dot product kernels, \system first packs all of the multiplications into a single vector operation, then vectorizes the levels of the logarithmic reduction tree.\footnote{Note that the logarithmic reduction tree arises because the eDSL implementation of dot product uses a recursive sum operation---\system does not introduce new parallelism. Nevertheless, \system correctly exploits the parallelism that {\em does} exist in the circuit.}
+% In the \texttt{mat\_mul\_det} kernels, \system first identifies the the highly vectorizable matrix multiply part of the computation, vectorizes that, and then essentially computes the highly irregular determinant on a single lane.
 
 % \milind{Add a discussion here about visually inspecting the generated code, and point out where and whether coyote does especially cool stuff, or where it breaks down.}
 
-\subsubsection*{Ideal Speedups}
+\subsubsection*{Fun Table To Look At}
+\raghav{I need something to say about this}
 \begin{table}
     \begin{tabular}{lccccccc}
     \toprule
@@ -128,17 +195,17 @@ In the \texttt{mat\_mul\_det} kernels, \system first identifies the the highly v
     \end{table}
     
 
-\subsection{Fuzzed Microbenchmarks}
-To investigate how various aspects of program structure affect \system's ability to vectorize, we randomly generate several expression trees according to three regimes:
-\begin{enumerate}
-    \item {\em Sparse}: Many operations have one leaf node input, the tree is not very balanced
-    \item {\em Dense, homogeneous}: The expression tree is both full and complete, and all the operations are isomorphic
-    \item {\em Dense, nonhomogeneous}: The expression tree is both full and complete, each operation has a 50/50 chance of being an add or a multiply.
-\end{enumerate}
-We generate ten trees for each regime: five with a maximum depth of 3, and five with a maximum depth of 6.
-% The relative speedups for these trees are shown in Figure~\ref{fig:fuzzed-trees}.
-We see that aside from the sparse trees of depth 3, all the rest show speedups when vectorizing, which makes sense since the sparse computations tend to be much more linear and have fewer opportunities for vectorization.
-The depth 3 trees show on average less speedup than the depth 6 trees, since they also have less work available to vectorize, and less parallelism in their circuits. %\raghav{Is this true? I'm basically trying to say that the scalar is already not bad for a tiny tree so what's the point in vectorizing it}\milind{It's basically about less parallelism. For a complete tree, parallelism is n/log(n), so as n gets bigger, there is more parallelism --- a depth 6 tree has 4 times as much parallelism as a depth 3 tree}
+% \subsection{Fuzzed Microbenchmarks}
+% To investigate how various aspects of program structure affect \system's ability to vectorize, we randomly generate several expression trees according to three regimes:
+% \begin{enumerate}
+%     \item {\em Sparse}: Many operations have one leaf node input, the tree is not very balanced
+%     \item {\em Dense, homogeneous}: The expression tree is both full and complete, and all the operations are isomorphic
+%     \item {\em Dense, nonhomogeneous}: The expression tree is both full and complete, each operation has a 50/50 chance of being an add or a multiply.
+% \end{enumerate}
+% We generate ten trees for each regime: five with a maximum depth of 3, and five with a maximum depth of 6.
+% % The relative speedups for these trees are shown in Figure~\ref{fig:fuzzed-trees}.
+% We see that aside from the sparse trees of depth 3, all the rest show speedups when vectorizing, which makes sense since the sparse computations tend to be much more linear and have fewer opportunities for vectorization.
+% The depth 3 trees show on average less speedup than the depth 6 trees, since they also have less work available to vectorize, and less parallelism in their circuits. %\raghav{Is this true? I'm basically trying to say that the scalar is already not bad for a tiny tree so what's the point in vectorizing it}\milind{It's basically about less parallelism. For a complete tree, parallelism is n/log(n), so as n gets bigger, there is more parallelism --- a depth 6 tree has 4 times as much parallelism as a depth 3 tree}
 
 % \begin{figure}
 %     % \includegraphics[width=0.9\columnwidth]{figures/graphs/TreeGraphwithNumbers.png}
