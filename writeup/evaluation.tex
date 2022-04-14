@@ -15,27 +15,27 @@ All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. %\r
 
 \subsection{Computational Kernels}
 \begin{figure}
-    \begin{subfigure}{\linewidth}
-        % \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataUnreplicatedENC+RUN.png}
-        \caption{Scalar vs. Vector comparison for unreplicated inputs}\label{fig:ml-kernels-unrepl}
-    \end{subfigure}
-    
-    
-    \begin{subfigure}{\linewidth}
-        % \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataPartiallyReplicatedENC+RUN.png}
-        \caption{Scalar vs. Vector comparison for partially replicated inputs}\label{fig:ml-kernels-part-repl}
-    \end{subfigure}
-    
-     
-    \begin{subfigure}{\linewidth}
-        % \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataReplicatedENC+RUN.png}
-        \caption{Scalar vs. Vector comparison for fully replicated inputs}\label{fig:ml-kernels-repl}
-    \end{subfigure}
-    \caption{Scalar vs. Vector encryption + run time comparisons for various replication regimes. Scalar times (red) are normalized to 1, and a smaller (blue) vector bar is better.}\label{fig:ml-kernels}
+    \includegraphics[width=0.7\linewidth]{figures/graphs/vector_speedups.png}
+    \caption{Speedup of vectorized code over scalar (higher is better). The darkest bar for each benchmark represents unreplicated inputs, the middle bar is partially replicated, and the lightest bar is fully replicated. The light green bar for the decision tree benchmark represents unpacked inputs.}\label{fig:vector-speedups}
 \end{figure}
 
-We evaluate \system by compiling several computational kernels, of the sort that might be found in machine-learning code, and comparing their vectorized performance against an unvectorized (scalar) baseline implementation. Both the scalar and vector versions use the same FHE backend.
-Each of the matrix or vector inputs to the kernels are grouped into their own vectors as described in Section~\ref{sec:duplicating-inputs}.
+\begin{figure}
+    \includegraphics[width=0.7\linewidth]{figures/graphs/case_study.png}
+    \caption{Speedups for the five data layout case studies (higher is better). Note that the second bar (``Separate'') corresponds to the leftmost bar of {\sf mm.3} in Figure~\ref{fig:vector-speedups}.}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width=0.7\linewidth]{figures/graphs/trees.png}
+    \caption{Speedups for randomly generated polynomial benchmarks (higher is better).}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width=0.7\linewidth]{figures/graphs/schedules.png}
+    \caption{Schedule cost over time (lower is better). The blue line represents the schedule cost with 10k data layout iterations in each round. The orange line is the schedule cost with 15k data layout iterations, and the green line is the schedule cost with 20k data layout iterations. Note that in compiling the benchmarks, 20k iterations were used in each round.}
+\end{figure}
+
+% We evaluate \system by compiling several computational kernels, of the sort that might be found in machine-learning code, and comparing their vectorized performance against an unvectorized (scalar) baseline implementation. Both the scalar and vector versions use the same FHE backend.
+% Each of the matrix or vector inputs to the kernels are grouped into their own vectors as described in Section~\ref{sec:duplicating-inputs}.
 %Although this can lead to worse schedules than if we didn't force groupings, we expect this to be the most common use case. \raghav{Is that what I wanna say? Or should I just combine it with the previous sentence and say ``yeah we force packings, yeah we know its not optimal.''}
 
 Each kernel is used in two benchmarks with differently sized inputs and three different replication strategies: once with both inputs replicated, once with only one input replicated, and once with neither input duplicated. 
@@ -48,7 +48,7 @@ The exact benchmarks used are:
     \item Matrix convolution ($4 \times 4$ matrix with $2 \times 2$ kernel and $3 \times 3$ kernel)
 \end{itemize}
 
-Figure~\ref{fig:ml-kernels} shows the performance results for these benchmarks.
+% Figure~\ref{fig:ml-kernels} shows the performance results for these benchmarks.
 The red bars show the scalar execution time (normalized to 1), and the blue bars, the relative vector execution time (a smaller blue bar is better).
 Vector execution ranges from 0.77 to 6.2 times faster than scalar execution.
 Almost all benchmarks are substantially faster with vectorization, except those with lots of dependences (such as pairwise distance) or lots of reuse (such as matrix convolution), both of which result in a lot of data shuffling.
@@ -57,7 +57,7 @@ Almost all benchmarks are substantially faster with vectorization, except those 
 
 % Most of our benchmarks see a greater speedup from vectorization as we move from unreplicated inputs to fully replicated inputs.
 % This is what we expect, because, as discussed in Section~\ref{sec:duplicating-inputs}, replicating a set of inputs leads to fewer rotations necessary to get each of them to the correct lanes.
-Performing full replication ameliorates these problems (Section~\ref{sec:duplicating-inputs}), and is uniformly faster.
+% Performing full replication ameliorates these problems (Section~\ref{sec:duplicating-inputs}), and is uniformly faster.
 Fully-replicated vector benchmarks range from a 6.2$\times$ speedup for \texttt{mat\_mul2x2}, to an approximately $25\%$ speedup for \texttt{mat\-\_mul\-\_det3x3}
 
 In the unreplicated runs, we see some of the vectorized kernels (\texttt{mat\-\_convol\-\_4x4x2x2}, \texttt{mat\-\_mul\-\_det3x3}, and \texttt{pair\-wise\-\_dist2x2}) are actually {\em slower} than the scalar baseline.
