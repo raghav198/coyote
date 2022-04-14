@@ -32,6 +32,7 @@ def matvec_multiply(A, b):
     return result
     \end{minted}
     \caption{Sample \system program for multiplying a vector by a matrix}\label{fig:coyote-program}
+    \Description{Example of a program written in \system that implements a matrix/vector multiply}
 \end{figure}
 
 % \begin{figure}
@@ -67,6 +68,7 @@ def composed_kernels(A, sig, ker):
     return matvec_multiply(A, b) |\label{code:call_matvec}|
     \end{minted}
     \caption{\system programs are normal python functions that can be composed to build larger kernels}\label{fig:coyote-programs-compose}
+    \Description{Example of a program written in \system that composes two smaller kernels}
 \end{figure}
 
 \system consists of an embedded DSL (eDSL) in Python that can be used to write FHE programs.

@@ -17,21 +17,25 @@ All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. %\r
 \begin{figure}
     \includegraphics[width=0.7\linewidth]{figures/graphs/vector_speedups.png}
     \caption{Speedup of vectorized code over scalar (higher is better). The darkest bar for each benchmark represents unreplicated inputs, the middle bar is partially replicated, and the lightest bar is fully replicated. The light green bar for the decision tree benchmark represents unpacked inputs.}\label{fig:vector-speedups}
+    \Description{Bar graph showing speedup from vectorization for each benchmark}
 \end{figure}
 
 \begin{figure}
     \includegraphics[width=0.7\linewidth]{figures/graphs/case_study.png}
     \caption{Speedups for the five data layout case studies (higher is better). Note that the second bar (``Separate'') corresponds to the leftmost bar of {\sf mm.3} in Figure~\ref{fig:vector-speedups}.}
+    \Description{Bar graph showing speedup from vectorization for five data layout case studies}
 \end{figure}
 
 \begin{figure}
     \includegraphics[width=0.7\linewidth]{figures/graphs/trees.png}
     \caption{Speedups for randomly generated polynomial benchmarks (higher is better).}
+    \Description{Bar graph showing speedup from vectorization for randomly generated polynomials}
 \end{figure}
 
 \begin{figure}
     \includegraphics[width=0.7\linewidth]{figures/graphs/schedules.png}
     \caption{Schedule cost over time (lower is better). The blue line represents the schedule cost with 10k data layout iterations in each round. The orange line is the schedule cost with 15k data layout iterations, and the green line is the schedule cost with 20k data layout iterations. Note that in compiling the benchmarks, 20k iterations were used in each round.}
+    \Description{Multiple line graphs showing the schedule cost over time for different optimization parameters}
 \end{figure}
 
 % We evaluate \system by compiling several computational kernels, of the sort that might be found in machine-learning code, and comparing their vectorized performance against an unvectorized (scalar) baseline implementation. Both the scalar and vector versions use the same FHE backend.
@@ -132,12 +136,12 @@ To investigate how various aspects of program structure affect \system's ability
     \item {\em Dense, nonhomogeneous}: The expression tree is both full and complete, each operation has a 50/50 chance of being an add or a multiply.
 \end{enumerate}
 We generate ten trees for each regime: five with a maximum depth of 3, and five with a maximum depth of 6.
-The relative speedups for these trees are shown in Figure~\ref{fig:fuzzed-trees}.
+% The relative speedups for these trees are shown in Figure~\ref{fig:fuzzed-trees}.
 We see that aside from the sparse trees of depth 3, all the rest show speedups when vectorizing, which makes sense since the sparse computations tend to be much more linear and have fewer opportunities for vectorization.
 The depth 3 trees show on average less speedup than the depth 6 trees, since they also have less work available to vectorize, and less parallelism in their circuits. %\raghav{Is this true? I'm basically trying to say that the scalar is already not bad for a tiny tree so what's the point in vectorizing it}\milind{It's basically about less parallelism. For a complete tree, parallelism is n/log(n), so as n gets bigger, there is more parallelism --- a depth 6 tree has 4 times as much parallelism as a depth 3 tree}
 
-\begin{figure}
-    % \includegraphics[width=0.9\columnwidth]{figures/graphs/TreeGraphwithNumbers.png}
-    \vspace{-0.5em}
-    \caption{Vectorization speedups on microbenchmarks. Blue/green bars represent vector time, and red/yellow bars represent (normalized) scalar time, with a smaller blue/green bar being better. Bars are split between time execution time and encryption time, with execution time on the bottom (green and yellow) and encryption time on top (blue and red). The numbers on top of the bars represent the speedup of vector over scalar, with the first one including encryption time and the second one excluding it.}\label{fig:fuzzed-trees}
-\end{figure}
+% \begin{figure}
+%     % \includegraphics[width=0.9\columnwidth]{figures/graphs/TreeGraphwithNumbers.png}
+%     \vspace{-0.5em}
+%     \caption{Vectorization speedups on microbenchmarks. Blue/green bars represent vector time, and red/yellow bars represent (normalized) scalar time, with a smaller blue/green bar being better. Bars are split between time execution time and encryption time, with execution time on the bottom (green and yellow) and encryption time on top (blue and red). The numbers on top of the bars represent the speedup of vector over scalar, with the first one including encryption time and the second one excluding it.}\label{fig:fuzzed-trees}
+% \end{figure}
