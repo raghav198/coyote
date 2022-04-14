@@ -17,24 +17,25 @@ In contrast, because \system focuses on irregular programs, it {\em automaticall
 
 Additionally, Porcupine's synthesis-based approach results in very long compile times for programs with more than a few instructions.
 Their solution to this problem is to break large programs into multiple smaller, composable kernels and synthesize solutions to each kernel independently.
-This has two major drawbacks: First of all, synthesizing kernels separately means that Porcupine is unable to find optimizations across kernel boundaries.
-Secondly, this requires the programmer to manually split their program into many pieces. \raghav{uhh should I flip the order of these?}
-\system, on the other hand, can compile much larger programs in a reasonable amount of time, and the circuit quotienting strategy automatically breaks large programs up into smaller sequences of vectorizable instructions. \raghav{TODO: add instruction counts to the eval?}
+This has two major drawbacks: First, the burden of decomposing the program falls on the programmer. Second, synthesizing kernels separately means that Porcupine is unable to find optimizations across kernel boundaries, so a poor decomposition can preclude a more efficient vectorization.
+\system, on the other hand, can compile much larger programs in a reasonable amount of time, and the circuit quotienting strategy automatically breaks large programs up into smaller sequences of vectorizable instructions. %\raghav{TODO: add instruction counts to the eval?}
 
 %\raghav{I think I explained that correctly?}\milind{Sounds good.}
 
 Gazelle \cite{Gazelle} is a framework for secure neural network inference in FHE.
-While it is very optimized for a particular use case, Gazelle is not {\em general}: it consists of a library of highly efficient vectorized kernels that useful in neural network applications.
-By contrast, \system can take arbitrary kernels and generate efficient vectorized code on the fly. \raghav{Not sure how to put this nicely, actually.}
+While it is very optimized for a particular use case, Gazelle is not {\em general}: it consists of a library of highly efficient vectorized kernels that are useful in neural network applications.
+By contrast, \system can take arbitrary kernels and generate efficient vectorized code on the fly. %\raghav{Not sure how to put this nicely, actually.}
 
-\raghav{Remove this since I folded EVA into the (ramparts, alchemy, etc.) sentence earlier?}
-Encrypted Vector Arithmetic (EVA) \cite{EVA} is another Python DSL that aims to make FHE programming more accessible; in particular, it also supports writing vector computation.
-However, unlike \system, EVA requires the program to write their vectorized code directly: it does not support automatically vectorizing arbitrary kernels.
-\raghav{Mention that EVA automatically does parameter selection? Or the fact that we could potentially target EVA as a backend if it weren't restricted to CKKS?}
+One class of related work consists of compilers \cite{Ramparts, ALCHEMY, EVA, Cingulata} that automatically lift programs written in a high level DSL into optimized FHE circuits that perform the same computation.
+Unlike \system, these circuit optimizations do not include automatic vectorization. Although ACLHEMY~\cite{ALCHEMY} and EVA~\cite{EVA} \textit{do} support ciphertext packing, they require the programmer to perform the vectorization.
+%\raghav{Remove this since I folded EVA into the (ramparts, alchemy, etc.) sentence earlier?}
+%Encrypted Vector Arithmetic (EVA) \cite{EVA} is another Python DSL that aims to make FHE programming more accessible; in particular, it also supports writing vector computation.
+%However, unlike \system, EVA requires the programmer to write vectorized code directly: it does not support automatically vectorizing arbitrary kernels.
+%\raghav{Mention that EVA automatically does parameter selection? Or the fact that we could potentially target EVA as a backend if it weren't restricted to CKKS?}\milind{nah.}
 
 \subsection{Vectorization of Irregular Programs}
 Superword-Level Parallelism \cite{SLP} is a technique for automatically vectorizing arbitrary programs.
-SLP works by iterating over a sequence of scalar instructions and computing ``vector packs'', or sets of isomorphic instructions that can be packed together into vectors.
+SLP works by iterating over a sequence of scalar instructions and computing ``vector packs,'' or sets of isomorphic instructions that can be packed together into vectors.
 Because SLP does not rely on the presence of data-parallel structures like loops to aid in vectorization, it works well even for irregular programs.
 When computing vector packs, SLP does not account for how expensive rotations are in FHE, leading to schedules with very high data shuffling costs. 
 
@@ -42,13 +43,12 @@ VeGen \cite{VeGen} is a recent variant of SLP introduces {\em lane level paralle
 For example, VeGen can reason about the rotation costs to pack together operands for an instruction into a temporary vector, and can use this to decide whether or not packing those instructions is worth it.
 However, this reasoning only happens locally, and VeGen does not incorporate information about how instruction packing might affect rotations much later in the program.
 
-\raghav{Spotcheck again?}
+%\raghav{Spotcheck again?}
 goSLP \cite{goSLP} reasons about globally optimal packing, and tries to find lane placements that minimize data shuffling costs. 
 However, there are assumptions baked into its cost model that make it fundamentally unsuitable for the FHE setting.
 goSLP frames vectorization overhead in terms of the number of {\em pack} and {\em unpack} operations incurred.
 For example, permuting the slots of a single vector incurs one unpack, whereas blending the contents of N vectors (without any permutation) incurs N unpacks.
-This results in a cost model that implicitly requires wide blends to be much more expensive than arbitrary permutations.
-This is incompatible with FHE, where blends are almost free (instantiated as cheap plaintext multiplies and ciphertext adds) whereas a ``bad'' permutation can require O(n) rotates to realize.
+This results in a cost model that implicitly requires wide blends to be much more expensive than arbitrary permutations, almost the opposite of FHE's cost model. In FHE, blends are almost free (instantiated as cheap plaintext multiplies and ciphertext adds) whereas a ``bad'' permutation can require O(n) rotates to realize.
 In other words, in the FHE world, there are often highly profitable schedules that require many blends and few rotates, but the framing goSLP uses for vectorization overhead will cause it to forego these schedules for more conservative ones.
 Additionally, goSLP does lane placement (permutation selection) {\em after} finding vector packs, creating situations like the one we described in Section~\ref{sec:intro} in which the ostensibly profitable packing does not admit a good data layout.
 By contrast, \system's cooperative scheduling strategy ensures that this does not happen.
@@ -56,20 +56,17 @@ By contrast, \system's cooperative scheduling strategy ensures that this does no
 % While goSLP does reason globally about lane placement, it has two drawbacks in an FHE context. First, it packs instructions into vectors before considering shuffling costs, so may over-aggressively vectorize, while \system may forego some vectorization opportunities in the name of getting packing larger expressions without rotation. Second, its lane placement algorithm considers arbitrary permutations, which are impractically expensive in FHE.
 % \raghav{goSLP frames vectorization overhead in terms of the number of {\em pack} and {\em unpack} operations incurred. For example, permuting the slots of a single vector incurs one unpack, whereas blending the contents of N vectors (without any permutation) incurs N unpacks. In other words, goSLP bakes in the assumption that wide blends are much more expensive than arbitrary permutations. This is fundamentally incompatible with FHE, since blends are almost free, whereas bad permutations can require several expensive rotations to realize. Essentially, in the FHE world, its often better to produce a schedule that {\em looks much worse} than to produce the traditionally optimal one.}
 
-One class of related work consists of compilers \cite{Ramparts,ALCHEMY, EVA, Cingulata} that automatically lift programs written in a high level DSL into optimized FHE circuits that perform the same computation.
-Unlike \system, these circuit optimizations do not include automatic vectorization \footnote{Although \citet{ALCHEMY} and \citet{EVA} do support ciphertext packing, they require the programmer to manually express their computation over vectors.}.
-
 Swizzle Inventor \cite{SwizzleInventor} is a system which automatically synthesizes efficient data movement kernels for vectorized GPU code.
 There are two primary obstacles \system faces in directly applying this approach to our setting:
 \begin{enumerate}
-    \item SwizzleInventor tackles the data movement problem {\em after the kernel has been vectorized}. As we demonstrated earlier\raghav{\footnote{did we?}}, in the world of FHE, packing and data movement are problems that cannot be reasoned about separately, and must be addressed together.
+    \item SwizzleInventor tackles the data movement problem {\em after the kernel has been vectorized}. As we discussed earlier, in the world of FHE, packing and data movement are problems that cannot be reasoned about separately, and must be addressed together.
     \item The sketches SwizzleInventor uses to guide its synthesis rely on the ability to efficiently access arbitrary slots of a packed vector. However, this is not possible with FHE vectors without incurring significant rotation overheads.
 \end{enumerate}
 
-Diospyros \cite{Diospyros} is an equality saturation-based vectorization strategy that constructs an e-graph of programs that are semantically equivalent to a given specification, and then uses a custom cost model to extract an efficient vector program, together with necessary shuffles.
+Diospyros~\cite{Diospyros} is an equality saturation--based vectorization strategy that constructs an e-graph~\cite{xxx} \milind{fill cite} of programs that are semantically equivalent to a given specification, and then uses a custom cost model to extract an efficient vector program, together with necessary shuffles.
 However, the simplicity of the cost model it associates to various shuffles makes it unsuitable to deal with the peculiarities and inflexibility of FHE rotations.
 
-In \cite{CircuitRewriting}, Lee et al. describe a general method for automatically rewriting arithmetic and boolean FHE circuits according to a cost model by learning semantically sound rewrite rules.
+\citet{CircuitRewriting} describe a general method for automatically rewriting arithmetic and boolean FHE circuits according to a cost model by learning semantically sound rewrite rules.
 This approach explores the space of scalar rewrites but does not directly deal with vectorization, making it orthogonal to ours: a technique like this could first be applied to an arbitrary computation to transform it into one more amenable to vectorization before applying \system.
 %By reasoning globally about the entire dependence graph of the program at once, \system can identify such phenomena when making vector packs.
 %\system can also automatically find vector schedules that are amenable to more efficient data movement, and can propagate this information back through the program this to identify more optimal data layouts.
