@@ -74,7 +74,7 @@ As the example in Figure~\ref{fig:coyote-program} shows, \system programs are ju
 The decorator registers the function as defining a \system circuit, and allows the programmer to specify the function signature (i.e. the size and shape of each of its inputs).
 \system currently supports three input datatypes: {\sf scalar()}, {\sf vector(size)}, and {\sf matrix(rows, cols)}.
 Inputs annotated with {\sf scalar()} are always replicated and free to be placed anywhere in the vector schedule; by contrast, {\sf matrix} and {\sf vector} inputs are always packed together and by default unreplicated, although the latter option can be overridden.
-For a full discussion of these packing and replication options, see Section~\ref{sec:duplicating-inputs}. \raghav{Should I include these sentences here, or just move them down to Section~\ref{sec:duplicating-inputs}?}
+For a full discussion of these packing and replication options, see Section~\ref{sec:duplicating-inputs}. %\raghav{Should I include these sentences here, or just move them down to Section~\ref{sec:duplicating-inputs}?}
 
 \system internally uses a {\sf CoyoteVar} datatype which represents a symbolic encrypted value, and currently supports addition, subtraction, and multiplication.
 To produce a circuit, \system creates a number of these {\sf CoyoteVar} variables (as defined by the signature provided in the decorator) and executes the function with these as parameters.
@@ -134,13 +134,14 @@ This is by design, since the instruction alignment problem is formulated as an I
 However, this does have an impact on the cost model, as without alignment results, we are forced to work at the level of granularity of entire epochs, resulting in approximations of the schedule height and number of rotation rotations.
 In particular, the approximations tend to underestimate the true cost of the final realized schedule in two ways: (i) undercounting the number of rotations; and (ii) underestimating the height of a given epoch.
 
-When counting rotations, we assume that if two cross-lane arcs originate from the same epoch and have the same span, they can be realized with a single rotation instrution.
-This assumption fails if the instructions each arc rotates \raghav{(?)} do not get aligned in the final schedule, since there are now multiple vectors in that epoch that require the same rotation.
-This is impossible to avoid without fully aligning everything before computing rotation costs, which as mentioned before is intractable; in practice, however, the estimated rotation costs do not differ from the actual rotation costs by too much, so we still get good schedules. \raghav{stronger way to say this? technically the only evidence I have to back this up is ``I looked at the debug output telling me the estimated costs and compared it by hand to the actual cost by counting ops for a couple small benchmarks and didn't see much of a difference''}
+When counting rotations, we assume that if two cross-lane arcs originate from the same epoch and have the same span, they can be realized with a single rotation instruction.
+This assumption fails if the instructions whose results each arc rotates do not get aligned in the final schedule, since there are now multiple vectors in that epoch that require the same rotation.
+This is impossible to avoid without fully aligning everything before computing rotation costs, which as mentioned before is intractable; in practice, however, the estimated rotation costs do not differ from the actual rotation costs by too much, so we still get good schedules. %\raghav{stronger way to say this? technically the only evidence I have to back this up is ``I looked at the debug output telling me the estimated costs and compared it by hand to the actual cost by counting ops for a couple small benchmarks and didn't see much of a difference''}\milind{I think this is OK.}
 
 The other approximation we make is when computing the ``height'' of a single epoch, we do not take into account dependences between instructions before counting them. 
 In other words, if two columns in the epoch each have an add and a multiply, but the add depends on the multiply in one and vice-versa in the other, the alignment would pack together the multiplies and not the adds, resulting in an actual height of two adds and one multiply; by contrast, \system records the height as one add and one multiply.
-We could do a more sophisticated analysis at this step to get estimates that are closer to the true height; however, as before, such analyses are often too expensive to do in the inner loop of a search procedure, and in practice, our estimated heights are still sufficient to guide the search towards more efficient schedules. \raghav{same as before, is there a better way to say this without committing to doing a full case study of the differences between estimated and actual costs?}
+We could do a more sophisticated analysis at this step to get estimates that are closer to the true height; however, as before, such analyses are often too expensive to do in the inner loop of a search procedure, and in practice, our estimated heights are still sufficient to guide the search towards more efficient schedules.
+ %\raghav{same as before, is there a better way to say this without committing to doing a full case study of the differences between estimated and actual costs?}
 
 
 % Because each of the compilation steps quickly blows up when given larger programs, we make a number of tradeoffs that sacrifice optimality in exchange for faster compilation times.

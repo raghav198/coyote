@@ -15,26 +15,20 @@ All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. %\r
 
 \subsection{Computational Kernels}
 \begin{figure}
-	\vspace{-4em}
     \begin{subfigure}{\linewidth}
         % \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataUnreplicatedENC+RUN.png}
-        \vspace{-3.5em}
         \caption{Scalar vs. Vector comparison for unreplicated inputs}\label{fig:ml-kernels-unrepl}
     \end{subfigure}
     
-    \vspace{-2.5em}
     
     \begin{subfigure}{\linewidth}
         % \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataPartiallyReplicatedENC+RUN.png}
-                \vspace{-3em}
         \caption{Scalar vs. Vector comparison for partially replicated inputs}\label{fig:ml-kernels-part-repl}
     \end{subfigure}
     
-     \vspace{-3em}
      
     \begin{subfigure}{\linewidth}
         % \includegraphics[width=1\textwidth]{figures/newAspectRatioGraphs/DataReplicatedENC+RUN.png}
-            \vspace{-3.5em}
         \caption{Scalar vs. Vector comparison for fully replicated inputs}\label{fig:ml-kernels-repl}
     \end{subfigure}
     \caption{Scalar vs. Vector encryption + run time comparisons for various replication regimes. Scalar times (red) are normalized to 1, and a smaller (blue) vector bar is better.}\label{fig:ml-kernels}
