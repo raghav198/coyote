@@ -63,7 +63,7 @@ There are two primary obstacles \system faces in directly applying this approach
     \item The sketches SwizzleInventor uses to guide its synthesis rely on the ability to efficiently access arbitrary slots of a packed vector. However, this is not possible with FHE vectors without incurring significant rotation overheads.
 \end{enumerate}
 
-Diospyros~\cite{Diospyros} is an equality saturation--based vectorization strategy that constructs an e-graph~\cite{xxx} \milind{fill cite} of programs that are semantically equivalent to a given specification, and then uses a custom cost model to extract an efficient vector program, together with necessary shuffles.
+Diospyros~\cite{Diospyros} is an equality saturation--based vectorization strategy that constructs an e-graph~\cite{EqualitySaturation, egg} of programs that are semantically equivalent to a given specification, and then uses a custom cost model to extract an efficient vector program, together with necessary shuffles.
 However, the simplicity of the cost model it associates to various shuffles makes it unsuitable to deal with the peculiarities and inflexibility of FHE rotations.
 
 \citet{CircuitRewriting} describe a general method for automatically rewriting arithmetic and boolean FHE circuits according to a cost model by learning semantically sound rewrite rules.
