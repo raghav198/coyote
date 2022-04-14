@@ -77,59 +77,52 @@ In the \texttt{mat\_mul\_det} kernels, \system first identifies the the highly v
 % \milind{Add a discussion here about visually inspecting the generated code, and point out where and whether coyote does especially cool stuff, or where it breaks down.}
 
 \subsubsection*{Ideal Speedups}
-
 \begin{table}
-\small
-    \caption{Speedups from vectorization (ideal speedup by instruction count, and observed speedup by execution time)}\label{tab:ideal-speedup}
-    \begin{tabular}{lcccc}
-        \toprule    
-        Benchmark & Ideal Speedup & Observed Speedup\\\midrule
-        \texttt{mat\_convol\_4x4x2x2} & 3.225 & 1.560\\
-        \texttt{mat\_mul\_det2x2} & 4.565 & 3.249\\
-        \texttt{mat\_mul3x3} & 4.881 & 4.182\\
-        \texttt{pairwise\_dist3x3} & 1.969 & 2.137\\
-        \texttt{dot\_product3x3} & 2.667 & 1.999\\
-        \texttt{pairwise\_dist2x2} & 1.292 & 1.279\\
-        \texttt{dot\_product6x6} & 5.000 & 3.558\\
-        \texttt{mat\_convol4x4x3x3} & 4.404 & 2.346\\
-        \texttt{mat\_mul2x2} & 7.636 & 6.184\\
-        \texttt{mat\_mul\_det3x3} & 1.799 & 1.153\\\bottomrule
+    \begin{tabular}{lccccccc}
+    \toprule
+    Benchmark & Time (s) & Add+Sub & Mul & VAdd+VSub & VMul & Rot & Blend\\\midrule
+    tree & 139 & 10 & 10 & 11 & 5 & 1 & 1\\
+    dist.5.fully & 609 & 50 & 25 & 2 & 2 & 9 & 10\\
+    dist.4.fully & 463 & 32 & 16 & 2 & 2 & 4 & 8\\
+    dist.3.fully & 226 & 18 & 9 & 2 & 2 & 2 & 7\\
+    mm.2.fully & 170 & 4 & 8 & 2 & 1 & 1 & 2\\
+    mm.3.fully & 607 & 18 & 27 & 4 & 2 & 9 & 3\\
+    conv.4.2.fully & 71 & 3 & 6 & 2 & 1 & 1 & 2\\
+    conv.5.3.fully & 208 & 6 & 9 & 4 & 1 & 2 & 3\\
+    dot.3.fully & 10 & 2 & 3 & 3 & 1 & 2 & 0\\
+    dot.6.fully & 156 & 5 & 6 & 4 & 1 & 3 & 2\\
+    dot.10.fully & 251 & 9 & 10 & 6 & 1 & 5 & 4\\
+    tree.packed.fully & 231 & 10 & 10 & 8 & 4 & 4 & 3\\
+    dist.5.partially & 629 & 50 & 25 & 2 & 2 & 13 & 10\\
+    dist.4.partially & 432 & 32 & 16 & 2 & 2 & 6 & 8\\
+    dist.3.partially & 233 & 18 & 9 & 1 & 1 & 4 & 6\\
+    mm.2.partially & 171 & 4 & 8 & 2 & 1 & 2 & 1\\
+    mm.3.partially & 610 & 18 & 27 & 4 & 1 & 18 & 6\\
+    conv.4.2.partially & 80 & 3 & 6 & 2 & 1 & 2 & 1\\
+    conv.5.3.partially & 211 & 6 & 9 & 4 & 1 & 4 & 3\\
+    dot.3.partially & 10 & 2 & 3 & 3 & 1 & 2 & 0\\
+    dot.6.partially & 154 & 5 & 6 & 4 & 1 & 3 & 2\\
+    dot.10.partially & 257 & 9 & 10 & 6 & 1 & 5 & 4\\
+    tree.packed.partially & 233 & 10 & 10 & 8 & 4 & 4 & 3\\
+    dist.5.un & 619 & 50 & 25 & 2 & 2 & 13 & 10\\
+    dist.4.un & 425 & 32 & 16 & 2 & 2 & 6 & 8\\
+    dist.3.un & 228 & 18 & 9 & 1 & 1 & 4 & 6\\
+    mm.2.un & 176 & 4 & 8 & 2 & 1 & 3 & 2\\
+    mm.3.un & 573 & 18 & 27 & 5 & 2 & 20 & 10\\
+    conv.4.2.un & 97 & 3 & 6 & 2 & 1 & 4 & 4\\
+    conv.5.3.un & 206 & 6 & 9 & 3 & 1 & 7 & 5\\
+    dot.3.un & 10 & 2 & 3 & 3 & 1 & 2 & 0\\
+    dot.6.un & 159 & 5 & 6 & 4 & 1 & 3 & 2\\
+    dot.10.un & 254 & 9 & 10 & 6 & 1 & 5 & 4\\
+    tree.packed.un & 238 & 10 & 10 & 8 & 4 & 8 & 6\\
+    mm.3.case1 & 584 & 18 & 27 & 5 & 2 & 15 & 10\\
+    mm.3.case2 & 594 & 18 & 27 & 5 & 2 & 20 & 10\\
+    mm.3.case3 & 565 & 18 & 27 & 11 & 6 & 24 & 22\\
+    mm.3.case4 & 601 & 18 & 27 & 5 & 3 & 24 & 10\\
+    mm.3.case5 & 522 & 18 & 27 & 16 & 13 & 33 & 25\\\bottomrule
     \end{tabular}
-\end{table}
-
-In addition to collecting data about execution time, we also model the ideal speedup of each benchmark (i.e., how much faster vectorization would be if data shuffling were free).
-We do this by counting the instructions in both the fully replicated vector schedule and the baseline scalar code, treating a ciphertext multiply as being roughly 10$\times$ as expensive\footnote{This is also the ratio \system uses in its internal cost model.} as a ciphertext add or plaintext multiply, and treating each rotation as a no-op.
-This data is shown in Table~\ref{tab:ideal-speedup}.
-The most vectorizable benchmarks are \texttt{mat\_mul2x2} and \texttt{dot\_product6x6}, with ideal speedups of 7.6 and 5.0 respectively, and the least vectorizable benchmark is \texttt{pairwise\_dist2x2}, with an ideal speedup of approximately 1.3.
-This is as expected: the first two are very regular computations, and the pairwise distance benchmark represents a worst case scenario for vectorization, due to its dense dependence structure.
-However, all of these ideal speedups are close to the actual speedup in execution time as shown in the table, suggesting that \system is capable of finding highly optimized schedules even in the presence of high data movement costs. (Note that for \texttt{pairwise\_dist2x2}, the observed speedup is actually {\em higher} than the ideal speedup; this discrepancy is because the cost model used to calculate ideal speedups is an approximation.)
-%\milind{Remove the scalar and vector columns from the table, and add an ``observed speedup'' column to the table so people can see that we get pretty close to the ideal speedup}
-
-\paragraph{Compilation time}
-Table~\ref{tab:compilationtime} shows the compilation time for each of the benchmarks. We see that the slowest compilation times occur for the un-replicated variants. We see that some of the larger benchmarks with many lane assignment problems to solve can take several minutes to complete. However, when weighed against the generally high cost of FHE execution, this compilation time is reasonable, and is in the same ballpark as other FHE vectorizers~\cite{Porcupine}.
-
-\begin{table}
-\small
-	\caption{Compilation time (s) for \system benchmarks}
-	\label{tab:compilationtime}
-	\vspace{-0.5em}
-    \begin{tabular}{lccc}
-        \toprule
-        Benchmark & Unreplicated & Partial & Replicated\\\midrule
-        \texttt{mat\_convol\_4x4x2x2} & 143.998 & 249.587 &199.653\\
-        \texttt{mat\_mul\_det2x2} & 3.702 & 2.386 &2.356\\
-        \texttt{mat\_mul3x3} &  104.779 & 66.661&107.803\\
-        \texttt{pairwise\_dist3x3} & 132.660 & 158.475&194.264\\
-        \texttt{dot\_product3x3} & 0.425 & 0.304&0.332\\
-        \texttt{pairwise\_dist2x2} & 9.582 & 11.984&15.737\\
-        \texttt{dot\_product6x6} & 1.131 & 1.158&1.370\\
-        \texttt{mat\_convol4x4x3x3} & 453.378 & 144.412&206.653\\
-        \texttt{mat\_mul2x2} & 3.702 & 1.739&1.837\\
-        \texttt{mat\_mul\_det3x3} & 307.757 & 382.387&476.384\\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
+    \end{table}
+    
 
 \subsection{Fuzzed Microbenchmarks}
 To investigate how various aspects of program structure affect \system's ability to vectorize, we randomly generate several expression trees according to three regimes:
