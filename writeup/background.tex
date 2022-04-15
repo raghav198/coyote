@@ -15,7 +15,7 @@ This means that all but the smallest FHE applications are often too slow to be r
 
 % multiplicative depth
 Another main challenge of FHE computation is related to the noise added to ciphertexts.
-When setting up an FHE computation, the encryption parameters used determine a safe {\em noise margin} for ciphertexts, which describes the level of noise above which ciphertexts can no longer be decrypted.
+When setting up an FHE computation, the encryption parameters used to determine a safe {\em noise margin} for ciphertexts, which describes the level of noise above which ciphertexts can no longer be decrypted.
 Freshly encrypted ciphertexts are well below this margin, but multiplying two ciphertexts increases the amount of noise present in the result.
 BFV does support {\em bootstrapping}, which is a technique for homomorphically computing a fresh encryption of a ciphertext to ``reset'' its noise level; however, bootstrapping is an expensive procedure.
 When designing an FHE computation, therefore, it becomes important to limit its multiplicative depth to avoid bootstrapping as much as possible.

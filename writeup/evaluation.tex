@@ -43,6 +43,62 @@ To investigate the effect of data replication (as discussed in Section~\ref{sec:
 Note that for dot product, replication makes no difference as each input is used exactly once.
 
 \subsection{Costs and Effects of Vector Compilation}\label{sec:compilation-stuff}
+
+\begin{table}
+	\small
+    \caption{Table showing compilation time in seconds, as well as instruction counts in the scalar (SAdd, SSub, SMul) and vector (VAdd, VSub, VMul, Rot, Blend) code, and the ideal speedup (work/span). Note that ideal speedup considers rotates and blends to be free.}\label{tab:big-ass}
+    \begin{tabular}{lcccccccc}
+    \toprule
+    Benchmark & Time (s) & SAdd +& SMul & VAdd + & VMul & Rot & Blend & Ideal \\
+    & & SSub & & VSub & & & & Speedup\\\midrule
+    conv.4.2.un & 97 & 3 & 6 & 2 & 1 & 4 & 4 & 5.73\\
+    conv.4.2.partially & 80 & 3 & 6 & 2 & 1 & 2 & 1 & 5.73\\
+    conv.4.2.fully & 71 & 3 & 6 & 2 & 1 & 1 & 2 & 5.73\\
+
+    conv.5.3.un & 206 & 6 & 9 & 3 & 1 & 7 & 5 & 8.0\\
+    conv.5.3.partially & 211 & 6 & 9 & 4 & 1 & 4 & 3 & 8.0\\
+    conv.5.3.fully & 208 & 6 & 9 & 4 & 1 & 2 & 3 & 8.0\\
+
+    dist.3.un & 228 & 18 & 9 & 1 & 1 & 4 & 6 & 9.82\\
+    dist.3.partially & 233 & 18 & 9 & 1 & 1 & 4 & 6 & 9.82\\
+    dist.3.fully & 226 & 18 & 9 & 2 & 2 & 2 & 7 & 9.82\\
+
+    dist.4.un & 425 & 32 & 16 & 2 & 2 & 6 & 8 & 17.45\\
+    dist.4.partially & 432 & 32 & 16 & 2 & 2 & 6 & 8 & 17.45\\
+    dist.4.fully & 463 & 32 & 16 & 2 & 2 & 4 & 8 & 17.45\\
+
+    dist.5.un & 619 & 50 & 25 & 2 & 2 & 13 & 10 & 27.27\\
+    dist.5.partially & 629 & 50 & 25 & 2 & 2 & 13 & 10 & 27.27\\
+    dist.5.fully & 609 & 50 & 25 & 2 & 2 & 9 & 10 & 27.27\\
+
+    dot.3.un & 10 & 2 & 3 & 3 & 1 & 2 & 0 & 2.67\\
+    dot.3.partially & 10 & 2 & 3 & 3 & 1 & 2 & 0 & 2.67\\
+    dot.3.fully & 10 & 2 & 3 & 3 & 1 & 2 & 0 & 2.67\\
+
+    dot.6.un & 159 & 5 & 6 & 4 & 1 & 3 & 2 & 5.0\\
+    dot.6.partially & 154 & 5 & 6 & 4 & 1 & 3 & 2 & 5.0\\
+    dot.6.fully & 156 & 5 & 6 & 4 & 1 & 3 & 2 & 5.0\\
+
+    dot.10.un & 254 & 9 & 10 & 6 & 1 & 5 & 4 & 7.79\\
+    dot.10.partially & 257 & 9 & 10 & 6 & 1 & 5 & 4 & 7.79\\
+    dot.10.fully & 251 & 9 & 10 & 6 & 1 & 5 & 4 & 7.79\\
+
+    mm.2.un & 176 & 4 & 8 & 2 & 1 & 3 & 2 & 7.64\\
+    mm.2.partially & 171 & 4 & 8 & 2 & 1 & 2 & 1 & 7.64\\
+    mm.2.fully & 170 & 4 & 8 & 2 & 1 & 1 & 2 & 7.64\\
+
+    mm.3.un & 573 & 18 & 27 & 5 & 2 & 20 & 10 & 24.0\\
+    mm.3.partially & 610 & 18 & 27 & 4 & 1 & 18 & 6 & 24.0\\
+    mm.3.fully & 607 & 18 & 27 & 4 & 2 & 9 & 3 & 24.0\\
+
+    tree.packed.un & 238 & 10 & 10 & 8 & 4 & 8 & 6 & 3.24\\
+    tree.packed.partially & 233 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
+    tree.packed.fully & 231 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
+    tree & 139 & 10 & 10 & 11 & 5 & 1 & 1 & 3.24\\\bottomrule
+    \end{tabular}
+\end{table}
+
+
 Table~\ref{tab:big-ass} displays various compilation properties, including how long each benchmark took to compile and how many operations each program had before and after vectorization.
 Our benchmarks ranged in size from 5 scalar instructions (size 3 dot product) to 75 instructions (5 point distances)\footnote{Note that \system is able to handle benchmark sizes much larger than those of Porcupine \cite{Porcupine} while maintaining reasonable compile times}.
 While the number of scalar multiplies went as high as 27 (for the $3\times 3$ matrix multiply), \system was almost always able to pack these into at most one or two vector instructions.
@@ -53,55 +109,6 @@ Furthermore, the unreplicated versions of each benchmark almost always incurred 
 
 Table~\ref{tab:big-ass} also shows the ideal speedup for each benchmark, using our cost model of multiplies being 10$\times$ as expensive as adds and subtracts. Note that this modeled speedup is based on a classic work/span analysis, and hence assumes that permuting and shuffling data between vectors is free. This modeled speedup thus represents a substantial overestimate of the actual speedup that could be achieved in the program. For example, a \textsf{3x3} matrix multiply has 9 3-element dot products. The necessary 27 multiplies can all be performed in one vector operation, but the results of three multiplies need to be added to perform each dot product (which requires two adds each). Thus in reality two of the multiplies are performed in the ``wrong'' lane and need to be shuffled to the correct lane to complete the computation.
 % \milind{There should be a paragraph or subsubsection here that discusses the benchmark table: how big each benchmark is, what the effects of vectorizing it are in terms of operations saved, etc. This is a precursor to discussing anything runtime related.}
-
-\begin{table}
-    \small
-    \caption{Table showing compilation time in seconds, as well as instruction counts in the scalar (SAdd, SSub, SMul) and vector (VAdd, VSub, VMul, Rot, Blend) code. Ideal speedup represents the modeled speedup of a perfectly parallelized program, with no cost for vector shuffling.}\label{tab:big-ass}
-    \begin{tabular}{lcccccccc}
-    \toprule
-    Benchmark & Time (s) & SAdd +& SMul & VAdd + & VMul & Rot & Blend & Ideal \\
-    & & SSub & & VSub & & & & Speedup\\\midrule
-    tree & 139 & 10 & 10 & 11 & 5 & 1 & 1 & 3.24\\
-    dist.5.fully & 609 & 50 & 25 & 2 & 2 & 9 & 10 & 27.27\\
-    dist.4.fully & 463 & 32 & 16 & 2 & 2 & 4 & 8 & 17.45\\
-    dist.3.fully & 226 & 18 & 9 & 2 & 2 & 2 & 7 & 9.82\\
-    mm.2.fully & 170 & 4 & 8 & 2 & 1 & 1 & 2 & 7.64\\
-    mm.3.fully & 607 & 18 & 27 & 4 & 2 & 9 & 3 & 24.0\\
-    conv.4.2.fully & 71 & 3 & 6 & 2 & 1 & 1 & 2 & 5.73\\
-    conv.5.3.fully & 208 & 6 & 9 & 4 & 1 & 2 & 3 & 8.0\\
-    dot.3.fully & 10 & 2 & 3 & 3 & 1 & 2 & 0 & 2.67\\
-    dot.6.fully & 156 & 5 & 6 & 4 & 1 & 3 & 2 & 5.0\\
-    dot.10.fully & 251 & 9 & 10 & 6 & 1 & 5 & 4 & 7.79\\
-    tree.packed.fully & 231 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
-    dist.5.partially & 629 & 50 & 25 & 2 & 2 & 13 & 10 & 27.27\\
-    dist.4.partially & 432 & 32 & 16 & 2 & 2 & 6 & 8 & 17.45\\
-    dist.3.partially & 233 & 18 & 9 & 1 & 1 & 4 & 6 & 9.82\\
-    mm.2.partially & 171 & 4 & 8 & 2 & 1 & 2 & 1 & 7.64\\
-    mm.3.partially & 610 & 18 & 27 & 4 & 1 & 18 & 6 & 24.0\\
-    conv.4.2.partially & 80 & 3 & 6 & 2 & 1 & 2 & 1 & 5.73\\
-    conv.5.3.partially & 211 & 6 & 9 & 4 & 1 & 4 & 3 & 8.0\\
-    dot.3.partially & 10 & 2 & 3 & 3 & 1 & 2 & 0 & 2.67\\
-    dot.6.partially & 154 & 5 & 6 & 4 & 1 & 3 & 2 & 5.0\\
-    dot.10.partially & 257 & 9 & 10 & 6 & 1 & 5 & 4 & 7.79\\
-    tree.packed.partially & 233 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
-    dist.5.un & 619 & 50 & 25 & 2 & 2 & 13 & 10 & 27.27\\
-    dist.4.un & 425 & 32 & 16 & 2 & 2 & 6 & 8 & 17.45\\
-    dist.3.un & 228 & 18 & 9 & 1 & 1 & 4 & 6 & 9.82\\
-    mm.2.un & 176 & 4 & 8 & 2 & 1 & 3 & 2 & 7.64\\
-    mm.3.un & 573 & 18 & 27 & 5 & 2 & 20 & 10 & 24.0\\
-    conv.4.2.un & 97 & 3 & 6 & 2 & 1 & 4 & 4 & 5.73\\
-    conv.5.3.un & 206 & 6 & 9 & 3 & 1 & 7 & 5 & 8.0\\
-    dot.3.un & 10 & 2 & 3 & 3 & 1 & 2 & 0 & 2.67\\
-    dot.6.un & 159 & 5 & 6 & 4 & 1 & 3 & 2 & 5.0\\
-    dot.10.un & 254 & 9 & 10 & 6 & 1 & 5 & 4 & 7.79\\
-    tree.packed.un & 238 & 10 & 10 & 8 & 4 & 8 & 6 & 3.24\\
-    mm.3.case1 & 584 & 18 & 27 & 5 & 2 & 15 & 10 & 24.0\\
-    mm.3.case2 & 594 & 18 & 27 & 5 & 2 & 20 & 10 & 24.0\\
-    mm.3.case3 & 565 & 18 & 27 & 11 & 6 & 24 & 22 & 24.0\\
-    mm.3.case4 & 601 & 18 & 27 & 5 & 3 & 24 & 10 & 24.0\\
-    mm.3.case5 & 522 & 18 & 27 & 16 & 13 & 33 & 25 & 24.0\\\bottomrule
-    \end{tabular}
-\end{table}
 
 \subsection{Speedups}\label{sec:speedups}
 
@@ -120,7 +127,9 @@ The decision tree benchmark has an extra green bar representing the unpacked run
 We see speedups ranging from anywhere between $1.5\times$ on the data-dense point cloud distances benchmarks to over $3.5\times$ on the highly vectorizable matrix multiply.
 We also generally notice more speedup as the replication level increases, suggesting that \system is able to take advantage of replicated inputs to eliminate rotations from the schedule.
 
-\milind{This would be a good place to discuss the comparison of our speedups with rotation vs. modeled ideal speedups without rotation costs...}
+While it may appear that \system's actual speedups are sometimes well off from the idealized speedups, we note that this is due to the rotations and blends required to implement these benchmarks outside an idealized world where vector permutation is free. For example, in the \textsf{3x3}, fully-replicated matrix multiply case, \system generates 9 rotations to move results into place. We see, though, that in benchmarks where \system can generate schedules with few rotates, it does well despite the data movement costs. For example, in \textsf{conv.4.2}, \system achieves a 2.5$\times$ speedup versus an ideal speedup of 5$\times$; and in \textsf{dot.3}, \system achieves a 1.6$\times$ speedup versus an ideal speedup of 2.7$\times$.
+
+%\milind{This would be a good place to discuss the comparison of our speedups with rotation vs. modeled ideal speedups without rotation costs...}
 
 \subsection{Randomly Generated Irregular Kernels}
 \begin{figure}
@@ -157,6 +166,19 @@ To study the effects of different data layout choices, we did a case study with 
     \item[Cols/Rows:] The columns of $A$ are packed into three separate vectors, and the rows of $B$ are packed into three separate vectors
     \item[Individual:] Each of the 18 entries are packed into their own vector (note that this is different from simply leaving them as free scalars, because this precludes \system from choosing to put some of them on the same vector anyway).     
 \end{description}
+\begin{table}
+    \tiny
+    \caption{Table showing compilation time, scalar and vector operation counts, and ideal speedup for the data layout case study}\label{tab:bigass-data-layout}
+    \begin{tabular}{lcccccccc}
+    \toprule
+    Benchmark & Time (s) & SAdd+SSub & SMul & VAdd+VSub & VMul & Rot & Blend & Ideal Speedup\\\midrule
+    mm.3.case1 & 584 & 18 & 27 & 5 & 2 & 15 & 10 & 24.0\\
+    mm.3.case2 & 594 & 18 & 27 & 5 & 2 & 20 & 10 & 24.0\\
+    mm.3.case3 & 565 & 18 & 27 & 11 & 6 & 24 & 22 & 24.0\\
+    mm.3.case4 & 601 & 18 & 27 & 5 & 3 & 24 & 10 & 24.0\\
+    mm.3.case5 & 522 & 18 & 27 & 16 & 13 & 33 & 25 & 24.0\\\bottomrule
+    \end{tabular}
+\end{table}
 In each layout, all the inputs are unreplicated.
 Figure~\ref{fig:data-layout-case-study} shows the results of this case study.
 Interestingly, we find that packing the matrices together yields greater speedups than keeping them separate.
