@@ -21,11 +21,12 @@ In this evaluation, we aim to answer the following questions:
     \Description{Bar graph showing speedup from vectorization for each benchmark}
 \end{figure}
 
-\raghav{spot-check my tenses?}
-To assess \system's ability to vectorize general applications, we use a suite of benchmarks that represent a spectrum of both regular and irregular computations, as well as ones that are both sparse and dense in terms of data reuse \raghav{I'm hesitant to say sparse because that means something different}. \milind{Give a couple of sentence description of each, and also say whether we're classifying this as regular/irregular or dense/sparse, and why. Then you can just move the extra stuff about decision tree into the list, too}
+%\raghav{spot-check my tenses?}
+To assess \system's ability to vectorize general applications, we use a suite of benchmarks that represent a spectrum of both regular and irregular computations, as well as ones that are both sparse and dense in terms of data reuse.
+%\raghav{I'm hesitant to say sparse because that means something different}. \milind{Give a couple of sentence description of each, and also say whether we're classifying this as regular/irregular or dense/sparse, and why. Then you can just move the extra stuff about decision tree into the list, too}
 
 The benchmarks are as follows:
-\raghav{I think the wording could be fixed here but I'm not sure how.}
+%\raghav{I think the wording could be fixed here but I'm not sure how.}
 \begin{enumerate}[label=\arabic*.]
     \item Multiplying two matrices. We do this with $2\times 2$ matrices (regular, little data reuse) and $3\times 3$ matrices (regular, some substantial data reuse). %Matrix multiply ($2\times 2$ and $3\times 3$): the $3\times 3$ matrix multiply is somewhat data-dense, since each input is used three times.
     \item Vector dot product, with vector sizes of 3, 6, and 10 (all of these are regular with no data reuse).
@@ -34,8 +35,8 @@ The benchmarks are as follows:
     \item Decision tree traversal (inputs packed and unpacked). This benchmark is a decision tree that represents sorting a list of three elements. It takes as input three ciphertext ``decisions'' representing comparison results, and six ciphertext ``labels'' representing possible arrangements of the sorted list. In particular, each of the three decisions gets used in multiple branches of the tree. ``Packed'' here means the data layout packs the three decisions into one vector and the six labels into another. This is irregular, and the packed versions have data reuse.
 \end{enumerate}
 
-\raghav{redundant?}
-(Notice that the decision tree benchmark contains irregular computation, and the packed decision tree, all the point cloud distances, and the $3\times 3$ matrix multiply are relatively dense in terms of data reuse).
+%\raghav{redundant?}
+%(Notice that the decision tree benchmark contains irregular computation, and the packed decision tree, all the point cloud distances, and the $3\times 3$ matrix multiply are relatively dense in terms of data reuse).
 
 To investigate the effect of data replication (as discussed in Section~\ref{sec:duplicating-inputs}), we used three different replication strategies for each benchmark: 
 
@@ -44,7 +45,6 @@ To investigate the effect of data replication (as discussed in Section~\ref{sec:
 \item {\em partially replicated} in which one of the two inputs is fully replicated---and hence each operation that requires that input gets its own copy, obviating the need for data movement---while the other is not.
 \item {\em fully replicated} in which both inputs are fully replicated. 
 \end{enumerate}
-
 Note that for dot product, replication makes no difference as each input is used exactly once.
 
 \subsection{Costs and Effects of Vector Compilation}\label{sec:compilation-stuff}
@@ -52,19 +52,19 @@ Table~\ref{tab:big-ass} displays various compilation properties, including how l
 Our benchmarks ranged in size from 5 scalar instructions (size 3 dot product) to 75 instructions (5 point distances)\footnote{Note that \system is able to handle benchmark sizes much larger than those of Porcupine \cite{Porcupine} while maintaining reasonable compile times}.
 While the number of scalar multiplies went as high as 27 (for the $3\times 3$ matrix multiply), \system was almost always able to pack these into at most one or two vector instructions.
 The main exceptions to this rule were the highly irregular tree benchmarks, which still went from 10 scalar multiplies to between 4 and 5 vector multiplies, and the more unreasonable data layouts in our case studies.
-Another interesting point to notice is the number of rotates: while these generally stayed under 10, the 5 point distance and $3\times 3$ matrix multiply benchmarks had a very high number of rotations after vectorization, since these were the most data-dense ones.
+Another interesting point to notice is the number of rotates. Most benchmarks required fewer than 10 rotates. However, the 5 point distance and $3\times 3$ matrix multiply benchmarks had a very high number of rotations after vectorization, as these were the most data-dense ones---intermediate results are required by many downstream computations, requiring many rotates.
 Furthermore, the unreplicated versions of each benchmark almost always incurred more rotates than the partially or fully replicated versions, validating our hypothesis that input replication helps alleviate the rotation burden when vectorizing.
-\raghav{anything else interesting to mention?}
+%\raghav{anything else interesting to mention?}
 
 
 % \milind{There should be a paragraph or subsubsection here that discusses the benchmark table: how big each benchmark is, what the effects of vectorizing it are in terms of operations saved, etc. This is a precursor to discussing anything runtime related.}
 
 \begin{table}
     \small
-    \caption{Table showing compilation time in seconds, as well as instruction counts in the scalar and vector code}\label{tab:big-ass}
+    \caption{Table showing compilation time in seconds, as well as instruction counts in the scalar (SAdd, SSub, SMul) and vector (VAdd, VSub, VMul, Rot, Blend) code}\label{tab:big-ass}
     \begin{tabular}{lccccccc}
     \toprule
-    Benchmark & Time (s) & Add+Sub & Mul & VAdd+VSub & VMul & Rot & Blend\\\midrule
+    Benchmark & Time (s) & SAdd+SSub & SMul & VAdd+VSub & VMul & Rot & Blend\\\midrule
     tree & 139 & 10 & 10 & 11 & 5 & 1 & 1\\
     dist.5.fully & 609 & 50 & 25 & 2 & 2 & 9 & 10\\
     dist.4.fully & 463 & 32 & 16 & 2 & 2 & 4 & 8\\
@@ -109,7 +109,7 @@ Furthermore, the unreplicated versions of each benchmark almost always incurred 
 
 \subsection{Speedups}\label{sec:speedups}
 % \milind{This is the punchline to your main research question: ``Can we get vectorization speedup.'' So it should be its own subsection.}
-We run each benchmark 50 times in scalar, and 50 times after vectorization. 
+While instruction counts indicate that \system is able to effectively find vector operations for each benchmark, we must also determine whether the actual costs of rotations and blends outweigh the vectorization benefits. Hence, we run each benchmark 50 times in scalar, and 50 times after vectorization to compute the speedup from vectorization.
 The average speedup is computed as the total scalar execution time divided by the total vector execution time.
 We find very little variance in execution time across individual runs for any benchmark.
 Figure~\ref{fig:vector-speedups} shows the speedups from vectorization. Each benchmark has three bars representing, in order from left to right, the unreplicated, partially replicated, and fully replicated runs. 
@@ -126,13 +126,13 @@ We also generally notice more speedup as the replication level increases, sugges
     \Description{Bar graph showing speedup from vectorization for randomly generated polynomials}
 \end{figure}
 
-\raghav{How can this be said better?}
-To further investigate \system's ability to vectorize even in the absence of a regular structure on the computation, we randomly generated several polynomials to evaluate as arithmetic expression trees.
-The trees are generated according to three different regimes to cover different kinds of programs:
+%\raghav{How can this be said better?}
+To further investigate \system's ability to vectorize, even in the absence of a regular structure on the computation, we randomly generated several polynomials to evaluate as arbitrary arithmetic expression trees.
+The trees are generated according to three different regimes to cover different kinds of programs: \milind{Note the changed order.}
 \begin{enumerate}
-    \item {\em Sparse}: Many operations have one leaf node input, the tree is not very balanced
-    \item {\em Dense, homogeneous}: The expression tree is both full and complete, and all the operations are isomorphic
-    \item {\em Dense, nonhomogeneous}: The expression tree is both full and complete, each operation has a 50/50 chance of being an add or a multiply.
+    \item {\em Dense, homogeneous}: The expression tree is both full and complete, and all the operations are isomorphic. In principle, this represents a best case for vectorization.
+    \item {\em Dense, nonhomogeneous}: The expression tree is both full and complete, each operation has a 50/50 chance of being an add or a multiply. Hence, while the trees are structurally similar, the heterogeneity of operations means that vectorization opportunities are restricted.
+	\item {\em Sparse}: Many operations have one leaf node input, the tree is not very balanced. In principle, this represents a worst case for vectorization, where \system must work hard to find vectorizable computation.
 \end{enumerate}
 For each regime, we generated ten total polynomials, five with a circuit depth of 5 and five with a circuit depth of 10.
 Each polynomial is run 20 times in scalar and 20 times after vectorization, and we average speedups across the five polynomials in each regime before reporting.
@@ -140,6 +140,8 @@ These speedups are shown in Figure~\ref{fig:polynomial-speedups}.
 We see that \system is able to achieve speedups of up to $1.4\times$ by vectorizing.
 Looking at the depth 5 dense nonhomogeneous polynomials, we found that many of them were too small and irregular to admit any profitable vectorization; in these cases, \system was correctly able to deduce that the scalar execution strategy was optimal rather than attempting to vectorize and incur spurious rotations.
 Since the generated vector code was identical to the scalar code for several of these, the average speedup is very close to $1.0$.
+
+\milind{Surprising result to me: intuitively, we'd expect dense/hom to have the best speedup, followed by dens/nonhom, and then sparse. But that's not what we see. Why? Explain?}
 
 \subsection{Effects of Data Layout}\label{sec:effects-of-data-layout}
 % \milind{Call this ``effects of data layout.'' There should be a research question in the evaluation intro that directly pertains to this case study.}
@@ -154,9 +156,9 @@ To study the effects of different data layout choices, we did a case study with 
 In each layout, all the inputs are unreplicated.
 Figure~\ref{fig:data-layout-case-study} shows the results of this case study.
 Interestingly, we find that packing the matrices together yields greater speedups than keeping them separate.
-When multiple entries are on one vector, \system takes advantage of that fact to get many rotates ``for free'' (i.e., packing them in such a way that rotating one automatically gives useful rotations of the others).
+When multiple entries are on one vector, \system takes advantage of that fact to get many rotates ``for free'' (i.e., arranging them in such a way that rotating one automatically gives useful rotations of the others).
 By contrast, when each entry is on a separate vector, every rotation must necessarily be done separately, so that schedule ends up with much more overhead.
-\raghav{This is a really cool fact that I don't feel I've done justice.}
+\raghav{This is a really cool fact that I don't feel I've done justice.}\milind{This partly stems from the fact that there's something cool going on with data layout that I dont' think we fully explain in design or implementation, right? That Coyote knows that a set of inputs should go into the same vector, but actually still has the freedom to arrange them within that vector---a[0] doesn't need to be next to a[1], and so on. This should be explained in an earlier section, then reinforced here.}
 
 \begin{figure}
     \includegraphics[width=0.7\linewidth]{figures/graphs/case_study.png}
@@ -167,6 +169,8 @@ By contrast, when each entry is on a separate vector, every rotation must necess
 
 \subsection{Effects of Search and Co-Optimization}\label{sec:search-and-cooptimization}
 % \milind{bad section title :-) Call it something like ``Effects of Search and Co-optimization.'' There should be a research question in the intro that directly pertains to the results of this study}
+\milind{Don't just launch into the figure description. Remind people why we're here :-)}
+
 Figure~\ref{fig:schedule-cost} shows the cost of the vector schedule over time for various levels of data layout.
 The blue line depicts the schedule cost when we use 10k iterations of simulated annealing to find an optimal data layout at each step; the orange line is 15k iterations and the green line is 20k iterations.
 As expected, doing more iterations of simulated annealing has a large effect on the efficiency of the final schedule, since we rely heavily on the fact that the data layout being used to guide each round of the search is close to optimal.
