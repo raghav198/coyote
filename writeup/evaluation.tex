@@ -128,20 +128,20 @@ We also generally notice more speedup as the replication level increases, sugges
 
 %\raghav{How can this be said better?}
 To further investigate \system's ability to vectorize, even in the absence of a regular structure on the computation, we randomly generated several polynomials to evaluate as arbitrary arithmetic expression trees.
-The trees are generated according to three different regimes to cover different kinds of programs: \milind{Note the changed order.}
+The trees are generated according to three different regimes to cover different kinds of programs: 
 \begin{enumerate}
     \item {\em Dense, homogeneous}: The expression tree is both full and complete, and all the operations are isomorphic. In principle, this represents a best case for vectorization.
     \item {\em Dense, nonhomogeneous}: The expression tree is both full and complete, each operation has a 50/50 chance of being an add or a multiply. Hence, while the trees are structurally similar, the heterogeneity of operations means that vectorization opportunities are restricted.
 	\item {\em Sparse}: Many operations have one leaf node input, the tree is not very balanced. In principle, this represents a worst case for vectorization, where \system must work hard to find vectorizable computation.
 \end{enumerate}
-For each regime, we generated ten total polynomials, five with a circuit depth of 5 and five with a circuit depth of 10.
+For each regime, we generate ten total polynomials, five with a circuit depth of 5 and five with a circuit depth of 10.
 Each polynomial is run 20 times in scalar and 20 times after vectorization, and we average speedups across the five polynomials in each regime before reporting.
 These speedups are shown in Figure~\ref{fig:polynomial-speedups}.
 We see that \system is able to achieve speedups of up to $1.4\times$ by vectorizing.
 Looking at the depth 5 dense nonhomogeneous polynomials, we found that many of them were too small and irregular to admit any profitable vectorization; in these cases, \system was correctly able to deduce that the scalar execution strategy was optimal rather than attempting to vectorize and incur spurious rotations.
 Since the generated vector code was identical to the scalar code for several of these, the average speedup is very close to $1.0$.
-
-\milind{Surprising result to me: intuitively, we'd expect dense/hom to have the best speedup, followed by dens/nonhom, and then sparse. But that's not what we see. Why? Explain?}
+We find that both sparse and dense homogeneous polynomials see substantial benefits from vectorization, with sparse polynomials having more speedup likely because their structure means that they require fewer rotates in general (there are many more vertices of arity 1, which don't require any rotation).
+\milind{Surprising result to me: intuitively, we'd expect dense/hom to have the best speedup, followed by dens/nonhom, and then sparse. But that's not what we see. Why? Explain?}\raghav{Is that sufficient?}
 
 \subsection{Effects of Data Layout}\label{sec:effects-of-data-layout}
 % \milind{Call this ``effects of data layout.'' There should be a research question in the evaluation intro that directly pertains to this case study.}
@@ -169,7 +169,9 @@ By contrast, when each entry is on a separate vector, every rotation must necess
 
 \subsection{Effects of Search and Co-Optimization}\label{sec:search-and-cooptimization}
 % \milind{bad section title :-) Call it something like ``Effects of Search and Co-optimization.'' There should be a research question in the intro that directly pertains to the results of this study}
-\milind{Don't just launch into the figure description. Remind people why we're here :-)}
+% \milind{Don't just launch into the figure description. Remind people why we're here :-)}\raghav{Is this better?}
+We would like to know how effective \system's schedule search strategy is, and in particular, how good of a job it does at optimizing data layout and schedule {\em together}.
+To test this, we compile the 5-point distances benchmark with three different levels of data layout by varying the number of iterations of simulated annealing, and record the cost of the generated schedule during each round of the search.
 
 Figure~\ref{fig:schedule-cost} shows the cost of the vector schedule over time for various levels of data layout.
 The blue line depicts the schedule cost when we use 10k iterations of simulated annealing to find an optimal data layout at each step; the orange line is 15k iterations and the green line is 20k iterations.

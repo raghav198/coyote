@@ -184,7 +184,11 @@ Different data layouts can be realized by, e.g. specifying three {\sf vector(3)}
 Both of these input controls allow programmers to trade off between predictable input layouts, that are good for composing kernels without too much rotation, and flexible input layouts, that can give \system more flexibility to manage data flow. Rather than automatically trying to balance these factors, \system leaves it up to the programmer.
 We specifically investigate the effects of choosing different packing strategies in Section~\ref{sec:eval}, with our matrix multiply case studies.
 
-
+\subsubsection*{Automatically choosing a data layout}
+While specifying a set of inputs as a {\sf vector(n)} or {\sf matrix(m, n)}, \system restricts the space of available schedules to the ones that pack these inputs together.
+However, it is still free to choose a particular layout within the vector (i.e., $a[0]$ and $a[1]$ need not be placed in adjacent lanes).
+In practice, this allows \system to choose a layout that minimizes the rotations required to align inputs with where they are used.
+We evaluate the effectiveness of this choice in Section~\ref{sec:effects-of-data-layout}.
 
 % \subsection{Weighting Cliques for Epoch Selection}\label{sec:penalizing-rotates}%\raghav{Name this section something different?}
 % When choosing cliques to form epochs as discussed in Section~\ref{sec:selecting-subexpressions}, we have the option to penalize the rotation overhead of choosing large cliques by subtracting a fixed amount from the weight of each edge (since a larger clique has more edges, it incurs a higher penalty).
