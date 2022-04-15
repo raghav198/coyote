@@ -15,11 +15,6 @@ In this evaluation, we aim to answer the following questions:
 \end{enumerate}
 
 \subsection{Computational Kernels}
-\begin{figure}
-    \includegraphics[width=0.7\linewidth]{figures/graphs/vector_speedups.png}
-    \caption{Speedup of vectorized code over scalar (higher is better). The darkest bar for each benchmark represents unreplicated inputs, the middle bar is partially replicated, and the lightest bar is fully replicated. The light green bar for the decision tree benchmark represents unpacked inputs.}\label{fig:vector-speedups}
-    \Description{Bar graph showing speedup from vectorization for each benchmark}
-\end{figure}
 
 %\raghav{spot-check my tenses?}
 To assess \system's ability to vectorize general applications, we use a suite of benchmarks that represent a spectrum of both regular and irregular computations, as well as ones that are both sparse and dense in terms of data reuse.
@@ -56,15 +51,16 @@ Another interesting point to notice is the number of rotates. Most benchmarks re
 Furthermore, the unreplicated versions of each benchmark almost always incurred more rotates than the partially or fully replicated versions, validating our hypothesis that input replication helps alleviate the rotation burden when vectorizing.
 %\raghav{anything else interesting to mention?}
 
-
+Table~\ref{tab:big-ass} also shows the ideal speedup for each benchmark, using our cost model of multiplies being 10$\times$ as expensive as adds and subtracts. Note that this modeled speedup is based on a classic work/span analysis, and hence assumes that permuting and shuffling data between vectors is free. This modeled speedup thus represents a substantial overestimate of the actual speedup that could be achieved in the program. For example, a \textsf{3x3} matrix multiply has 9 3-element dot products. The necessary 27 multiplies can all be performed in one vector operation, but the results of three multiplies need to be added to perform each dot product (which requires two adds each). Thus in reality two of the multiplies are performed in the ``wrong'' lane and need to be shuffled to the correct lane to complete the computation.
 % \milind{There should be a paragraph or subsubsection here that discusses the benchmark table: how big each benchmark is, what the effects of vectorizing it are in terms of operations saved, etc. This is a precursor to discussing anything runtime related.}
 
 \begin{table}
-    \tiny
-    \caption{Table showing compilation time in seconds, as well as instruction counts in the scalar (SAdd, SSub, SMul) and vector (VAdd, VSub, VMul, Rot, Blend) code}\label{tab:big-ass}
+    \small
+    \caption{Table showing compilation time in seconds, as well as instruction counts in the scalar (SAdd, SSub, SMul) and vector (VAdd, VSub, VMul, Rot, Blend) code. Ideal speedup represents the modeled speedup of a perfectly parallelized program, with no cost for vector shuffling.}\label{tab:big-ass}
     \begin{tabular}{lcccccccc}
     \toprule
-    Benchmark & Time (s) & SAdd+SSub & SMul & VAdd+VSub & VMul & Rot & Blend & Ideal Speedup\\\midrule
+    Benchmark & Time (s) & SAdd +& SMul & VAdd + & VMul & Rot & Blend & Ideal \\
+    & & SSub & & VSub & & & & Speedup\\\midrule
     tree & 139 & 10 & 10 & 11 & 5 & 1 & 1 & 3.24\\
     dist.5.fully & 609 & 50 & 25 & 2 & 2 & 9 & 10 & 27.27\\
     dist.4.fully & 463 & 32 & 16 & 2 & 2 & 4 & 8 & 17.45\\
@@ -108,6 +104,13 @@ Furthermore, the unreplicated versions of each benchmark almost always incurred 
 \end{table}
 
 \subsection{Speedups}\label{sec:speedups}
+
+\begin{figure}
+    \includegraphics[width=0.7\linewidth]{figures/graphs/vector_speedups.png}
+    \caption{Speedup of vectorized code over scalar (higher is better). The darkest bar for each benchmark represents unreplicated inputs, the middle bar is partially replicated, and the lightest bar is fully replicated. The light green bar for the decision tree benchmark represents unpacked inputs.}\label{fig:vector-speedups}
+    \Description{Bar graph showing speedup from vectorization for each benchmark}
+\end{figure}
+
 % \milind{This is the punchline to your main research question: ``Can we get vectorization speedup.'' So it should be its own subsection.}
 While instruction counts indicate that \system is able to effectively find vector operations for each benchmark, we must also determine whether the actual costs of rotations and blends outweigh the vectorization benefits. Hence, we run each benchmark 50 times in scalar, and 50 times after vectorization to compute the speedup from vectorization.
 The average speedup is computed as the total scalar execution time divided by the total vector execution time.
