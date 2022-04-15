@@ -13,7 +13,7 @@ Porcupine is more general than CHET, but it is still mostly targeted towards reg
 While Porcupine can, in theory, generate kernels for any computation, its treatment of rotations makes it harder to adapt to vectorizing irregular programs.
 Porcupine considers rotations directly as inputs to arithmetic expressions, and relies on a sketch to constrain the search space and a solver to find programs with optimal performance characteristics.
 Irregular applications without many apparent symmetries to exploit incur many asymmetric rotations, making it more difficult for the solver to produce an optimal schedule. The search space becomes prohibitively large, and is not tuned towards finding minimal sets of rotations.
-In contrast, because \system focuses on minimizing rotations, its schedule search prioritizes vector schedules that {\em specifically} reduce the number of required rotations. \milind{check}
+In contrast, because \system focuses on limiting rotations, its schedule search prioritizes vector schedules that {\em specifically} reduce the number of required rotations. \milind{check}
 % \raghav{Maybe another thing to say (emphasize?) is that the \system and Porcupine approaches are fundamentally different in that the latter relies on a sketch to synthesize good schedules while \system finds them automatically.}
 
 Additionally, Porcupine's synthesis-based approach results in very long compile times for programs with more than a few instructions.
