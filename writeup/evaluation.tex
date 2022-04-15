@@ -1,18 +1,18 @@
 \section{Evaluation}\label{sec:eval}
 
- \milind{Putting this comment back :-) Need to intro evaluation here: 
- 1. what research questions we're trying to answer, and why. Each RQ (or two) is going to correspond to a subsection of the evaluation.
- 2. high level overview of what we're going to evaluate to answer those questions
- 3. what platforms we're using to do the evaluation
- }
+%  \milind{Putting this comment back :-) Need to intro evaluation here: 
+%  1. what research questions we're trying to answer, and why. Each RQ (or two) is going to correspond to a subsection of the evaluation.
+%  2. high level overview of what we're going to evaluate to answer those questions
+%  3. what platforms we're using to do the evaluation
+%  }
 
-%\raghav{how's this?}
-
-\raghav{TODO: talk about instruction count scalability and ablation study (graphs of rounds vs. cost for different inner loop cutoffs?)}
-% We would like to know whether \system's vectorization strategy actually leads to significant speedups on realistic applications, as well as what properties of a program affect \system's ability to vectorize it.
-% To answer these questions, we evaluate \system on a number of real-world kernels that represent both regular and irregular computation.
-% We also evaluate \system on a set of randomly fuzzed irregular microbenchmarks that vary aspects like computation density and homogeneity to investigate the effects of these properties on vectorizability. %\raghav{Further explain what that means here? Or wait until the microbenchmarks section?}\milind{wait}
-% All our experiments are run on a 2020 Apple M1 MacBook with 16 GB of memory. %\raghav{I don't need to say stuff about the cores etc. since nothing's being multithreaded, right?}\milind{Yeah, I think that's fine.}
+In this evaluation, we aim to answer the following questions:
+\begin{enumerate}
+    \item {\bf How much speedup does compiling with \system get us?} To address this, we compile several realistic benchmarks and measure the speedup of the vectorized code over scalar execution. Section~\ref{sec:speedups} discusses these results.
+    \item {\bf How effective is \system's vectorization?} To answer this, we count the number of instructions generated in the vector code compared to the scalar code. These are tabulated in Section~\ref{sec:compilation-stuff}
+    \item {\bf To what extent does the data layout chosen by the programmer affect \system's ability to vectorize?} We conduct a case study exploring various data layout schemes for a $3\times 3$ matrix multiply, and measure the vectorization speedup for each layout. The results of this case study are in Section~\ref{sec:effects-of-data-layout}.
+    \item {\bf How effective is the layout/schedule co-optimization strategy?} We track the progress of the schedule-search procedure over time for various levels of data layout optimization. This discussion can be found in Section~\ref{sec:search-and-cooptimization}.
+\end{enumerate}
 
 \subsection{Computational Kernels}
 \begin{figure}
@@ -22,17 +22,20 @@
 \end{figure}
 
 \raghav{spot-check my tenses?}
-To assess \system's ability to vectorize general applications, we use a suite of benchmarks that represent a spectrum of both regular and irregular computations, as well as dense and data reuse-heavy ones. \milind{Give a couple of sentence description of each, and also say whether we're classifying this as regular/irregular or dense/sparse, and why. Then you can just move the extra stuff about decision tree into the list, too}
+To assess \system's ability to vectorize general applications, we use a suite of benchmarks that represent a spectrum of both regular and irregular computations, as well as ones that are both sparse and dense in terms of data reuse \raghav{I'm hesitant to say sparse because that means something different}. \milind{Give a couple of sentence description of each, and also say whether we're classifying this as regular/irregular or dense/sparse, and why. Then you can just move the extra stuff about decision tree into the list, too}
+
 The benchmarks are as follows:
+\raghav{I think the wording could be fixed here but I'm not sure how.}
 \begin{enumerate}[label=\arabic*.]
-    \item Matrix multiply ($2\times 2$ and $3\times 3$)
-    \item Dot product (3, 6, and 10)
-    \item 1D convolution ($4\times 2$ and $5\times 3$)
-    \item Point cloud distances \footnote{Given a set of points, compute the square of every pairwise Euclidean distance.}(3, 4, and 5 points)
-    \item Decision tree traversal (inputs packed and unpacked)\footnote{This particular benchmark is a decision tree that represents sorting a list of three elements. It takes as input three ciphertext ``decisions'' representing comparison results, and six ciphertext ``labels'' representing possible arrangements of the sorted list. In particular, each of the three decisions gets used in multiple branches of the tree. ``Packed'' here means the data layout packs the three decisions into one vector and the six labels into another. }
+    \item Multiplying two matrices. We do this with $2\times 2$ matrices (regular, little data reuse) and $3\times 3$ matrices (regular, some substantial data reuse). %Matrix multiply ($2\times 2$ and $3\times 3$): the $3\times 3$ matrix multiply is somewhat data-dense, since each input is used three times.
+    \item Vector dot product, with vector sizes of 3, 6, and 10 (all of these are regular with no data reuse).
+    \item 1D convolution. We do this with a vector of size 4 and a kernel of size 2, and with a vector of size 5 and a kernel of size 3. Both of these are regular and have little data reuse.
+    \item Point cloud distances (Given a set of points, compute the square of every pairwise Euclidean distance). We do this for 3, 4, and 5 points. These are all regular but have some substantial data reuse, especially in the 5-point case.
+    \item Decision tree traversal (inputs packed and unpacked). This benchmark is a decision tree that represents sorting a list of three elements. It takes as input three ciphertext ``decisions'' representing comparison results, and six ciphertext ``labels'' representing possible arrangements of the sorted list. In particular, each of the three decisions gets used in multiple branches of the tree. ``Packed'' here means the data layout packs the three decisions into one vector and the six labels into another. This is irregular, and the packed versions have data reuse.
 \end{enumerate}
 
-(Notice that the decision tree benchmark contains irregular computation, and both the packed decision tree and all the point cloud distances have dense data reuse).
+\raghav{redundant?}
+(Notice that the decision tree benchmark contains irregular computation, and the packed decision tree, all the point cloud distances, and the $3\times 3$ matrix multiply are relatively dense in terms of data reuse).
 
 To investigate the effect of data replication (as discussed in Section~\ref{sec:duplicating-inputs}), we used three different replication strategies for each benchmark: 
 
@@ -44,11 +47,68 @@ To investigate the effect of data replication (as discussed in Section~\ref{sec:
 
 Note that for dot product, replication makes no difference as each input is used exactly once.
 
-\subsection{Costs and Effects of Vector Compilation}
-\milind{There should be a paragraph or subsubsection here that discusses the benchmark table: how big each benchmark is, what the effects of vectorizing it are in terms of operations saved, etc. This is a precursor to discussing anything runtime related.}
+\subsection{Costs and Effects of Vector Compilation}\label{sec:compilation-stuff}
+Table~\ref{tab:big-ass} displays various compilation properties, including how long each benchmark took to compile and how many operations each program had before and after vectorization.
+Our benchmarks ranged in size from 5 scalar instructions (size 3 dot product) to 75 instructions (5 point distances)\footnote{Note that \system is able to handle benchmark sizes much larger than those of Porcupine \cite{Porcupine} while maintaining reasonable compile times}.
+While the number of scalar multiplies went as high as 27 (for the $3\times 3$ matrix multiply), \system was almost always able to pack these into at most one or two vector instructions.
+The main exceptions to this rule were the highly irregular tree benchmarks, which still went from 10 scalar multiplies to between 4 and 5 vector multiplies, and the more unreasonable data layouts in our case studies.
+Another interesting point to notice is the number of rotates: while these generally stayed under 10, the 5 point distance and $3\times 3$ matrix multiply benchmarks had a very high number of rotations after vectorization, since these were the most data-dense ones.
+Furthermore, the unreplicated versions of each benchmark almost always incurred more rotates than the partially or fully replicated versions, validating our hypothesis that input replication helps alleviate the rotation burden when vectorizing.
+\raghav{anything else interesting to mention?}
 
-\subsection{Speedups}
-\milind{This is the punchline to your main research question: ``Can we get vectorization speedup.'' So it should be its own subsection.}
+
+% \milind{There should be a paragraph or subsubsection here that discusses the benchmark table: how big each benchmark is, what the effects of vectorizing it are in terms of operations saved, etc. This is a precursor to discussing anything runtime related.}
+
+\begin{table}
+    \small
+    \caption{Table showing compilation time in seconds, as well as instruction counts in the scalar and vector code}\label{tab:big-ass}
+    \begin{tabular}{lccccccc}
+    \toprule
+    Benchmark & Time (s) & Add+Sub & Mul & VAdd+VSub & VMul & Rot & Blend\\\midrule
+    tree & 139 & 10 & 10 & 11 & 5 & 1 & 1\\
+    dist.5.fully & 609 & 50 & 25 & 2 & 2 & 9 & 10\\
+    dist.4.fully & 463 & 32 & 16 & 2 & 2 & 4 & 8\\
+    dist.3.fully & 226 & 18 & 9 & 2 & 2 & 2 & 7\\
+    mm.2.fully & 170 & 4 & 8 & 2 & 1 & 1 & 2\\
+    mm.3.fully & 607 & 18 & 27 & 4 & 2 & 9 & 3\\
+    conv.4.2.fully & 71 & 3 & 6 & 2 & 1 & 1 & 2\\
+    conv.5.3.fully & 208 & 6 & 9 & 4 & 1 & 2 & 3\\
+    dot.3.fully & 10 & 2 & 3 & 3 & 1 & 2 & 0\\
+    dot.6.fully & 156 & 5 & 6 & 4 & 1 & 3 & 2\\
+    dot.10.fully & 251 & 9 & 10 & 6 & 1 & 5 & 4\\
+    tree.packed.fully & 231 & 10 & 10 & 8 & 4 & 4 & 3\\
+    dist.5.partially & 629 & 50 & 25 & 2 & 2 & 13 & 10\\
+    dist.4.partially & 432 & 32 & 16 & 2 & 2 & 6 & 8\\
+    dist.3.partially & 233 & 18 & 9 & 1 & 1 & 4 & 6\\
+    mm.2.partially & 171 & 4 & 8 & 2 & 1 & 2 & 1\\
+    mm.3.partially & 610 & 18 & 27 & 4 & 1 & 18 & 6\\
+    conv.4.2.partially & 80 & 3 & 6 & 2 & 1 & 2 & 1\\
+    conv.5.3.partially & 211 & 6 & 9 & 4 & 1 & 4 & 3\\
+    dot.3.partially & 10 & 2 & 3 & 3 & 1 & 2 & 0\\
+    dot.6.partially & 154 & 5 & 6 & 4 & 1 & 3 & 2\\
+    dot.10.partially & 257 & 9 & 10 & 6 & 1 & 5 & 4\\
+    tree.packed.partially & 233 & 10 & 10 & 8 & 4 & 4 & 3\\
+    dist.5.un & 619 & 50 & 25 & 2 & 2 & 13 & 10\\
+    dist.4.un & 425 & 32 & 16 & 2 & 2 & 6 & 8\\
+    dist.3.un & 228 & 18 & 9 & 1 & 1 & 4 & 6\\
+    mm.2.un & 176 & 4 & 8 & 2 & 1 & 3 & 2\\
+    mm.3.un & 573 & 18 & 27 & 5 & 2 & 20 & 10\\
+    conv.4.2.un & 97 & 3 & 6 & 2 & 1 & 4 & 4\\
+    conv.5.3.un & 206 & 6 & 9 & 3 & 1 & 7 & 5\\
+    dot.3.un & 10 & 2 & 3 & 3 & 1 & 2 & 0\\
+    dot.6.un & 159 & 5 & 6 & 4 & 1 & 3 & 2\\
+    dot.10.un & 254 & 9 & 10 & 6 & 1 & 5 & 4\\
+    tree.packed.un & 238 & 10 & 10 & 8 & 4 & 8 & 6\\
+    mm.3.case1 & 584 & 18 & 27 & 5 & 2 & 15 & 10\\
+    mm.3.case2 & 594 & 18 & 27 & 5 & 2 & 20 & 10\\
+    mm.3.case3 & 565 & 18 & 27 & 11 & 6 & 24 & 22\\
+    mm.3.case4 & 601 & 18 & 27 & 5 & 3 & 24 & 10\\
+    mm.3.case5 & 522 & 18 & 27 & 16 & 13 & 33 & 25\\\bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Speedups}\label{sec:speedups}
+% \milind{This is the punchline to your main research question: ``Can we get vectorization speedup.'' So it should be its own subsection.}
 We run each benchmark 50 times in scalar, and 50 times after vectorization. 
 The average speedup is computed as the total scalar execution time divided by the total vector execution time.
 We find very little variance in execution time across individual runs for any benchmark.
@@ -81,8 +141,8 @@ We see that \system is able to achieve speedups of up to $1.4\times$ by vectoriz
 Looking at the depth 5 dense nonhomogeneous polynomials, we found that many of them were too small and irregular to admit any profitable vectorization; in these cases, \system was correctly able to deduce that the scalar execution strategy was optimal rather than attempting to vectorize and incur spurious rotations.
 Since the generated vector code was identical to the scalar code for several of these, the average speedup is very close to $1.0$.
 
-\subsection{Data Layout Case Study}
-\milind{Call this ``effects of data layout.'' There should be a research question in the evaluation intro that directly pertains to this case study.}
+\subsection{Effects of Data Layout}\label{sec:effects-of-data-layout}
+% \milind{Call this ``effects of data layout.'' There should be a research question in the evaluation intro that directly pertains to this case study.}
 To study the effects of different data layout choices, we did a case study with the $3\times 3$ matrix multiply benchmark, measuring \system's ability to vectorize in five different data layouts:
 \begin{description}
     \item[Together:] The matrices $A$ and $B$ are packed into a single vector of $18$ elements
@@ -105,15 +165,14 @@ By contrast, when each entry is on a separate vector, every rotation must necess
 \end{figure}
 
 
-\subsection{Compilation Statistics}
-\milind{bad section title :-) Call it something like ``Effects of Search and Co-optimization.'' There should be a research question in the intro that directly pertains to the results of this study}
+\subsection{Effects of Search and Co-Optimization}\label{sec:search-and-cooptimization}
+% \milind{bad section title :-) Call it something like ``Effects of Search and Co-optimization.'' There should be a research question in the intro that directly pertains to the results of this study}
 Figure~\ref{fig:schedule-cost} shows the cost of the vector schedule over time for various levels of data layout.
 The blue line depicts the schedule cost when we use 10k iterations of simulated annealing to find an optimal data layout at each step; the orange line is 15k iterations and the green line is 20k iterations.
 As expected, doing more iterations of simulated annealing has a large effect on the efficiency of the final schedule, since we rely heavily on the fact that the data layout being used to guide each round of the search is close to optimal.
 In compiling all our benchmarks, we use 20k iterations of annealing (the green line).
 
 The main tradeoff to be made here is one of compilation time: obviously, annealing for fewer iterations results in faster compilation, but worse schedules.
-\raghav{include that or delete it?}\milind{is good.}
 \begin{figure}
     \includegraphics[width=0.7\linewidth]{figures/graphs/schedules.png}
     \caption{Schedule cost over time (lower is better). The blue line represents the schedule cost with 10k data layout iterations in each round. The orange line is the schedule cost with 15k data layout iterations, and the green line is the schedule cost with 20k data layout iterations. Note that in compiling the benchmarks, 20k iterations were used in each round.}
@@ -163,55 +222,6 @@ The main tradeoff to be made here is one of compilation time: obviously, anneali
 
 % \milind{Add a discussion here about visually inspecting the generated code, and point out where and whether coyote does especially cool stuff, or where it breaks down.}
 
-\subsubsection*{Fun Table To Look At}
-\raghav{I need something to say about this}
-\milind{This should go earlier in the eval...}
-\begin{table}
-    \begin{tabular}{lccccccc}
-    \toprule
-    Benchmark & Time (s) & Add+Sub & Mul & VAdd+VSub & VMul & Rot & Blend\\\midrule
-    tree & 139 & 10 & 10 & 11 & 5 & 1 & 1\\
-    dist.5.fully & 609 & 50 & 25 & 2 & 2 & 9 & 10\\
-    dist.4.fully & 463 & 32 & 16 & 2 & 2 & 4 & 8\\
-    dist.3.fully & 226 & 18 & 9 & 2 & 2 & 2 & 7\\
-    mm.2.fully & 170 & 4 & 8 & 2 & 1 & 1 & 2\\
-    mm.3.fully & 607 & 18 & 27 & 4 & 2 & 9 & 3\\
-    conv.4.2.fully & 71 & 3 & 6 & 2 & 1 & 1 & 2\\
-    conv.5.3.fully & 208 & 6 & 9 & 4 & 1 & 2 & 3\\
-    dot.3.fully & 10 & 2 & 3 & 3 & 1 & 2 & 0\\
-    dot.6.fully & 156 & 5 & 6 & 4 & 1 & 3 & 2\\
-    dot.10.fully & 251 & 9 & 10 & 6 & 1 & 5 & 4\\
-    tree.packed.fully & 231 & 10 & 10 & 8 & 4 & 4 & 3\\
-    dist.5.partially & 629 & 50 & 25 & 2 & 2 & 13 & 10\\
-    dist.4.partially & 432 & 32 & 16 & 2 & 2 & 6 & 8\\
-    dist.3.partially & 233 & 18 & 9 & 1 & 1 & 4 & 6\\
-    mm.2.partially & 171 & 4 & 8 & 2 & 1 & 2 & 1\\
-    mm.3.partially & 610 & 18 & 27 & 4 & 1 & 18 & 6\\
-    conv.4.2.partially & 80 & 3 & 6 & 2 & 1 & 2 & 1\\
-    conv.5.3.partially & 211 & 6 & 9 & 4 & 1 & 4 & 3\\
-    dot.3.partially & 10 & 2 & 3 & 3 & 1 & 2 & 0\\
-    dot.6.partially & 154 & 5 & 6 & 4 & 1 & 3 & 2\\
-    dot.10.partially & 257 & 9 & 10 & 6 & 1 & 5 & 4\\
-    tree.packed.partially & 233 & 10 & 10 & 8 & 4 & 4 & 3\\
-    dist.5.un & 619 & 50 & 25 & 2 & 2 & 13 & 10\\
-    dist.4.un & 425 & 32 & 16 & 2 & 2 & 6 & 8\\
-    dist.3.un & 228 & 18 & 9 & 1 & 1 & 4 & 6\\
-    mm.2.un & 176 & 4 & 8 & 2 & 1 & 3 & 2\\
-    mm.3.un & 573 & 18 & 27 & 5 & 2 & 20 & 10\\
-    conv.4.2.un & 97 & 3 & 6 & 2 & 1 & 4 & 4\\
-    conv.5.3.un & 206 & 6 & 9 & 3 & 1 & 7 & 5\\
-    dot.3.un & 10 & 2 & 3 & 3 & 1 & 2 & 0\\
-    dot.6.un & 159 & 5 & 6 & 4 & 1 & 3 & 2\\
-    dot.10.un & 254 & 9 & 10 & 6 & 1 & 5 & 4\\
-    tree.packed.un & 238 & 10 & 10 & 8 & 4 & 8 & 6\\
-    mm.3.case1 & 584 & 18 & 27 & 5 & 2 & 15 & 10\\
-    mm.3.case2 & 594 & 18 & 27 & 5 & 2 & 20 & 10\\
-    mm.3.case3 & 565 & 18 & 27 & 11 & 6 & 24 & 22\\
-    mm.3.case4 & 601 & 18 & 27 & 5 & 3 & 24 & 10\\
-    mm.3.case5 & 522 & 18 & 27 & 16 & 13 & 33 & 25\\\bottomrule
-    \end{tabular}
-    \end{table}
-    
 
 % \subsection{Fuzzed Microbenchmarks}
 % To investigate how various aspects of program structure affect \system's ability to vectorize, we randomly generate several expression trees according to three regimes:
