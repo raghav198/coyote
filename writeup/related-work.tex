@@ -2,7 +2,7 @@
 There are two main categories of related work. This section first discusses work on FHE vectorization, and then discusses more general approaches to plaintext vectorization 
 %\raghav{Your favorite part: finding a better way to taxonomize all of these!}
 
-\subsection{Vectorization in FHE}
+\subsection{Compilation and Vectorization for FHE}
 Prior work has been done on building vectorizing compilers for FHE applications \cite{CHET, Porcupine}.
 CHET \cite{CHET} is a vectorizing compiler for homomorphic tensor programs that automatically selects encryption parameters, and chooses optimal data layout strategies.
 CHET is specifically targeted towards optimizing the dense tensor computations found in neural network inference, and does not apply to a broader class of programs, especially those with irregular computations that are not so easily vectorized.
@@ -27,6 +27,9 @@ Gazelle \cite{Gazelle} is a framework for secure neural network inference in FHE
 While it is very optimized for a particular use case, Gazelle is not {\em general}: it consists of a library of highly efficient vectorized kernels that are useful in neural network applications.
 By contrast, \system can take arbitrary kernels and generate efficient vectorized code on the fly. %\raghav{Not sure how to put this nicely, actually.}
 
+\citet{CircuitRewriting} describe a general method for automatically rewriting arithmetic and boolean FHE circuits according to a cost model by learning semantically sound rewrite rules.
+This approach explores the space of scalar rewrites but does not directly deal with vectorization, making it orthogonal to ours: a technique like this could first be applied to an arbitrary computation to transform it into one more amenable to vectorization before applying \system.
+
 One class of related work consists of compilers \cite{Ramparts, ALCHEMY, EVA, Cingulata} that automatically lift programs written in a high level DSL into optimized FHE circuits that perform the same computation.
 Unlike \system, these circuit optimizations do not include automatic vectorization. Although ACLHEMY~\cite{ALCHEMY} and EVA~\cite{EVA} \textit{do} support ciphertext packing, they require the programmer to perform the vectorization.
 %\raghav{Remove this since I folded EVA into the (ramparts, alchemy, etc.) sentence earlier?}
@@ -34,7 +37,7 @@ Unlike \system, these circuit optimizations do not include automatic vectorizati
 %However, unlike \system, EVA requires the programmer to write vectorized code directly: it does not support automatically vectorizing arbitrary kernels.
 %\raghav{Mention that EVA automatically does parameter selection? Or the fact that we could potentially target EVA as a backend if it weren't restricted to CKKS?}\milind{nah.}
 
-\subsection{Vectorization of Irregular Programs}
+\subsection{General Purpose Vectorization in non-FHE Settings}
 Superword-Level Parallelism \cite{SLP} is a technique for automatically vectorizing arbitrary programs.
 SLP works by iterating over a sequence of scalar instructions and computing ``vector packs,'' or sets of isomorphic instructions that can be packed together into vectors.
 Because SLP does not rely on the presence of data-parallel structures like loops to aid in vectorization, it works well even for irregular programs.
@@ -67,8 +70,6 @@ There are two primary obstacles \system faces in directly applying this approach
 Diospyros~\cite{Diospyros} is an equality saturation--based vectorization strategy that constructs an e-graph~\cite{EqualitySaturation, egg} of programs that are semantically equivalent to a given specification, and then uses a custom cost model to extract an efficient vector program, together with necessary shuffles.
 However, the simplicity of the cost model it associates to various shuffles makes it unsuitable to deal with the peculiarities and inflexibility of FHE rotations.
 
-\citet{CircuitRewriting} describe a general method for automatically rewriting arithmetic and boolean FHE circuits according to a cost model by learning semantically sound rewrite rules.
-This approach explores the space of scalar rewrites but does not directly deal with vectorization, making it orthogonal to ours: a technique like this could first be applied to an arbitrary computation to transform it into one more amenable to vectorization before applying \system.
 %By reasoning globally about the entire dependence graph of the program at once, \system can identify such phenomena when making vector packs.
 %\system can also automatically find vector schedules that are amenable to more efficient data movement, and can propagate this information back through the program this to identify more optimal data layouts.
 
