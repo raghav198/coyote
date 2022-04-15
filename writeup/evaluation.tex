@@ -1,10 +1,10 @@
 \section{Evaluation}\label{sec:eval}
 
-% \milind{Need to intro evaluation here: 
-% 1. what research questions we're trying to answer
-% 2. high level overview of what we're going to evaluate to answer those questions
-% 3. what platforms we're using to do the evaluation
-% }
+ \milind{Putting this comment back :-) Need to intro evaluation here: 
+ 1. what research questions we're trying to answer, and why. Each RQ (or two) is going to correspond to a subsection of the evaluation.
+ 2. high level overview of what we're going to evaluate to answer those questions
+ 3. what platforms we're using to do the evaluation
+ }
 
 %\raghav{how's this?}
 
@@ -22,9 +22,9 @@
 \end{figure}
 
 \raghav{spot-check my tenses?}
-To assess \system's ability to vectorize general applications, we use a suite of benchmarks that represent a spectrum of both regular and irregular computations, as well as dense and data reuse-heavy ones.
+To assess \system's ability to vectorize general applications, we use a suite of benchmarks that represent a spectrum of both regular and irregular computations, as well as dense and data reuse-heavy ones. \milind{Give a couple of sentence description of each, and also say whether we're classifying this as regular/irregular or dense/sparse, and why. Then you can just move the extra stuff about decision tree into the list, too}
 The benchmarks are as follows:
-\begin{enumerate}
+\begin{enumerate}[label=\arabic*.]
     \item Matrix multiply ($2\times 2$ and $3\times 3$)
     \item Dot product (3, 6, and 10)
     \item 1D convolution ($4\times 2$ and $5\times 3$)
@@ -33,16 +33,31 @@ The benchmarks are as follows:
 \end{enumerate}
 
 (Notice that the decision tree benchmark contains irregular computation, and both the packed decision tree and all the point cloud distances have dense data reuse).
-To investigate the effect of data replication (as discussed in Section~\ref{sec:duplicating-inputs}), we used three different replication strategies for each benchmark: (i) {\em unreplicated}, (ii) {\em partially replicated} in which one of the two inputs is replicated but not the other, and (iii) {\em fully replicated} in which both inputs are replicated.
-Notice that for, e.g. dot product, replication makes no difference since each input is used exactly once.
 
-Each benchmark is run 50 times in scalar, and 50 times after vectorization. 
+To investigate the effect of data replication (as discussed in Section~\ref{sec:duplicating-inputs}), we used three different replication strategies for each benchmark: 
+
+\begin{enumerate}[label=(\roman*)]
+\item {\em unreplicated}, where each input appears in only one input vector, and hence must be used by multiple operations in the circuit.
+\item {\em partially replicated} in which one of the two inputs is fully replicated---and hence each operation that requires that input gets its own copy, obviating the need for data movement---while the other is not.
+\item {\em fully replicated} in which both inputs are fully replicated. 
+\end{enumerate}
+
+Note that for dot product, replication makes no difference as each input is used exactly once.
+
+\subsection{Costs and Effects of Vector Compilation}
+\milind{There should be a paragraph or subsubsection here that discusses the benchmark table: how big each benchmark is, what the effects of vectorizing it are in terms of operations saved, etc. This is a precursor to discussing anything runtime related.}
+
+\subsection{Speedups}
+\milind{This is the punchline to your main research question: ``Can we get vectorization speedup.'' So it should be its own subsection.}
+We run each benchmark 50 times in scalar, and 50 times after vectorization. 
 The average speedup is computed as the total scalar execution time divided by the total vector execution time.
 We find very little variance in execution time across individual runs for any benchmark.
-Figure~\ref{fig:vector-speedups} shows the speedups from vectorization: each benchmark has three bars representing, in order from left to right, the unreplicated, partially replicated, and fully replicated runs. 
+Figure~\ref{fig:vector-speedups} shows the speedups from vectorization. Each benchmark has three bars representing, in order from left to right, the unreplicated, partially replicated, and fully replicated runs. 
 The decision tree benchmark has an extra green bar representing the unpacked run (without packing, all inputs are fully replicated no matter what).
-We speedups ranging from anywhere between $1.5\times$ on the data-dense point cloud distances benchmarks to over $3.5\times$ on the highly vectorizable matrix multiply.
+We see speedups ranging from anywhere between $1.5\times$ on the data-dense point cloud distances benchmarks to over $3.5\times$ on the highly vectorizable matrix multiply.
 We also generally notice more speedup as the replication level increases, suggesting that \system is able to take advantage of replicated inputs to eliminate rotations from the schedule.
+
+\milind{This would be a good place to discuss the comparison of our speedups with rotation vs. modeled ideal speedups without rotation costs...}
 
 \subsection{Randomly Generated Irregular Kernels}
 \begin{figure}
@@ -67,14 +82,15 @@ Looking at the depth 5 dense nonhomogeneous polynomials, we found that many of t
 Since the generated vector code was identical to the scalar code for several of these, the average speedup is very close to $1.0$.
 
 \subsection{Data Layout Case Study}
+\milind{Call this ``effects of data layout.'' There should be a research question in the evaluation intro that directly pertains to this case study.}
 To study the effects of different data layout choices, we did a case study with the $3\times 3$ matrix multiply benchmark, measuring \system's ability to vectorize in five different data layouts:
-\begin{itemize}
-    \item[Together]: The matrices $A$ and $B$ are packed into a single vector of $18$ elements
-    \item[Separate]: $A$ and $B$ are packed into individual vectors (this is the normal layout used in benchmarking in Figure~\ref{fig:vector-speedups})
-    \item[Rows/Cols]: The rows of $A$ are packed into three separate vectors, and the columns of $B$ are packed into three separate vectors
-    \item[Cols/Rows]: The columns of $A$ are packed into three separate vectors, and the rows of $B$ are packed into three separate vectors
-    \item[Individual]: Each of the 18 entries are packed into their own vector (note that this is different from simply leaving them as free scalars, because this precludes \system from choosing to put some of them on the same vector anyway).     
-\end{itemize}
+\begin{description}
+    \item[Together:] The matrices $A$ and $B$ are packed into a single vector of $18$ elements
+    \item[Separate:] $A$ and $B$ are packed into individual vectors (this is the normal layout used in benchmarking in Figure~\ref{fig:vector-speedups})
+    \item[Rows/Cols:] The rows of $A$ are packed into three separate vectors, and the columns of $B$ are packed into three separate vectors
+    \item[Cols/Rows:] The columns of $A$ are packed into three separate vectors, and the rows of $B$ are packed into three separate vectors
+    \item[Individual:] Each of the 18 entries are packed into their own vector (note that this is different from simply leaving them as free scalars, because this precludes \system from choosing to put some of them on the same vector anyway).     
+\end{description}
 In each layout, all the inputs are unreplicated.
 Figure~\ref{fig:data-layout-case-study} shows the results of this case study.
 Interestingly, we find that packing the matrices together yields greater speedups than keeping them separate.
@@ -90,13 +106,14 @@ By contrast, when each entry is on a separate vector, every rotation must necess
 
 
 \subsection{Compilation Statistics}
+\milind{bad section title :-) Call it something like ``Effects of Search and Co-optimization.'' There should be a research question in the intro that directly pertains to the results of this study}
 Figure~\ref{fig:schedule-cost} shows the cost of the vector schedule over time for various levels of data layout.
 The blue line depicts the schedule cost when we use 10k iterations of simulated annealing to find an optimal data layout at each step; the orange line is 15k iterations and the green line is 20k iterations.
 As expected, doing more iterations of simulated annealing has a large effect on the efficiency of the final schedule, since we rely heavily on the fact that the data layout being used to guide each round of the search is close to optimal.
 In compiling all our benchmarks, we use 20k iterations of annealing (the green line).
 
 The main tradeoff to be made here is one of compilation time: obviously, annealing for fewer iterations results in faster compilation, but worse schedules.
-\raghav{include that or delete it?}
+\raghav{include that or delete it?}\milind{is good.}
 \begin{figure}
     \includegraphics[width=0.7\linewidth]{figures/graphs/schedules.png}
     \caption{Schedule cost over time (lower is better). The blue line represents the schedule cost with 10k data layout iterations in each round. The orange line is the schedule cost with 15k data layout iterations, and the green line is the schedule cost with 20k data layout iterations. Note that in compiling the benchmarks, 20k iterations were used in each round.}
@@ -148,6 +165,7 @@ The main tradeoff to be made here is one of compilation time: obviously, anneali
 
 \subsubsection*{Fun Table To Look At}
 \raghav{I need something to say about this}
+\milind{This should go earlier in the eval...}
 \begin{table}
     \begin{tabular}{lccccccc}
     \toprule
