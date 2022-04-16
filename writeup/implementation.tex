@@ -18,7 +18,7 @@ This section discusses the implementation details of \system: how programmers wr
 %     \caption{Sample \system program for multiplying a vector by a matrix}\label{fig:coyote-program}
 % \end{figure}
 
-\subsection{An eDSL and compiler for FHE programs}\label{sec:surface-language}
+
 \begin{figure}
     \small
     \begin{minted}[linenos,escapeinside=||]{Python}
@@ -32,6 +32,7 @@ def matvec_multiply(A, b):
         result.append(dot(A[i], b))
     return result
     \end{minted}
+    \vspace{-1em}
     \caption{Sample \system program for multiplying a vector by a matrix}\label{fig:coyote-program}
     \Description{Example of a program written in \system that implements a matrix/vector multiply}
 \end{figure}
@@ -69,10 +70,12 @@ def composed_kernels(A, sig, ker):
     b = convolve(sig, ker) |\label{code:call_conv}| # returns a vector of length 3
     return matvec_multiply(A, b) |\label{code:call_matvec}|
     \end{minted}
+    \vspace{-1em}
     \caption{\system programs are normal python functions that can be composed to build larger kernels}\label{fig:coyote-programs-compose}
     \Description{Example of a program written in \system that composes two smaller kernels}
 \end{figure}
 
+\subsection{An eDSL and compiler for FHE programs}\label{sec:surface-language}
 \system consists of an embedded DSL (eDSL) in Python that can be used to write FHE programs.
 As the example in Figure~\ref{fig:coyote-program} shows, \system programs are just decorated Python functions.
 The decorator registers the function as defining a \system circuit, and allows the programmer to specify the function signature (i.e. the size and shape of each of its inputs).

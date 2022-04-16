@@ -68,7 +68,7 @@ For example, in our implementation, we scale rotates and multiplies by $1$, and 
 \subsection{Schedule Search}\label{sec:schedule-search}
 Given a cost model, we use a two-layer optimization strategy to produce a schedule that has good packing properties without incurring too much data movement overhead.
 \subsubsection*{Determining lane placement}
-\begin{algorithm}
+\begin{algorithm}[t]
     \SetKwFunction{placelanes}{PlaceLanes}
     \SetKwFunction{naive}{InitialPlacement}
     \SetKwFunction{permute}{GenerateCandidate}
@@ -119,7 +119,7 @@ If the candidate solution cost is {\em higher} than the original cost, it is acc
 After a fixed number of rounds have elapsed (see footnote), this algorithm returns the best solution found so far.
 
 \subsubsection*{Computing optimal circuit quotient}
-\begin{algorithm}
+\begin{algorithm}[t]
     \SetKwFunction{quotient}{ComputeQuotient}
     \SetKwFunction{placelanes}{PlaceLanes}
     \SetKwFunction{accept}{Accept}

@@ -61,11 +61,9 @@ By contrast, \system's cooperative scheduling strategy ensures that this does no
 % \raghav{goSLP frames vectorization overhead in terms of the number of {\em pack} and {\em unpack} operations incurred. For example, permuting the slots of a single vector incurs one unpack, whereas blending the contents of N vectors (without any permutation) incurs N unpacks. In other words, goSLP bakes in the assumption that wide blends are much more expensive than arbitrary permutations. This is fundamentally incompatible with FHE, since blends are almost free, whereas bad permutations can require several expensive rotations to realize. Essentially, in the FHE world, its often better to produce a schedule that {\em looks much worse} than to produce the traditionally optimal one.}
 
 Swizzle Inventor \cite{SwizzleInventor} is a system which automatically synthesizes efficient data movement kernels for vectorized GPU code.
-There are two primary obstacles \system faces in directly applying this approach to our setting:
-\begin{enumerate}
-    \item SwizzleInventor tackles the data movement problem {\em after the kernel has been vectorized}. As we discussed earlier, in the world of FHE, packing and data movement are problems that cannot be reasoned about separately, and must be addressed together.
-    \item The sketches SwizzleInventor uses to guide its synthesis rely on the ability to efficiently access arbitrary slots of a packed vector. However, this is not possible with FHE vectors without incurring significant rotation overheads.
-\end{enumerate}
+There are two primary obstacles \system faces in directly applying this approach to our setting.
+First, SwizzleInventor tackles the data movement problem {\em after the kernel has been vectorized}. As we discussed earlier, in the world of FHE, packing and data movement are problems that cannot be reasoned about separately, and must be addressed together.
+Second, the sketches SwizzleInventor uses to guide its synthesis rely on the ability to efficiently access arbitrary slots of a packed vector. However, this is not possible with FHE vectors without incurring significant rotation overheads.
 
 Diospyros~\cite{Diospyros} is an equality saturation--based vectorization strategy that constructs an e-graph~\cite{EqualitySaturation, egg} of programs that are semantically equivalent to a given specification, and then uses a custom cost model to extract an efficient vector program, together with necessary shuffles.
 However, the simplicity of the cost model it associates to various shuffles makes it unsuitable to deal with the peculiarities and inflexibility of FHE rotations.
