@@ -31,6 +31,7 @@
     3: [%2, %5] = [%0, %3] * [%1, %4]
     4: [%6, _] = [%2, _] + [%5, _]
         \end{verbatim}
+        \vspace{-1em}
         \caption{Vector schedule after alignment}
         \label{fig:aligned-schedule}
     \end{subfigure}
@@ -44,6 +45,7 @@
         s0 = v2 >> 1
         v3 = v2 * s0
         \end{verbatim}
+        \vspace{-1em}
         \caption{Generated vector code}
         \label{fig:generated-code}
     \end{subfigure}
@@ -61,9 +63,9 @@
     \label{fig:toy-running-example}
 \end{figure*}
 
-In this section, we give a brief overview of the steps \system takes to vectorize an arbitrary arithmetic circuit.
+This section gives a brief overview of the steps \system takes to vectorize an arbitrary arithmetic circuit.
 We will use the circuit in Figure~\ref{fig:example-circuit} as a running example.
-The compilation proceeds as follows:
+Compilation proceeds as follows:
 \begin{enumerate}
     \item \system \textit{quotients} an input circuit (identifies subcircuits, and collapses them into single vertices) and assigns lanes to resulting vertices to produce a new circuit (a {\em pre-schedule}) that can be realized into a more efficient vector program. The result is a graph whose vertices correspond to connected subgraphs of the original circuit, such that no two vertices at the same height have the same lane (and hence are eligible to be vectorized together). In this quotient graph, a subcircuit gets identified if \system determines that the overhead of internally vectorizing it is not worth the gain from vectorization, so this step essentially forces certain operations to happen in scalar on a single lane. %\raghav{I feel I haven't done a good enough job of justifying this.}
     

@@ -28,7 +28,7 @@ In FHE, however, the vectors are not physical vector registers with slots for da
 The only way to move data between vector lanes in FHE is by performing a cyclic rotation of the entire vector .
 While it is theoretically possible to encode arbitrary permutations as a series of masks and rotates, realizing the shuffles incurred by SLP in this way can quickly outweigh any benefits from vectorizing in the first place. 
 
-\raghav{Still need to review this for accuracy}
+%\raghav{Still need to review this for accuracy}
 More recent takes on SLP, such as VeGen \cite{VeGen} and goSLP \cite{goSLP}, recognize the need to take the cost of data movement into account.
 VeGen is capable of incorporating reasoning about data movement into its vectorization, and can make the decision to not pack certain instructions together because the data movement cost incurred is not worth it.
 However, VeGen does all its reasoning {\em locally}; that is, it cannot reason about the effect packing instructions together may have on shuffling costs much later in the program. This tradeoff is generally fine in circumstances when shuffling is relatively cheap; it is less appropriate in an FHE context, where shuffling is very expensive.
@@ -49,6 +49,7 @@ In general, without carefully accounting for, and controlling, rotation, traditi
 
 
 \begin{figure}
+\small
     \begin{subfigure}{0.2\columnwidth}
         \begin{verbatim}
 %0 = a + b
@@ -59,6 +60,7 @@ In general, without carefully accounting for, and controlling, rotation, traditi
 %5 = %3 * %4
 %6 = %2 + %5
         \end{verbatim}
+        \vspace{-1em}
         \caption{No vectorization}\label{fig:no-vectorization}
     \end{subfigure}
     \begin{subfigure}{0.6\columnwidth}
@@ -67,6 +69,7 @@ In general, without carefully accounting for, and controlling, rotation, traditi
 [%2, _, %5, _] = [%0, _, %3, _] * [%1, _, %4, _]
 [%6, _, _, _] = [%2, _, _, _] + [%5, _, _, _]
         \end{verbatim}
+        \vspace{-1em}        
         \caption{Aggressive vectorization, incurs two rotates}\label{fig:aggressive-vectorization}
     \end{subfigure}
     \begin{subfigure}{0.4\columnwidth}
@@ -76,6 +79,7 @@ In general, without carefully accounting for, and controlling, rotation, traditi
 [%2, %5] = [%0, %3] * [%1, %4]
 [%6, _] = [%2, _] + [%5, _]
         \end{verbatim}
+        \vspace{-1em}        
         \caption{Optimal schedule, incurs one rotate}\label{fig:optimal-schedule}
     \end{subfigure}
     \caption{Possible schedules for Figure~\ref{fig:example-circuit}}
@@ -105,7 +109,7 @@ The main obstacle to optimality when using the classical approach is simple: vec
 
 Instead, we develop an approach that works at the level of {\em subcircuits}, splitting the program up into smaller pieces within which all the computations are locked into a single lane to avoid doing any rotations at all. While vectorizing across subcircuits gives up some packing potential (because operations within a subcircuit cannot be vectorized together), the savings on rotation costs can make up the difference: the subcircuits prevent over-vectorization that incurs too many rotations. The optimal schedule of Figure~\ref{fig:example-circuit} can be viewed as grouping $(a + b)$ with its downstream multiply in one subciruit, and $(g + h)$ with its downstream multiply in another subcircuit, and then vectorizing those two subcircuits together.
 
-This approach yields a natural question: how do we decide which computations to merge into a subcircuit? This seems inherently circular: subcircuit merging is intended to yield fewer rotations, but which rotations are necessary is determined by data layout decisions, and data layout decisions are driven by which operations are vectorized together, which in turn is constrained by subcircuit identification. 
+This approach yields a natural question: how do we decide which computations to merge into a subcircuit? This seems circular: subcircuit merging is intended to yield fewer rotations, but which rotations are necessary is determined by data layout, and data layout is driven by which operations are vectorized together, which in turn is constrained by subcircuit identification. 
 
 
 \subsection*{Contributions}
@@ -132,6 +136,6 @@ The specific contributions we make are:
 %% Results
 We tested \system by using it to compile five computational kernels (matrix multiply, point cloud distances, 1D convolution, dot product, and decision tree traversal), and compared the performance of the vectorized code to to the original unvectorized code.
 We also randomly generated several irregular polynomial-evaluation programs to measure the effect of things like operation density on \system's ability to vectorize. 
-We find that \system very effectively vectorizes programs, yielding efficient vector schedules with optimized rotations that approach the ideal speedup for those schedules.
+We find that \system very effectively vectorizes programs, yielding efficient vector schedules with optimized rotations.
 
 %The remainder of this paper is organized as follows. Section~\ref{sec:background} gives background on FHE and vectorization. Section~\ref{sec:overview} overviews \system. Section~\ref{sec:design} dives into the key components of \system's design: selecting which operations to vectorize together, and how to assign those operations to lanes. Section~\ref{sec:implementation} describes the implementation, including tradeoffs between speed and optimality that \system makes. Section~\ref{sec:eval} evaluates \system. Section~\ref{sec:related-work} discusses related work, and Section~\ref{sec:conclusion} concludes.

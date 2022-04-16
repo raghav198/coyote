@@ -42,7 +42,7 @@ These are then packed into vectors, with one iteration per vector slot, and lift
 Thus, a loop that performs a scalar computation $N$ times can be lifted into one that performs a semantically equivalent vector computation $N/4$ times.
 
 
-Superword-Level Parallelism, or SLP, is a more general technique that does not rely on the presence of loop-based control flow structures in the program to find vectorizable instructions.
+Superword-Level Parallelism (SLP) is a more general technique that does not rely on the presence of loop-based control structures in the program to find vectorizable instructions.
 %\raghav{I'm worried I'm going to butcher the explanation of SLP, spot me?}
 SLP analyzes a whole sequence of scalar instructions at once, looking for sets of {\em available instructions} (instructions whose operands have already been scheduled) that are all isomorphic to each other.
 At each step, it picks such a set and packs its instructions together into a vector, scheduling them together.
