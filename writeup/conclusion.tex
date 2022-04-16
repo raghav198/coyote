@@ -2,6 +2,6 @@
 This paper presented \system, the first vectorizing compiler for arbitrary FHE programs that considers FHE's unique cost model for data movement when vectorizing.
 \system operates at a coarser level than most vectorizers, allowing it to minimize the data movement overhead of vectorizing by only packing together sufficiently similar subexpressions.
 \system can also find optimal lane placement and data layouts that encourage more efficient rotation patterns.
-\system can automatically vectorize a large class of useful kernels, showing speedups of up to 6$\times$ over scalar code.
+\system can automatically vectorize a large class of useful kernels, showing speedups of up to 3.5$\times$ over scalar code.
 
 %Potential avenues for future work include fine-tuning \system's cost model and adding semantics-preserving transformations that can restructure circuits to be more vectorizable.
