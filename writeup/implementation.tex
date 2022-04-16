@@ -20,6 +20,7 @@ This section discusses the implementation details of \system: how programmers wr
 
 \subsection{An eDSL and compiler for FHE programs}\label{sec:surface-language}
 \begin{figure}
+    \small
     \begin{minted}[linenos,escapeinside=||]{Python}
 def dot(v1, v2):
     return sum([a * b for a, b in zip(v1, v2)])|\label{code:zip}|
@@ -54,6 +55,7 @@ def matvec_multiply(A, b):
 % \end{figure}
 
 \begin{figure}
+    \small
     \begin{minted}[escapeinside=||,linenos]{Python}
 @coyote.define_circuit(signal=vector(4), kernel=vector(2))
 def convolve(signal, kernel):
