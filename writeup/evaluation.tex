@@ -167,16 +167,16 @@ To study the effects of different data layout choices, we did a case study with 
     \item[Individual:] Each of the 18 entries are packed into their own vector (note that this is different from simply leaving them as free scalars, because this precludes \system from choosing to put some of them on the same vector anyway).     
 \end{description}
 \begin{table}
-    \tiny
+    \small
     \caption{Table showing compilation time, scalar and vector operation counts, and ideal speedup for the data layout case study}\label{tab:bigass-data-layout}
     \begin{tabular}{lcccccccc}
     \toprule
-    Benchmark & Time (s) & SAdd+SSub & SMul & VAdd+VSub & VMul & Rot & Blend & Ideal Speedup\\\midrule
-    mm.3.case1 & 584 & 18 & 27 & 5 & 2 & 15 & 10 & 24.0\\
-    mm.3.case2 & 594 & 18 & 27 & 5 & 2 & 20 & 10 & 24.0\\
-    mm.3.case3 & 565 & 18 & 27 & 11 & 6 & 24 & 22 & 24.0\\
-    mm.3.case4 & 601 & 18 & 27 & 5 & 3 & 24 & 10 & 24.0\\
-    mm.3.case5 & 522 & 18 & 27 & 16 & 13 & 33 & 25 & 24.0\\\bottomrule
+    Benchmark & Time (s) & SAdd+SSub & SMul & VAdd+VSub & VMul & Rot & Blend\\\midrule
+    mm.3.case1 & 584 & 18 & 27 & 5 & 2 & 15 & 10\\
+    mm.3.case2 & 594 & 18 & 27 & 5 & 2 & 20 & 10\\
+    mm.3.case3 & 565 & 18 & 27 & 11 & 6 & 24 & 22\\
+    mm.3.case4 & 601 & 18 & 27 & 5 & 3 & 24 & 10\\
+    mm.3.case5 & 522 & 18 & 27 & 16 & 13 & 33 & 25\\\bottomrule
     \end{tabular}
 \end{table}
 In each layout, all the inputs are unreplicated.
