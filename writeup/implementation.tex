@@ -88,7 +88,7 @@ For a full discussion of these packing and replication options, see Section~\ref
 To produce a circuit, \system creates a number of these {\sf CoyoteVar} variables (as defined by the signature provided in the decorator) and executes the function with these as parameters.
 This method of generating circuits means that any Python construct that does not involve performing unsupported operations on encrypted values\footnote{Unsupported operations include using ciphertexts in branching conditions, loop bounds, or array indices.} can be used as normal in a \system program (for instance, the {\sf zip} and list comprehension in Figure~\ref{fig:coyote-program} on line~\ref{code:zip}).
 Notably, \system-decorated functions can include for loops with plaintext induction variables (as on line~\ref{code:for_loop} in Figure~\ref{fig:coyote-program}), and can call other Python functions (including other \system programs, as in Figure~\ref{fig:coyote-programs-compose} on lines~\ref{code:call_conv} and \ref{code:call_matvec}) allowing programmers to write individual kernels and then easily compose them into a larger program.
-All loops all fully unrolled and nested function calls are fully inlined before compilation.
+All loops are fully unrolled and nested function calls are fully inlined before compilation.
 The generated circuit is then passed to \system's back end, which vectorizes the computation as described in the previous sections, yielding a sequence of primitive vector operations that can be further lowered into C++ code targeting Microsoft SEAL's backend for BFV~\cite{seal}.
 
 
