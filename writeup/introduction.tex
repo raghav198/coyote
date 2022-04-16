@@ -35,8 +35,6 @@ However, VeGen does all its reasoning {\em locally}; that is, it cannot reason a
 While goSLP does reason globally, the cost model it uses to avoid over-packing is incompatible with the semantics of FHE vectorization.
 We discuss this further in Section~\ref{sec:related-work}.
 
-the dynamic programming-based algorithm it uses to find good data layouts can miss the effects that one layout can have on the shuffling needed to produce subsequent expressions. %\raghav{How's that?} 
-
 \subsection*{The vectorization/rotation tradeoff}
 
 In general, without carefully accounting for, and controlling, rotation, traditional vectorization strategies can lead to {\em slowdowns}, rather than speedup, in an FHE setting. It is often beneficial to give up vectorization opportunities to avoid incurring expensive rotations.
