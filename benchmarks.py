@@ -1,5 +1,5 @@
 import os
-from coyote.coyote import *
+from coyote import *
 from sys import argv
 
 coyote = coyote_compiler()
@@ -123,8 +123,23 @@ def computation(vals):
 
     return matvec_mul([A1, A2, A3], b)
 
-        
+    
+@coyote.define_circuit(A=matrix(5, 5))
+def determinant(A):
+    def minor(A, i):
+        remove_row = A[:i] + A[i+1:]
+        remove_first_col = []
+        for row in remove_row:
+            remove_first_col.append(row[1:])
+        return remove_first_col
+    sz = len(A)
+    if len(A) == 1:
+        return A[0][0]
+    vals = []
+    for i in range(sz):
+        vals.append(A[i][0] * determinant(minor(A, i)))
 
+    return alternating_sum(vals)
 
 def usage():
     print(f'Usage: {argv[0]} [list|build] [benchmark_name?]')

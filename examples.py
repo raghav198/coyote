@@ -1,4 +1,4 @@
-from coyote.coyote import *
+from coyote import *
 
 coyote = coyote_compiler()
 
@@ -49,12 +49,12 @@ def sort_3_packed(cs, os):
                     cond(cs[1], os[3], os[5]))))
 
 
-@coyote.define_circuit(v1=vector(4), v2=vector(4))
+@coyote.define_circuit(v1=vector(3), v2=vector(3))
 def dot_product(v1, v2):
     return recursive_sum([a * b for a, b in zip(v1, v2)])
 
 
-scalar_code = coyote.instantiate('conv', 'dot_product')
+scalar_code = coyote.instantiate('dot_product')
 vector_code = coyote.vectorize()
 
 print('\n'.join(scalar_code))
