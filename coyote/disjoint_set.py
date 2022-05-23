@@ -21,7 +21,7 @@ class DisjointSet(Generic[T]):
         """
         return item in self.vertices
 
-    def add(self, *items: List[T]):
+    def add(self, *items: T):
         """
         :param *items: List[T]. List of items to add to the DisjointSet
         :return None
@@ -101,7 +101,7 @@ class DisjointSet(Generic[T]):
         """
         :returns: A generator of equivalence classes of items
         """
-        consumed = set()
+        consumed: Set[T] = set()
         while True:
             remaining = list(self.vertices - consumed)
             if not remaining:

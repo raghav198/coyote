@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Tuple
 
 from .coyote_ast import *
-import z3
+import z3 # type: ignore
 from sys import stderr
 from time import time
 
@@ -31,11 +31,13 @@ def dependency_graph(program: List[Instr]) -> List[List[int]]:
     for line in program:
         deps = []
         if line.lhs.reg:
+            assert isinstance(line.lhs.val, int)
             deps.extend(lookup(line.lhs.val))
         #     deps.append(lookup(line.lhs.val))
         # else:
         #     deps.append(-1)
         if line.rhs.reg:
+            assert isinstance(line.rhs.val, int)
             deps.extend(lookup(line.rhs.val))
         #     deps.append(lookup(line.rhs.val))
         # else:

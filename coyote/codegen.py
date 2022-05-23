@@ -2,7 +2,7 @@ from sys import stderr
 from typing import Dict, List, Tuple
 from .coyote_ast import *
 from .synthesize_schedule import VecInstr
-import networkx as nx
+import networkx as nx # type: ignore
 
 
 def build_vector_program(program: List[Instr],

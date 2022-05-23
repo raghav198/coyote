@@ -4,8 +4,8 @@ from functools import reduce
 from heapq import heappop, heappush
 from math import exp
 from random import randint, random, seed, choice
-from typing import Any, Counter, List, Set, Dict, Tuple, Generator
-import networkx as nx
+from typing import Any, Counter, List, Optional, Set, Dict, Tuple, Generator
+import networkx as nx # type: ignore
 
 from .codegen import build_vector_program, codegen
 from .disjoint_set import DisjointSet
@@ -257,7 +257,7 @@ def iterate_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], max_iter=1
 
         # sort annotations by which ones appear the least frequently (corresponds to good candidates to contract)
         # then iterate through the edges in that order, stopping at max_edges
-        edges_to_try = sum((list(ann[a]) for a in sorted(ann.keys(), key=lambda a:len(ann[a]))), [])[:max_edges]
+        edges_to_try: List = sum((list(ann[a]) for a in sorted(ann.keys(), key=lambda a:len(ann[a]))), [])[:max_edges]
         print(f'Trying contracting {len(edges_to_try)} different edges...')
         options = [(base_cost, graph)]
 
@@ -315,7 +315,7 @@ def bfs_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], max_edges=10, 
 
         # sort annotations by which ones appear the least frequently (good candidates to contract)
         # then iterate through edges in that order, stopping at max_edges
-        edges_to_try = sum((list(ann[a]) for a in sorted(ann.keys(), key=lambda a:len(ann[a]))), [])[:max_edges]
+        edges_to_try: list = sum((list(ann[a]) for a in sorted(ann.keys(), key=lambda a:len(ann[a]))), [])[:max_edges]
         print(f'Trying contracting {len(edges_to_try)} different edges...')
 
         all_candidate_edges = set().union(*ann.values())
@@ -355,17 +355,17 @@ def bfs_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], max_edges=10, 
 
 
 def schedule_height(graph: nx.DiGraph, debug=False):
-    cells = defaultdict(lambda: defaultdict(tuple))
+    cells: Dict[int, Dict[int, tuple]] = defaultdict(lambda: defaultdict(tuple))
 
     for node in graph:
         cells[graph.nodes[node]['epoch']][graph.nodes[node]['column']] += node
 
-    columns = defaultdict(tuple)
+    columns: Dict[int, tuple] = defaultdict(tuple)
     for node in graph:
         columns[graph.nodes[node]['column']] += node
 
 
-    instr_counts = sum((reduce(lambda x, y: x | y, (Counter(graph.graph['ops'][instr] for instr in column) for column in epoch.values())) for epoch in cells.values()), Counter())
+    instr_counts: Counter = sum((reduce(lambda x, y: x | y, (Counter(graph.graph['ops'][instr] for instr in column) for column in epoch.values())) for epoch in cells.values()), Counter())
     cost = sum(COSTS_PER_ROTATE[op] * count for op, count in instr_counts.items())
     if debug:
         print(f'Instruction counts: {instr_counts}; {cost}')
@@ -386,7 +386,7 @@ def anneal_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], t=20, beta=
     best_cost = current_cost
     best_graph = nx.DiGraph(graph)
 
-    already_visited = set()
+    already_visited: Set[Tuple[Any, Any]] = set()
 
     cost_history = []
     num_restarts = 0
@@ -451,7 +451,7 @@ def anneal_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], t=20, beta=
         print(f'Round {round}/{rounds}: current cost: {current_cost} (best seen = {best_cost}); prob of +1 cost = {exp(-1 / t) * 100:.1f}%')
 
     if plot:
-        from matplotlib import pyplot as plt
+        from matplotlib import pyplot as plt # type: ignore
         plt.plot(cost_history)
         plt.show()
 
@@ -469,7 +469,7 @@ def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], rounds=200):
     class schedule:
         cost: int
         graph: nx.DiGraph=field(compare=False)
-        edges: List[Tuple]=field(compare=False)
+        edges: Optional[List[Tuple]]=field(compare=False)
 
     grade_nx_graph(graph, groups)
     nx_columnize(graph)
@@ -604,15 +604,18 @@ def vectorize(comp: CompilerV2):
         stage_instrs = [comp.code[i] for i in stage]
         stage_sched = synthesize_schedule(stage_instrs, warp_size, lanes)
         for s, i in zip(stage_sched, stage_instrs):
+            assert isinstance(i.dest.val, int)
             schedule[i.dest.val] = s + len(vector_program)
         vector_program += build_vector_program(stage_instrs, lanes, stage_sched)
 
-    active_lanes = [[] for _ in range(max(schedule) + 1)]
+    active_lanes: List[List[int]] = [[] for _ in range(max(schedule) + 1)]
     for instr in comp.code:
+        assert isinstance(instr.dest.val, int)
         active_lanes[schedule[instr.dest.val]].append(lanes[instr.dest.val])
     # print(f'Active lanes: {active_lanes}')
     inv_schedule = [[-1] * (max(lanes) + 1) for _ in range(max(schedule) + 1)]
     for instr in comp.code:
+        assert isinstance(instr.dest.val, int)
         inv_schedule[schedule[instr.dest.val]][lanes[instr.dest.val]] = instr.dest.val
 
     print(relaxed_schedule.nodes)

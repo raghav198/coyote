@@ -13,7 +13,7 @@ BLANK_SYMBOL = '_'
 class Var:
     def __init__(self, name: str):
         self.name = name
-        self.tag = None#name
+        self.tag: Any = None
         self.subtags: List[Union[int, str]] = []
 
     def __add__(self, other):
@@ -108,15 +108,6 @@ def times(a, b):
         b = Var(b)
 
     return Op('*', a, b)
-
-
-def minus(a, b):
-    if type(a) is str:
-        a = Var(a)
-    if type(b) is str:
-        b = Var(b)
-    
-    return Op('-', a, b)
 
 
 def is_reg(atom):
