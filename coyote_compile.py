@@ -23,7 +23,9 @@ def get_coyote(path: str) -> coyote_compiler:
         raise ImportError(f'Source file {path} has no Coyote objects!')
     return coyotes[0]
 
-if __name__ == '__main__':
+def main():
+    import sys
+    sys.path.append(os.getcwd())
     parser = argparse.ArgumentParser(description='Compile Coyote programs')
     
     parser.add_argument('coyote_file', help='File containing Coyote program')
@@ -40,6 +42,8 @@ if __name__ == '__main__':
     cpp_group.add_argument('--no-cpp', action='store_true', help='Stop before generating C++')
     cpp_group.add_argument('--just-cpp', action='store_true', help='Use precompiled Coyote code to directly generate C++')
 
+    # TODO: expose some compiler options in the API (i.e. verbosity, turning features on/off, number of rounds, etc.) and then expose those here
+
     args = parser.parse_args()
 
     coyote = get_coyote(args.coyote_file)
@@ -50,7 +54,7 @@ if __name__ == '__main__':
         print(f'Circuits available in {args.coyote_file}:')
         for func in available:
             print(f'* {func}')
-        quit()
+        return
 
     output_dir = args.output_dir
 
@@ -61,10 +65,13 @@ if __name__ == '__main__':
 
     if args.combine:
         print('...no <3')
-        quit()
+        return
     
     scalars = {}
     vectors = {}
+
+    if not args.just_cpp and not os.path.exists(args.backend_dir):
+        parser.error(f'Backend not found at {args.backend_dir}!')
 
     for circuit in args.circuits:
 
@@ -100,3 +107,7 @@ if __name__ == '__main__':
 
             open(os.path.join(args.backend_dir, circuit, 'scalar.cpp'), 'w').write(scalar_cpp)
             open(os.path.join(args.backend_dir, circuit, 'vector.cpp'), 'w').write(vector_cpp)
+
+
+if __name__ == '__main__':
+    main()
