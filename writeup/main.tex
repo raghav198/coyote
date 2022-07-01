@@ -1,6 +1,11 @@
- \documentclass[acmsmall,10pt,review,anonymous]{acmart}
+%  \documentclass[acmsmall,10pt,review,anonymous]{acmart}
+\documentclass[pageno]{jpaper}
 % \settopmatter{printfolios=true,printccs=false,printacmref=false}
-%\documentclass[acmsmall,10pt]{acmart}
+% \documentclass[acmsmall,anonymous,10pt]{acmart}
+
+\newcommand{\asplossubmissionnumber}{XXX}
+
+\usepackage[normalem]{ulem}
 
 \input{packages}
 \input{macros}
@@ -8,36 +13,35 @@
 \title{Coyote: A Compiler for Vectorizing Encrypted Arithmetic Circuits}
 
 \author{Raghav Malik}
-\affiliation{
-    \department{School of Electrical and Computer Engineering}
-    \institution{Purdue University}
-    \city{West Lafayette}
-    \state{IN}
-    \country{USA}}
-\email{malik22@purdue.edu}
+% \affiliation{
+%     \department{School of Electrical and Computer Engineering}
+%     \institution{Purdue University}
+%     \city{West Lafayette}
+%     \state{IN}
+%     \country{USA}}
+% \email{malik22@purdue.edu}
 
-\author{Kabir Sheth}
-\affiliation{
-    \department{School of Electrical and Computer Engineering}
-    \institution{Purdue University}
-    \city{West Lafayette}
-    \state{IN}
-    \country{USA}}
-\email{kdsheth@purdue.edu}
+% \author{Kabir Sheth}
+% \affiliation{
+%     \department{School of Electrical and Computer Engineering}
+%     \institution{Purdue University}
+%     \city{West Lafayette}
+%     \state{IN}
+%     \country{USA}}
+% \email{kdsheth@purdue.edu}
 
-\author{Milind Kulkarni}
-\affiliation{
-    \department{School of Electrical and Computer Engineering}
-    \institution{Purdue University}
-    \city{West Lafayette}
-    \state{IN}
-    \country{USA}}
-\email{milind@purdue.edu}
+% \author{Milind Kulkarni}
+% \affiliation{
+%     \department{School of Electrical and Computer Engineering}
+%     \institution{Purdue University}
+%     \city{West Lafayette}
+%     \state{IN}
+%     \country{USA}}
+% \email{milind@purdue.edu}
 
 \begin{document}
 \input{abstract}
 \maketitle
-
 
 \input{introduction}
 \input{background}
@@ -49,6 +53,7 @@
 \input{conclusion}
 \pagebreak
 \clearpage
-\bibliographystyle{ACM-Reference-Format}
+% \bibliographystyle{ACM-Reference-Format}
+\bibliographystyle{plain}
 \bibliography{papers.bib}
 \end{document}
