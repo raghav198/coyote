@@ -38,6 +38,7 @@ def grade_nx_graph(graph: nx.DiGraph, groups: List[Set[int]]):
             del graph.nodes[node]['epoch']
 
     for i, group in enumerate(groups):
+        # print(f'Setting {group} to {i}')
         for node in group:
             graph.nodes[(node,)]['epoch'] = i
 
@@ -50,7 +51,7 @@ def grade_nx_graph(graph: nx.DiGraph, groups: List[Set[int]]):
             if 'epoch' not in graph.nodes[child]:
                 visit(child)
             heights.add(graph.nodes[child]['epoch'] + 1)
-        graph.nodes[node]['epoch'] = max(heights, default=len(groups))
+        graph.nodes[node]['epoch'] = max(heights | {len(groups)})
 
     for node in graph:
         visit(node)
@@ -553,6 +554,13 @@ def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], rounds=200):
 
 def get_stages(graph: nx.DiGraph) -> Generator[Tuple[int], None, None]:
     cur_stage = 0
+    
+    epoch_grouping = defaultdict(set)
+    for node in graph.nodes:
+        epoch_grouping[graph.nodes[node]['epoch']].add(node)
+        
+    print(f'Epoch grouping: {epoch_grouping}')
+    
     while True:
         stage = ()
         for node in graph.nodes:
@@ -576,12 +584,14 @@ def get_lanes(graph: nx.DiGraph, warp_size: int) -> List[int]:
 
 def vectorize(comp: CompilerV2):
     # compute the schedule
+    
     loaded_groups = [set().union(*(comp.loaded_regs[g] for g in group)) for group in comp.input_groups]
+    
     graph = instr_sequence_to_nx_graph(comp.code)
     actual_instrs = list(filter(lambda n: all(isinstance(m, int) for m in n), graph.nodes))
     graph = nx.DiGraph(nx.subgraph(graph, actual_instrs))
 
-    relaxed_schedule = pq_relax_schedule(graph, loaded_groups).graph
+    relaxed_schedule = pq_relax_schedule(graph, loaded_groups, rounds=50).graph
 
     # relaxed_schedule, _ = anneal_relax_schedule(graph, loaded_groups, t=20, beta=0.001, rounds=200)
 
