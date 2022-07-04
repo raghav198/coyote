@@ -18,6 +18,8 @@ In this evaluation, we aim to answer the following questions:
 
 %\raghav{spot-check my tenses?}
 To assess \system's ability to vectorize general applications, we use a suite of benchmarks that represent a spectrum of both regular and irregular computations, as well as ones that are both sparse and dense in terms of data reuse.
+While there is not currently a standard benchmark suite on which to evaluate FHE-based compilers, we choose a set of benchmarks similar\footnote{While we do not have access to Porcupine's actual benchmarks for a direct comparison, their polynomial regression corresponds to our matrix multiply, their L2 distance correpsonds to our point cloud distance, and most of their image processing kernels are specific convolutions (i.e. plaintext kernels), while we evaluate on generic convolutions. The input sizes of our benchmarks are comparable to those of Porcupine's.} to those used by Porcupine~\cite{Porcupine}, representing a spectrum of both regular and irregular computations, as well as ones that are both sparse and dense in terms of data reuse.
+
 %\raghav{I'm hesitant to say sparse because that means something different}. \milind{Give a couple of sentence description of each, and also say whether we're classifying this as regular/irregular or dense/sparse, and why. Then you can just move the extra stuff about decision tree into the list, too}
 
 The benchmarks are as follows:
@@ -101,7 +103,7 @@ Note that for dot product, replication makes no difference as each input is used
 
 
 Table~\ref{tab:big-ass} displays various compilation properties, including how long each benchmark took to compile and how many operations each program had before and after vectorization.
-Our benchmarks ranged in size from 5 scalar instructions (size 3 dot product) to 75 instructions (5 point distances)\footnote{Note that \system is able to handle benchmark sizes much larger than those of Porcupine \cite{Porcupine} while maintaining reasonable compile times}.
+Our benchmarks ranged in size from 5 scalar instructions (size 3 dot product) to 75 instructions (5 point distances)%\footnote{Note that \system is able to handle benchmark sizes much larger than those of Porcupine \cite{Porcupine} while maintaining reasonable compile times}.
 While the number of scalar multiplies went as high as 27 (for the $3\times 3$ matrix multiply), \system was almost always able to pack these into at most one or two vector instructions.
 The main exceptions to this rule were the highly irregular tree benchmarks, which still went from 10 scalar multiplies to between 4 and 5 vector multiplies, and the more unreasonable data layouts in our case studies.
 Another interesting point to notice is the number of rotates. Most benchmarks required fewer than 10 rotates. However, the 5 point distance and $3\times 3$ matrix multiply benchmarks had a very high number of rotations after vectorization, as these were the most data-dense ones---intermediate results are required by many downstream computations, requiring many rotates.
