@@ -8,18 +8,20 @@ CHET \cite{CHET} is a vectorizing compiler for homomorphic tensor programs that 
 CHET is specifically targeted towards optimizing the dense tensor computations found in neural network inference, and does not apply to a broader class of programs, especially those with irregular computations that are not so easily vectorized.
 \system makes no assumptions about the domain of the program, and can generalize to vectorizing even highly irregular computations.
 
-Porcupine \cite{Porcupine} is another vectorizing compiler that uses a synthesis-based approach to automatically generate vectorized FHE kernels given a reference implementation.
-Porcupine is more general than CHET, but it is still mostly targeted towards regular, easily vectorizable computations.
-While Porcupine can, in theory, generate kernels for any computation, its treatment of rotations makes it harder to adapt to vectorizing irregular programs.
-Porcupine considers rotations directly as inputs to arithmetic expressions, and relies on a sketch to constrain the search space and a solver to find programs with optimal performance characteristics.
-Irregular applications without many apparent symmetries to exploit incur many asymmetric rotations, making it more difficult for the solver to produce an optimal schedule. The search space becomes prohibitively large, and is not tuned towards finding minimal sets of rotations.
-In contrast, because \system focuses on limiting rotations, its schedule search prioritizes vector schedules that {\em specifically} reduce the number of required rotations.
-% \raghav{Maybe another thing to say (emphasize?) is that the \system and Porcupine approaches are fundamentally different in that the latter relies on a sketch to synthesize good schedules while \system finds them automatically.}
+Porcupine~\cite{Porcupine} is a vectorizing compiler that uses a sketch-based synthesis approach to generate vectorized kernels given a reference implementation. While Porcupine is more general than CHET, it relies on programmers providing partial implementations in the form of sketches, making it less automatic than Coyote. Furthermore, Porcupine relies on the sketches to constrain the search space of rotations, while Coyote is specifically designed to reduce the number of rotations.
 
-Additionally, Porcupine's synthesis-based approach results in very long compile times for programs with more than a few instructions.
-Their solution to this problem is to break large programs into multiple smaller, composable kernels and synthesize solutions to each kernel independently.
-This has two major drawbacks: First, the burden of decomposing the program falls on the programmer. Second, synthesizing kernels separately means that Porcupine is unable to find optimizations across kernel boundaries, so a poor decomposition can preclude a more efficient vectorization.
-\system, on the other hand, can compile much larger programs in a reasonable amount of time, and the circuit quotienting strategy automatically breaks large programs up into smaller sequences of vectorizable instructions. %\raghav{TODO: add instruction counts to the eval?}
+%Porcupine \cite{Porcupine} is another vectorizing compiler that uses a synthesis-based approach to automatically generate vectorized FHE kernels given a reference implementation.
+%Porcupine is more general than CHET, but it is still mostly targeted towards regular, easily vectorizable computations.
+%While Porcupine can, in theory, generate kernels for any computation, its treatment of rotations makes it harder to adapt to vectorizing irregular programs.
+%Porcupine considers rotations directly as inputs to arithmetic expressions, and relies on a sketch to constrain the search space and a solver to find programs with optimal performance characteristics.
+%Irregular applications without many apparent symmetries to exploit incur many asymmetric rotations, making it more difficult for the solver to produce an optimal schedule. The search space becomes prohibitively large, and is not tuned towards finding minimal sets of rotations.
+%In contrast, because \system focuses on limiting rotations, its schedule search prioritizes vector schedules that {\em specifically} reduce the number of required rotations.
+%% \raghav{Maybe another thing to say (emphasize?) is that the \system and Porcupine approaches are fundamentally different in that the latter relies on a sketch to synthesize good schedules while \system finds them automatically.}
+%
+%Additionally, Porcupine's synthesis-based approach results in very long compile times for programs with more than a few instructions.
+%Their solution to this problem is to break large programs into multiple smaller, composable kernels and synthesize solutions to each kernel independently.
+%This has two major drawbacks: First, the burden of decomposing the program falls on the programmer. Second, synthesizing kernels separately means that Porcupine is unable to find optimizations across kernel boundaries, so a poor decomposition can preclude a more efficient vectorization.
+%\system, on the other hand, can compile much larger programs in a reasonable amount of time, and the circuit quotienting strategy automatically breaks large programs up into smaller sequences of vectorizable instructions. %\raghav{TODO: add instruction counts to the eval?}
 
 %\raghav{I think I explained that correctly?}\milind{Sounds good.}
 
@@ -38,8 +40,8 @@ Unlike \system, these circuit optimizations do not include automatic vectorizati
 %\raghav{Mention that EVA automatically does parameter selection? Or the fact that we could potentially target EVA as a backend if it weren't restricted to CKKS?}\milind{nah.}
 
 \subsection{General Purpose Vectorization in non-FHE Settings}
-Superword-Level Parallelism \cite{SLP} is a technique for automatically vectorizing arbitrary programs.
-SLP works by iterating over a sequence of scalar instructions and computing ``vector packs,'' or sets of isomorphic instructions that can be packed together into vectors.
+Superword-Level Parallelism is a technique for automatically vectorizing programs~\cite{SLP}.
+SLP iterates over a sequence of scalar instructions and computes ``vector packs,'' or sets of isomorphic instructions that can be packed together into vectors.
 Because SLP does not rely on the presence of data-parallel structures like loops to aid in vectorization, it works well even for irregular programs.
 When computing vector packs, SLP does not account for how expensive rotations are in FHE, leading to schedules with very high data shuffling costs. 
 

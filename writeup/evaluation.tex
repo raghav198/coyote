@@ -47,8 +47,9 @@ Note that for dot product, replication makes no difference as each input is used
 
 \subsection{Costs and Effects of Vector Compilation}\label{sec:compilation-stuff}
 
-\begin{table}
+\begin{table*}
 	\small
+	\centering
     \caption{Table showing compilation time in seconds, as well as instruction counts in the scalar (SAdd, SSub, SMul) and vector (VAdd, VSub, VMul, Rot, Blend) code, and the ideal speedup (work/span). Note that ideal speedup considers rotates and blends to be free.}\label{tab:big-ass}
     \vspace{-0.5em}
     \begin{tabular}{lcccccccc}
@@ -100,7 +101,7 @@ Note that for dot product, replication makes no difference as each input is used
     tree.packed.fully & 231 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
     tree & 139 & 10 & 10 & 11 & 5 & 1 & 1 & 3.24\\\bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
 
 Table~\ref{tab:big-ass} displays various compilation properties, including how long each benchmark took to compile and how many operations each program had before and after vectorization.
