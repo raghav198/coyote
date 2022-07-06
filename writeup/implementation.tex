@@ -1,6 +1,6 @@
 \section{Implementation}\label{sec:implementation}
 
-This section discusses the implementation details of \system: how programmers write \system programs, how the code is generated, and several design decisions that allow the system, and the programmer, to trade off optimality for other considerations.
+This section discusses how programmers write \system programs, and how the code is generated.
 
 % \subsection{An eDSL and compiler for FHE programs}
 % \begin{figure}
@@ -89,7 +89,7 @@ Inputs annotated with {\sf scalar()} are free to be placed anywhere in the vecto
 The arithmetic circuits \system takes are directed acyclic graphs (DAGs) that fail to be trees exactly when values are used as inputs to multiple computations (e.g. the value $a$ in $ab + ac$).
 Any such DAG can  be turned into a tree by {\em replicating} inputs in a ``reverse-CSE'' process (for example, $ab + ac \to a_1b + a_2c$, where the value of $a$ is supplied to both $a_1$ and $a_2$).
 This results in circuits with better rotation characteristics at the cost of extra computation.
-By default, \system automatically replicates all {\sf scalar} inputs, and leaves all {\sf vector} and {\sf matrix} inputs unreplicated, but this behavior can be overridden by the programmer (note that replicating a {\sf vector} or {\sf matrix} input results in multiple copies of each variable all being packed into the same vector). \raghav{Does that make sense?}
+By default, \system automatically replicates all {\sf scalar} inputs, and leaves all {\sf vector} and {\sf matrix} inputs unreplicated, but this behavior can be overridden by the programmer (note that replicating a {\sf vector} or {\sf matrix} input results in multiple copies of each variable all being packed into the same vector). %\raghav{Does that make sense?}
 
 \subsubsection*{Automatically choosing a data layout}
 While specifying a set of inputs as a {\sf vector(n)} or {\sf matrix(m, n)}, \system restricts the space of available schedules to the ones that pack these inputs together.
