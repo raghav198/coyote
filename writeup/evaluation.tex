@@ -202,12 +202,12 @@ To study the effects of different data layout choices, we did a case study with 
     % \vspace{-1em}
     \begin{tabular}{lcccccccc}
     \toprule
-    Benchmark & Time (s) & SAdd+SSub & SMul & VAdd+VSub & VMul & Rot & Blend\\\midrule
-    mm.3.case1 & 584 & 18 & 27 & 5 & 2 & 15 & 10\\
-    mm.3.case2 & 594 & 18 & 27 & 5 & 2 & 20 & 10\\
-    mm.3.case3 & 565 & 18 & 27 & 11 & 6 & 24 & 22\\
-    mm.3.case4 & 601 & 18 & 27 & 5 & 3 & 24 & 10\\
-    mm.3.case5 & 522 & 18 & 27 & 16 & 13 & 33 & 25\\\bottomrule
+    Benchmark & Time (s) & VAdd+VSub & VMul & Rot & Blend\\\midrule
+    mm.3.case1 & 584 & 5 & 2 & 15 & 10\\
+    mm.3.case2 & 594 & 5 & 2 & 20 & 10\\
+    mm.3.case3 & 565 & 11 & 6 & 24 & 22\\
+    mm.3.case4 & 601 & 5 & 3 & 24 & 10\\
+    mm.3.case5 & 522 & 16 & 13 & 33 & 25\\\bottomrule
     \end{tabular}
 \end{table}
 In each layout, all the inputs are unreplicated.
@@ -219,7 +219,7 @@ This effect can be seen in Table~\ref{tab:bigass-data-layout}: the layout in cas
 %\raghav{This is a really cool fact that I don't feel I've done justice.}\milind{This partly stems from the fact that there's something cool going on with data layout that I dont' think we fully explain in design or implementation, right? That Coyote knows that a set of inputs should go into the same vector, but actually still has the freedom to arrange them within that vector---a[0] doesn't need to be next to a[1], and so on. This should be explained in an earlier section, then reinforced here.}
 
 \begin{figure}[t]
-    \includegraphics[width=0.6\linewidth]{figures/graphs/case_study.png}
+    \includegraphics[width=0.9\linewidth]{figures/graphs/case_study.png}
     % \vspace{-1em}
     \caption{Speedups for the five data layout case studies (higher is better). Note that the second bar (``Separate'') corresponds to the leftmost bar of {\sf mm.3} in Figure~\ref{fig:vector-speedups}.}
     \Description{Bar graph showing speedup from vectorization for five data layout case studies}\label{fig:data-layout-case-study}
