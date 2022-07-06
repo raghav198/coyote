@@ -36,7 +36,7 @@ The benchmarks are as follows:
 %\raghav{redundant?}
 %(Notice that the decision tree benchmark contains irregular computation, and the packed decision tree, all the point cloud distances, and the $3\times 3$ matrix multiply are relatively dense in terms of data reuse).
 
-To investigate the effect of data replication (as discussed in Section~\ref{sec:duplicating-inputs}), we used three different replication strategies for each benchmark: 
+To investigate the effect of data replication we used three different replication strategies for each benchmark: 
 
 \begin{enumerate}[label=(\roman*)]
 \item {\em unreplicated}, where each input appears in only one input vector, and hence must be used by multiple operations in the circuit.
@@ -166,11 +166,14 @@ We find that both sparse and dense homogeneous polynomials see substantial benef
 To compare \system's vectorized schedules to hand-optimized baselines, we compiled three kernels with \system: matrix/vector multiply, dot product, and point-cloud distance.
 Each of these kernels has a well-known expert-optimized baseline implementation, which we also implemented in \system's vector IR, before compiling both implementations to C++ and measuring the run times.
 The results are shown in Table~\ref{tab:expert-comparison-numbers}.
+For smaller sizes, we see \system's vectorization is capable of matching or even outperforming the expert-written baselines, although on larger sizes the search space is often too big to automatically find the expert schedules.
+Manually inspecting the generated code shows that this is usually because the schedule \system generates uses one or two more rotates than the baseline.
+In the case of the dot product, the schedules \system finds all use the same number of rotates as the expert schedule, but occasionally incur more blends.
 
 \begin{table}
 	\centering
     \small
-    \caption{\system vectorization vs. expert-written code}
+    \caption{\system vectorization vs. expert-written code}\label{tab:expert-comparison-numbers}
     \begin{tabular}{lcc}
         \toprule
         Benchmark & \system time (s) & Expert time (s)\\\midrule
@@ -180,9 +183,9 @@ The results are shown in Table~\ref{tab:expert-comparison-numbers}.
         dist.3 & 3.5 & 3.2 \\
         dist.4 & 8.4 & 4.0 \\
         dist.5 & 15.3 & 5.5 \\
-        dot.3 & ? & ? \\
-        dot.6 & ? & ? \\
-        dot.10 & ? & ? \\
+        dot.3 & 1.6 & 1.6 \\
+        dot.6 & 2.9 & 2.2 \\
+        dot.10 & 3.8 & 2.6 \\
         \bottomrule
     \end{tabular}
 \end{table}
