@@ -11,11 +11,11 @@ To properly take advantage of ciphertext packing, we need a compiler that can ve
 % \raghav{It feels like I should mention ``all FHE programs are arithmetic circuits'' here, but I'm not sure where. One idea is it can go as part of the ``you can't do normal vectorization'' bit, since there are no loops and stuff to take advantage of. But I'm not sure.}\milind{I think what you've written here seems good.}
 
 % Who has tried to solve this problem before?
-Vectorizing compilers for FHE are nothing new, as seen in CHET~\cite{CHET} and Porcupine~\cite{Porcupine}.
+Vectorizing compilers for FHE, such as CHET~\cite{CHET} and Porcupine~\cite{Porcupine}, exist.
 However, neither of these approaches meets the need for a vectorizing compiler for arbitrary FHE programs.
 While CHET is optimized for highly regular computations over packed tensors (such as neural networks), it does not generalize to more irregular programs. 
 Porcupine, which uses a synthesis-based approach to generate vectorized code for arbitrary kernels, does work for a more general class of programs.
-However, it often cannot properly account for the high rotation costs in more irregular applications. 
+However, it is not automated, as it requires a programmer-provided {\em sketch} as a starting point.
 %\raghav{Is there a better/more correct/more effective way to say this?}\milind{It also relies on loops as its source of vectorization, right? Or am I misemembering?}
 
 % However, these prior approaches are optimized for highly regular computations over packed tensors (such as neural networks in the case of CHET), and often don't take into account how expensive rotations can be in more irregular applications.
@@ -30,8 +30,8 @@ While it is theoretically possible to encode arbitrary permutations as a series 
 
 %\raghav{Still need to review this for accuracy}
 More recent takes on SLP, such as VeGen \cite{VeGen} and goSLP \cite{goSLP}, recognize the need to take the cost of data movement into account.
-VeGen is capable of incorporating reasoning about data movement into its vectorization, and can make the decision to not pack certain instructions together because the data movement cost incurred is not worth it.
-However, VeGen does all its reasoning {\em locally}; that is, it cannot reason about the effect packing instructions together may have on shuffling costs much later in the program. This tradeoff is generally fine in circumstances when shuffling is relatively cheap; it is less appropriate in an FHE context, where shuffling is very expensive.
+VeGen incorporates data movement into its vectorization, and can decide to not pack certain instructions together because the data movement cost incurred is not worth it.
+However, VeGen does its reasoning {\em locally}; that is, it cannot reason about the effect packing instructions together may have on shuffling costs much later in the program. This tradeoff, fine in circumstances when shuffling is relatively cheap, is inappropriate for FHE, where shuffling is very expensive.
 While goSLP does reason globally, the cost model it uses to avoid over-packing is incompatible with the semantics of FHE vectorization.
 We discuss this further in Section~\ref{sec:related-work}.
 
@@ -89,9 +89,9 @@ In general, without carefully accounting for, and controlling, rotation, traditi
 %\raghav{TODO: find a better place to put this paragraph, maybe?}
 %
 Consider the arithmetic circuit in Figure~\ref{fig:example-circuit} implementing $((a + b) * (c + d)) + ((e + f) * (g + h))$.\footnote{We adopt the FHE-standard representation of arithmetic circuits as the intermediate representation for our programs~\cite{Gentry,CircuitRewriting,Ramparts,Porcupine}.}
-A naive attempt at vectorizing this circuit packs together the four additions at the first level, and the two multiplies at the second level (as in the schedule in Figure~\ref{fig:aggressive-vectorization}).
-This produces a schedule with a vector add, followed by a vector multiply, followed by an add. Rotations are needed between each operation to align the outputs of each operation with the next operation.
-Using an approximate model\footnote{\citet{AlgosHElib} assign a ``high latency'' to both multiplies and rotates and a ``low latency'' to adds. For both simplicity and concreteness, we assume a 10:1 ratio between ``high latency'' and ``low latency''} of the relative latencies of each instruction in which multiplies and rotates have a latency of 1 and addition has a latency of 0.1, the total cost of this schedule is 3.2.
+A na\"ive vectorization would pack together the four additions at the first level, and the two multiplies at the second level (as in the schedule in Figure~\ref{fig:aggressive-vectorization}).
+The resulting schedule has a vector add, followed by a vector multiply, followed by an add. Rotations are needed between each operation to align the outputs of each operation with the next.
+Using an approximate model\footnote{\citet{AlgosHElib} assigns a ``high latency'' to both multiplies and rotates and a ``low latency'' to adds. For both simplicity and concreteness, we assume a 10:1 ratio between ``high latency'' and ``low latency.''} of the relative latencies of each instruction in which multiplies and rotates have a latency of 1 and addition has a latency of 0.1, the total cost of this schedule is 3.2.
 However, by doing no vectorization and executing the circuit entirely with scalar operations (Figure~\ref{fig:no-vectorization}), we have 5 adds and two multiplies, with an overall cost of 2.5.
 In this case, vectorization actually makes the performance {\em worse}!
 We can do better, though, as shown in Figure~\ref{fig:optimal-schedule}.
@@ -100,12 +100,12 @@ We are effectively saving one rotation at the cost of an extra vector addition, 
 % \raghav{further TODO: dunno how much detail I should be going into here. Should I enumerate the nodes of the circuit and refer to them explicitly? Or insert a sample of the vectorized code in both cases? Or something else? As it is, I'm certain this is pretty hard to follow.}
 % \milind{I tried to make this simpler, but it might be good to shrink the tree in Figure 1, and put three subfigures next to it showing the three schedules.}\raghav{Schedules like the ones in Figure~\ref{fig:aligned-schedule}?}\milind{yes.}
 
-This means that we need a new arbitrary vectorization strategy that is {\em FHE-aware}; i.e., it packs instructions without relying on regularity in the original computation, and can still account for the high cost of data movement throughout the program.
+We need a new arbitrary vectorization strategy that is {\em FHE-aware}; i.e., it packs instructions without relying on regularity in the original computation, and can still account for the high cost of data movement throughout the program.
 
 \subsection*{Co-optimization of vector packing and data layout}
 %\milind{check}\raghav{I like it}
 Our key insight is that because rotations are so expensive, data layout and vector packing are fundamentally intertwined. Rather than treat these as separate problems, we must optimize them {\em together} when finding a schedule.
-The main obstacle to optimality when using the classical approach is simple: vectorizing across instructions by aggressively packing them into vectors can require substantial, and complex, data movement to align operands for downstream vector instructions (e.g., \citet{SwizzleInventor}, which resorts to sketch-based synthesis to generate the appropriate permutations). In a setting where permuting operands between lanes can only be done with expensive rotations, an aggressively packed schedule can often incur so much rotation overhead that no amount of vectorization makes it worth it.
+The main obstacle to optimality when using the classical approach is simple: vectorizing across instructions by aggressively packing them into vectors can require substantial, and complex, data movement to align operands for downstream vector instructions (e.g., \citet{SwizzleInventor}, which resorts to sketch-based synthesis to generate the appropriate permutations). If permuting operands between lanes can only be done with expensive rotations, an aggressively packed schedule can incur so much rotation overhead that no amount of vectorization makes it worth it.
 
 Instead, we develop an approach that works at the level of {\em subcircuits}, splitting the program up into smaller pieces within which all the computations are locked into a single lane to avoid doing any rotations at all. While vectorizing across subcircuits gives up some packing potential (because operations within a subcircuit cannot be vectorized together), the savings on rotation costs can make up the difference: the subcircuits prevent over-vectorization that incurs too many rotations. The optimal schedule of Figure~\ref{fig:example-circuit} can be viewed as grouping $(a + b)$ with its downstream multiply in one subciruit, and $(g + h)$ with its downstream multiply in another subcircuit, and then vectorizing those two subcircuits together.
 
@@ -114,7 +114,7 @@ This approach yields a natural question: how do we decide which computations to 
 
 \subsection*{Contributions}
 
-This paper presents \system, the first vectorizing FHE-aware compiler for programs that do not have any regular structure. \system breaks the circular dependence between vector packing and data layout by using an iterative process that alternates between making packing decisions and determining data layout. \system uses simulated annealing to find optimal data layouts, and uses these to guide a best-first search towards optimal vector packs. Crucially, \system uses data layouts from previous iterations of scheduling to identify profitable subcircuits to merge, and then re-schedules based on the new subcircuits.
+This paper presents \system, the first vectorizing, FHE-aware compiler for programs that do not have regular structure. \system breaks the circular dependence between vector packing and data layout by using an iterative process that alternates between making packing decisions and determining data layout. \system uses simulated annealing to find optimal data layouts, and uses these to guide a best-first search towards optimal vector packs. Crucially, \system uses layouts from previous iterations of scheduling to identify profitable subcircuits to merge, and then re-schedules based on the new subcircuits.
 
 
 Rather than incurring many expensive data shuffles by aggressively vectorizing the whole program, \system's subcircuit-based scheduling and FHE-specific cost model co-optimize the data layout and vector packing, producing a schedule that enjoys the benefits of vectorization while still being able to efficiently realize the necessary rotations. For example, \system is able to correctly generate the better vectorization schedule in Figure~\ref{fig:example-circuit}.
