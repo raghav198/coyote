@@ -8,11 +8,11 @@
 
 In this evaluation, we aim to answer the following questions:
 \begin{enumerate}
-    \item {\bf How much speedup does compiling with \system get us?} To address this, we compile several realistic benchmarks and measure the speedup of the vectorized code over scalar execution. Section~\ref{sec:speedups} discusses these results.
-    \item {\bf How effective is \system's vectorization?} To answer this, we count the number of instructions generated in the vector code compared to the scalar code. These are tabulated in Section~\ref{sec:compilation-stuff}
-    \item {\bf To what extent does the data layout chosen by the programmer affect \system's ability to vectorize?} We conduct a case study exploring various data layout schemes for a $3\times 3$ matrix multiply, and measure the vectorization speedup for each layout. The results of this case study are in Section~\ref{sec:effects-of-data-layout}.
-    \item {\bf How effective is the layout/schedule co-optimization strategy?} We track the progress of the schedule-search procedure over time for various levels of data layout optimization. This discussion can be found in Section~\ref{sec:search-and-cooptimization}.
-    \item {\bf How well do \system's schedules compare to hand-optimized code?} We compare the run times of various hand-optimized benchmarks to the run time of the vector code that \system generates for them. This is in Section~\ref{sec:expert-comparison}
+    \item {\bf How much speedup does compiling with \system get us?} To address this, we compile several realistic benchmarks and measure the speedup of the vectorized code over scalar execution. (Section~\ref{sec:speedups})
+    \item {\bf How effective is \system's vectorization?} To answer this, we count the number of instructions generated in the vector code compared to the scalar code. (Section~\ref{sec:compilation-stuff})
+    \item {\bf How well do \system's schedules compare to hand-optimized code?} We compare the run times of various hand-optimized benchmarks to the run time of the vector code that \system generates for them. (Section~\ref{sec:expert-comparison})
+    \item {\bf To what extent does the data layout chosen by the programmer affect \system's ability to vectorize?} We conduct a case study exploring various data layout schemes for a $3\times 3$ matrix multiply, and measure the vectorization speedup for each layout. (Section~\ref{sec:effects-of-data-layout})
+%    \item {\bf How effective is the layout/schedule co-optimization strategy?} We track the progress of the schedule-search procedure over time for various levels of data layout optimization. This discussion can be found in Section~\ref{sec:search-and-cooptimization}.
 \end{enumerate}
 
 \subsection{Computational Kernels}
@@ -168,6 +168,7 @@ Each of these kernels has a well-known expert-optimized baseline implementation,
 The results are shown in Table~\ref{tab:expert-comparison-numbers}.
 
 \begin{table}
+	\centering
     \small
     \caption{\system vectorization vs. expert-written code}
     \begin{tabular}{lcc}
@@ -188,7 +189,7 @@ The results are shown in Table~\ref{tab:expert-comparison-numbers}.
 
 \subsection{Effects of Data Layout}\label{sec:effects-of-data-layout}
 % \milind{Call this ``effects of data layout.'' There should be a research question in the evaluation intro that directly pertains to this case study.}
-To study the effects of different data layout choices, we did a case study with the $3\times 3$ matrix multiply benchmark, measuring \system's ability to vectorize in five different data layouts:
+To study the effects of different data layout choices, we vary the data layout in $3\times 3$ matrix multiply:
 \begin{description}
     \item[Together:] The matrices $A$ and $B$ are packed into a single vector of $18$ elements
     \item[Separate:] $A$ and $B$ are packed into individual vectors (this is the normal layout used in benchmarking in Figure~\ref{fig:vector-speedups})
@@ -197,25 +198,26 @@ To study the effects of different data layout choices, we did a case study with 
     \item[Individual:] Each of the 18 entries are packed into their own vector (note that this is different from simply leaving them as free scalars, because this precludes \system from choosing to put some of them on the same vector anyway).     
 \end{description}
 \begin{table}
+	\centering
     \small
-    \caption{Compilation time and vector operation counts for the data layout case study}\label{tab:bigass-data-layout}
+    \caption{Compilation time and vector operation counts for different layouts of $3 \times 3$ matrix muliply.} \label{tab:bigass-data-layout}
     % \vspace{-1em}
-    \begin{tabular}{lcccccccc}
+    \begin{tabular}{lccccc}
     \toprule
     Benchmark & Time (s) & VAdd+VSub & VMul & Rot & Blend\\\midrule
-    mm.3.case1 & 584     & 5         & 2    & 15  & 10\\
-    mm.3.case2 & 594     & 5         & 2    & 20  & 10\\
-    mm.3.case3 & 565     & 11        & 6    & 24  & 22\\
-    mm.3.case4 & 601     & 5         & 3    & 24  & 10\\
-    mm.3.case5 & 522     & 16        & 13   & 33  & 25\\\bottomrule
+    together & 584     & 5         & 2    & 15  & 10\\
+    separate & 594     & 5         & 2    & 20  & 10\\
+    rowscols & 565     & 11        & 6    & 24  & 22\\
+    colsrows & 601     & 5         & 3    & 24  & 10\\
+    indiv & 522     & 16        & 13   & 33  & 25\\\bottomrule
     \end{tabular}
 \end{table}
 In each layout, all the inputs are unreplicated.
 Figure~\ref{fig:data-layout-case-study} shows the results of this case study.
 Interestingly, we find that packing the matrices together yields greater speedups than keeping them separate.
-When multiple entries are on one vector, \system can arrange the elements such that rotating one automatically gives useful rotations of the others (see Section~\ref{sec:duplicating-inputs}).
+When multiple entries are on one vector, \system can arrange the elements such that rotating one automatically gives useful rotations of the others.
 By contrast, when each entry is on a separate vector, every rotation must necessarily be done separately, so that schedule ends up with much more overhead.
-This effect can be seen in Table~\ref{tab:bigass-data-layout}: the layout in case 5 incurs over twice as many rotates as the layout in case 1!
+This effect can be seen in Table~\ref{tab:bigass-data-layout}: {\tt indiv} incurs over twice as many rotates as {\tt together}.
 %\raghav{This is a really cool fact that I don't feel I've done justice.}\milind{This partly stems from the fact that there's something cool going on with data layout that I dont' think we fully explain in design or implementation, right? That Coyote knows that a set of inputs should go into the same vector, but actually still has the freedom to arrange them within that vector---a[0] doesn't need to be next to a[1], and so on. This should be explained in an earlier section, then reinforced here.}
 
 \begin{figure}[t]
