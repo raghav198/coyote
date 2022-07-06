@@ -1,17 +1,16 @@
 \section{Design}\label{sec:design}
-Naively vectorizing arbitrary arithmetic circuits looks a lot like SLP: we start by serializing the circuit into a sequence of scalar three-address instructions.
-At each step, we look at all available scalar instructions (i.e. instructions whose source operands have all already been scheduled), pick the largest set with the same operation, and schedule them together.
-The problem with this naive strategy is it makes no guarantees about values being computed and used on the same lane; in other words, it incurs arbitrarily many shuffles to make the computation line up on the correct lanes.
+When vectorizing arithmetic circuits with an SLP-style approach, at each step, we look at all available scalar instructions (i.e. instructions whose source operands have all already been scheduled), pick the largest set with the same operation, and schedule them together.
+This na\"ive strategy makes no guarantees about values being computed and used on the same lane; in other words, it incurs arbitrarily many shuffles to make the computation line up on the correct lanes.
 Unlike in normal vectorization, where applying arbitrary permutations to the lanes is relatively cheap, in FHE we are only allowed to rotate the entire vector by a fixed number of slots, and this rotation operation is expensive.
 Hence, the cost of bookkeeping quickly outweighs whatever benefit we might get from vectorization, making this approach not worth it.
 
-In effect, when trying to compute an efficient vectorization 
+When trying to vectorize 
 %\raghav{Terminology things once again: I need a word for ``vertical alignment'' that isn't ``schedule'', since I want to use ``schedule'' to refer to the combination of vertical {\em and} horizontal alignment\dots} 
-for an FHE program, we have two optimization problems to solve: instruction scheduling, and data layout.
-Optimizing only for instruction scheduling essentially gives us the SLP approach: aggressively pack together isomorphic instructions without worrying about the incurred data movement overhead.
-Optimizing for data layout places us on the other end of the spectrum: to avoid having to do any rotates, we must place each connected component of the circuit on a single lane, effectively precluding any vectorization and forcing us to execute everything as scalar operations.
+an FHE program, we have two optimization problems to solve: instruction scheduling, and data layout.
+Optimizing only for instruction scheduling gives us the SLP approach: aggressively pack together isomorphic instructions without worrying about the incurred data movement overhead.
+Optimizing for data layout places us on the other end of the spectrum: to avoid having to do any rotates, we must place each connected component of the circuit on a single lane, precluding any vectorization and forcing us to execute everything as scalar operations.
 
-One of our key insights is that these two problems are highly related, so we have to solve these {\em simultaneously} rather than independently, effectively attempting to choose an optimal point in the tradeoff space between the two ends of the spectrum.
+One of our key insights is that these two problems are highly related, so we have to solve these {\em simultaneously} rather than independently, attempting to choose an optimal point in the tradeoff space between the two ends of the spectrum.
 In the following sections, we lay out the exact optimization problem as well as how we search for a solution. 
 
 \subsection{Overview}
@@ -19,12 +18,11 @@ In the following sections, we lay out the exact optimization problem as well as 
 The input to the compilation process is an arithmetic circuit, represented as a directed acyclic graph (DAG), where each vertex corresponds to an operation (gate) in the circuit and the leaves (vertices with no children) correspond to the inputs, and there is an arc $v_1 \to v_2$ if $v_1$ consumes $v_2$. 
 When a particular input is used multiple times in the circuit, it can either be represented as a single vertex with an incoming arc from every gate that consumes it, or it can be {\em replicated} into multiple vertices which each get consumed once.
 This choice is expressed by the programmer in the surface language, which is described in more detail in Section~\ref{sec:surface-language}.
-The specific implications of replication are discussed in Section~\ref{sec:duplicating-inputs}.
 
 The vector {\em pre-schedule}\footnote{This structure is referred to as a {\em pre-schedule} to distinguish it from the actual vector schedule, which explicitly computes an alignment for sequences of instructions at the same level. %\raghav{does this make sense?}
-} is a labeled quotient of the original circuit graph, where each vertex represents a connected subgraph, and is labeled with an integer representing the lane the subgraph gets placed on, satisfying the condition that no two vertices at the same height are labeled by the same lane.
+} is a labeled quotient of the original circuit graph, where each vertex represents a connected subgraph, and is labeled with an integer representing the lane the subgraph gets placed on, such that no two vertices at the same height are labeled by the same lane.
 The pre-schedule is naturally bi-graded into {\em epochs}, or groups of (independent) vertices at the same height which get packed together into a single sequence of vector instructions requiring no data movement, as well as {\em columns}, groups of vertices assigned to the same lane representing computation that happens in a single thread with no internal vectorization.
-Note that the uniqueness condition stated above means that each vertex of the quotient graph can be uniquely identified by its epoch and column (although the converse in general does not hold, since its possible to have a column that does not contain every epoch and vice-versa).
+% Note that the uniqueness condition stated above means that each vertex of the quotient graph can be uniquely identified by its epoch and column (although the converse in general does not hold, since its possible to have a column that does not contain every epoch and vice-versa).
 
 It turns out that both of our extremes from earlier can be realized in this model.
 Aggressively vectorizing SLP-style can be recovered by assigning a trivial subcircuit to each vertex of the quotient, and simply enumerating lanes across epochs.
@@ -42,27 +40,26 @@ Consider the case where instructions $A$ and $B$ are operands to instructions $A
 If $A$ and $B$ are assigned lanes $n$ and $m$, $A'$ and $B'$ are assigned $n+k$ and $m+k$, and $A$ and $B$ end up packed together in the same vector instruction, the two separate data movement operations required for the $A\to A'$ arc and the $B\to B'$ can actually be instantiated with a single rotation by $k$ slots of the $[A, B]$ vector (In fact, taking advantage of this fact is the main way we can optimize data layout to require fewer total rotates). 
 To compute the {\em actual} number of rotations required for a particular schedule, we instead proceed epoch-by-epoch. 
 For each epoch, we look at all cross-lane arc with tails in that epoch, and compute its {\em span} (the required rotation amount) by subtracting the lane at the tail from the lane at the head.
-The rotation cost for that epoch is then just the number of distinct rotation amounts\footnote{In practice, this underestimates the number of rotation instructions, since a given epoch might be packed into a sequence of multiple vector operations, so rotations of the same amount might not be carried out by a single instruction. This is addressed in Section~\ref{sec:optimality-tradeoffs}}.
+The rotation cost for that epoch is then just the number of distinct rotation amounts.
 For example, if a particular epoch has five cross-lane arcs, of which three represent a rotation of $-1$ and two represent a rotation of $6$, its rotation cost is $2$.
 It follows that the total rotation cost of a schedule is the sum of the rotation costs of each epoch.
 
 \subsubsection*{Vectorizability}
 Taking successive quotients of the circuit reduces the total number of edges, and by extension, reduces the number of rotates that might be required; however, it also precludes any vectorization within the collapsed subcircuits.
-To account for this, and to prevent the optimal schedule from being the trivial one described above, we need a way of quantifying the amount of vectorization we're ``giving up'' with each quotient.
+To account for this, we need a way of quantifying the amount of vectorization we're ``giving up'' with each quotient.
 
 Unfortunately, directly computing the opportunity cost is very messy: the amount of vectorization we give up by identifying a set of vertices is not a property local to the vertices, but rather requires us to look globally at {\em all possible vertices} in those epochs, to see which vectorization opportunities are no longer available after the identification.
 Instead, we use an estimated {\em schedule height} as a proxy, with the justification being that giving up a lot of vectorization generally results in taller, less efficient final schedules. 
 %\milind{this is good.}\raghav{Is it enough to say this? Or do I need to justify it further? Or should I remove these paragraphs entirely and just directly describe the schedule height computation?}
 
 The schedule height computation once again proceeds epoch-by-epoch.
-For each epoch, we estimate the minimum number of vector instructions required after packing by taking the maximum number of each type of operation across all the subcircuits associated to the vertices in that epoch\footnote{Once again, this is an underestimate of the actual height when the schedule is fully realized, since it doesn't take into account any dependences between the instructions. This is addressed in Section~\ref{sec:optimality-tradeoffs}}.
-For example, consider an epoch with two vertices, one with 3 adds and 2 multiplies, and one with 2 adds and 4 multiplies.
-The estimated height for this epoch would be 3 adds and 4 multiplies.
+For each epoch, we estimate the minimum number of vector instructions required after packing by taking the maximum number of each type of operation across all the subcircuits associated to the vertices in that epoch.
+For example, the estimated height of an epoch containing one vertex with 3 adds and 2 multiplies and another vertex with 2 adds and 4 multiplies would be 3 adds and 4 multiplies. \raghav{Is this parseable}
 
 \subsubsection*{Overall Cost}
 The analysis presented above computes an estimate for the number of each type of instruction in the generated vector program.
 The final cost used a linear combination of all of these, with weights determined empirically by how expensive each instruction type is relative to the rest.
-For example, in our implementation, we scale rotates and multiplies by $1$, and addition and subtraction by $0.1$. 
+In our implementation, we scale rotates and multiplies by $1$, and addition and subtraction by $0.1$. 
 %\raghav{Should this last sentence go here, or in implementation? Or both?}\milind{Both is good.}
 
 \subsection{Schedule Search}\label{sec:schedule-search}
@@ -114,7 +111,9 @@ Given a cost model, we use a two-layer optimization strategy to produce a schedu
 The inner layer uses simulated annealing to find an optimal lane assignment for a given quotient graph.
 The initial assignment is the naive one given by simply enumerating the vertices at each epoch.
 At each step of the algorithm, we generate a candidate solution by randomly choosing two columns and a subset of the epochs in them to swap, maintaining the uniqueness condition of the schedule.
-If the overall cost (as described in Section~\ref{sec:cost-model})\footnote{We could have chosen to only look at the rotation cost of each solution, but considering both costs helps prioritize lane placements with a heterogeneity of instruction types within each lane} of the candidate solution is lower than the original cost, it is accepted, and used as the starting point for the next round.
+If the overall cost (as described in Section~\ref{sec:cost-model})
+% \footnote{We could have chosen to only look at the rotation cost of each solution, but considering both costs helps prioritize lane placements with a heterogeneity of instruction types within each lane} 
+of the candidate solution is lower than the original cost, it is accepted, and used as the starting point for the next round.
 If the candidate solution cost is {\em higher} than the original cost, it is accepted with a probability that varies negatively with the difference in cost, and is generally smaller in later rounds than in earlier rounds\footnote{We use a slow cooling schedule with initial temperature $T_0=50$ and cooling parameter $\beta=10^{-3}$. The probability of accepting a move that increases the cost by $\Delta_c$ is $e^{-\Delta_c/T}$. The annealing is run for $20$k rounds.}.
 After a fixed number of rounds have elapsed (see footnote), this algorithm returns the best solution found so far.
 
@@ -167,8 +166,8 @@ In practice, this is enough to find highly efficient schedules.
 
 \subsection{Instruction Alignment}\label{sec:instruction-alignment}
 %\raghav{I just lifted this from the old version, is it still good or do we need to update it?}
-
-Given a set of subcircuits to compute in a single epoch of the program, we can align the instructions between subcircuits to actually produce a vector schedule.
+We align the instructions corresponding to the subcircuits in each epoch to produce a final vector schedule.
+% Given a set of subcircuits to compute in a single epoch of the program, we can align the instructions between subcircuits to actually produce a vector schedule.
 It may seem like the solution to this is just sequence alignment, but aligning circuits is actually more complicated than that.
 At each step, the number of available children that can be aligned roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
 This causes the dynamic programming strategy of sequence alignment to quickly blow up.
