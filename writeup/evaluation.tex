@@ -198,16 +198,16 @@ To study the effects of different data layout choices, we did a case study with 
 \end{description}
 \begin{table}
     \small
-    \caption{Table showing compilation time, scalar and vector operation counts, and ideal speedup for the data layout case study}\label{tab:bigass-data-layout}
+    \caption{Table showing compilation time and vector operation counts for the data layout case study}\label{tab:bigass-data-layout}
     % \vspace{-1em}
     \begin{tabular}{lcccccccc}
     \toprule
     Benchmark & Time (s) & VAdd+VSub & VMul & Rot & Blend\\\midrule
-    mm.3.case1 & 584 & 5 & 2 & 15 & 10\\
-    mm.3.case2 & 594 & 5 & 2 & 20 & 10\\
-    mm.3.case3 & 565 & 11 & 6 & 24 & 22\\
-    mm.3.case4 & 601 & 5 & 3 & 24 & 10\\
-    mm.3.case5 & 522 & 16 & 13 & 33 & 25\\\bottomrule
+    mm.3.case1 & 584     & 5         & 2    & 15  & 10\\
+    mm.3.case2 & 594     & 5         & 2    & 20  & 10\\
+    mm.3.case3 & 565     & 11        & 6    & 24  & 22\\
+    mm.3.case4 & 601     & 5         & 3    & 24  & 10\\
+    mm.3.case5 & 522     & 16        & 13   & 33  & 25\\\bottomrule
     \end{tabular}
 \end{table}
 In each layout, all the inputs are unreplicated.
