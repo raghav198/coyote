@@ -112,9 +112,9 @@ We evaluate the effectiveness of this choice in Section~\ref{sec:effects-of-data
 
 
 \subsection{Code Generation}\label{sec:codegen}
-The output of the algorithm in Section~\ref{sec:design} is a vector schedule (i.e. a lane and schedule slot for each scalar, where the schedule slot determines the order in which instructions get executed).
+The algorithm in Section~\ref{sec:design} produces a vector schedule (i.e. a lane and schedule slot for each scalar, where the schedule slot determines the order in which instructions get executed).
 
-This schedule is then compiled into a simple vector IR by using a ready-list to schedule vector instructions according to a topological sort, inserting rotations as needed.
+\system compiles this schedule to a simple vector IR by scheduling vector instructions according to a topological sort, inserting rotations as needed.
 The vector ISA supports vector addition, subtraction, multiplication, and rotation, as well as a constant load instruction and a {\em blend} instruction.
 The semantics of the blend instruction are a bit subtle: it mixes lanes from multiple vector registers into the same register {\em while keeping all data on its original lane}.
 For example: $$blend(x_1x_2x_3x_4@1010, y_1y_2y_3y_4@0101) \to [x_1y_2x_3y_4]$$
