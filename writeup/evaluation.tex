@@ -50,7 +50,7 @@ Note that for dot product, replication makes no difference as each input is used
 \begin{table*}
 	\small
 	\centering
-    \caption{Table showing compilation time in seconds, as well as instruction counts in the scalar (SAdd, SSub, SMul) and vector (VAdd, VSub, VMul, Rot, Blend) code, and the ideal speedup (work/span). Note that ideal speedup considers rotates and blends to be free.}\label{tab:big-ass}
+    \caption{Compilation time in seconds, as well as instruction counts in the scalar (SAdd, SSub, SMul) and vector (VAdd, VSub, VMul, Rot, Blend) code, and the ideal speedup (work/span). Note that ideal speedup considers rotates and blends to be free.}\label{tab:big-ass}
     \vspace{-0.5em}
     \begin{tabular}{lcccccccc}
     \toprule
@@ -169,7 +169,7 @@ The results are shown in Table~\ref{tab:expert-comparison-numbers}.
 
 \begin{table}
     \small
-    \caption{Table comparing \system vectorization to expert-written code}
+    \caption{\system vectorization vs. expert-written code}
     \begin{tabular}{lcc}
         \toprule
         Benchmark & \system time (s) & Expert time (s)\\\midrule
@@ -198,7 +198,7 @@ To study the effects of different data layout choices, we did a case study with 
 \end{description}
 \begin{table}
     \small
-    \caption{Table showing compilation time and vector operation counts for the data layout case study}\label{tab:bigass-data-layout}
+    \caption{Compilation time and vector operation counts for the data layout case study}\label{tab:bigass-data-layout}
     % \vspace{-1em}
     \begin{tabular}{lcccccccc}
     \toprule
