@@ -114,37 +114,43 @@ We evaluate the effectiveness of this choice in Section~\ref{sec:effects-of-data
 \subsection{Code Generation}\label{sec:codegen}
 The output of the algorithm in Section~\ref{sec:design} is a vector schedule (i.e. a lane and schedule slot for each scalar, where the schedule slot determines the order in which instructions get executed).
 
-This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction. The available vector instructions and their semantics are as follows:
-%\raghav{Is this table clear?}\milind{Add plain English sentence for each explaining what it's doing.}
-\begin{description}
-    \item[Vector Add ($dest = v_1 + v_2$)] adds two vectors of values together: $$dest[i] = v_1[i] + v_2[i]$$
-    \item[Vector Multiply ($dest = v_1 * v_2$)] multiplies two vectors of values together: $$dest[i] = v_1[i] * v_2[i]$$
-    \item[Rotate ($dest = v \gg k$)] performs a circular rotation of a vector $k$ slots to the right: $$dest[i] = v[(i - k)\bmod n]$$ %\milind{need to have some modular operation here?}
-    \item[Blend ($dest = blend(v_1, \dots, v_n)$)] creates a new length-$n$ vector from $n$ input vectors by picking the $i$th slot from the $i$th vector: $$dest[i] = v_i[i]$$
-    This operation is implemented by multiplying the input vectors by plain-text mask vectors, and adding them together.
-\end{description}
+This schedule is then compiled into a simple vector IR by using a ready-list to schedule vector instructions according to a topological sort, inserting rotations as needed.
+The vector ISA supports vector addition, subtraction, multiplication, and rotation, as well as a constant load instruction and a {\em blend} instruction.
+The semantics of the blend instruction are a bit subtle: it mixes lanes from multiple vector registers into the same register {\em while keeping all data on its original lane}.
+For example: $$blend(x_1x_2x_3x_4@1010, y_1y_2y_3y_4@0101) \to [x_1y_2x_3y_4]$$
+In the backend, the blend is implemented as a series of plaintext bitmasks followed by ciphertext adds. 
 
-%\raghav{Does the table above make this paragraph redundant?}
-%A blend instruction does no data movement, but takes several vectors and ``blends'' them together by choosing specific lanes to take from each one.
-%In practice, this is implemented as a series of plaintext/ciphertext multiplies (where each ciphertext vector is multiplied by a plaintext ``bitmask'' to hide certain lanes), followed by several ciphertext/ciphertext adds, where each of the masked vectors is added together.
+% This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction. The available vector instructions and their semantics are as follows:
+% %\raghav{Is this table clear?}\milind{Add plain English sentence for each explaining what it's doing.}
+% \begin{description}
+%     \item[Vector Add ($dest = v_1 + v_2$)] adds two vectors of values together: $$dest[i] = v_1[i] + v_2[i]$$
+%     \item[Vector Multiply ($dest = v_1 * v_2$)] multiplies two vectors of values together: $$dest[i] = v_1[i] * v_2[i]$$
+%     \item[Rotate ($dest = v \gg k$)] performs a circular rotation of a vector $k$ slots to the right: $$dest[i] = v[(i - k)\bmod n]$$ %\milind{need to have some modular operation here?}
+%     \item[Blend ($dest = blend(v_1, \dots, v_n)$)] creates a new length-$n$ vector from $n$ input vectors by picking the $i$th slot from the $i$th vector: $$dest[i] = v_i[i]$$
+%     This operation is implemented by multiplying the input vectors by plain-text mask vectors, and adding them together.
+% \end{description}
+
+% %\raghav{Does the table above make this paragraph redundant?}
+% %A blend instruction does no data movement, but takes several vectors and ``blends'' them together by choosing specific lanes to take from each one.
+% %In practice, this is implemented as a series of plaintext/ciphertext multiplies (where each ciphertext vector is multiplied by a plaintext ``bitmask'' to hide certain lanes), followed by several ciphertext/ciphertext adds, where each of the masked vectors is added together.
 
 
-Throughout the compilation, we keep a lookup table that maps a (scalar, lane) pair to the name of the vector register containing it.
-In particular, there may be several vector registers that contain a particular scalar, but on separate lanes (this results from a rotation of the original register where the instruction was produced).
-(For example, the table might say ``The vector register {\sf s2} has scalar 11 on lane 3'').
+% Throughout the compilation, we keep a lookup table that maps a (scalar, lane) pair to the name of the vector register containing it.
+% In particular, there may be several vector registers that contain a particular scalar, but on separate lanes (this results from a rotation of the original register where the instruction was produced).
+% (For example, the table might say ``The vector register {\sf s2} has scalar 11 on lane 3'').
 
-At every time step, the schedule compiler finds all scalar instructions scheduled to execute.
-For each operand, we use the table to look up the name of the register containing that scalar in the appropriate lane.
-If the data for a single vector operand comes from multiple registers, we emit a blend instruction.
-Once all the operands have been blended and prepared, we emit the appropriate vector add, subtract, or multiply instruction.
-We then look ahead to see if any of the scalars produced by this vector instruction get used on different lanes; for each distinct rotation this induces, we emit a vector rotate instruction.
-To standardize, all rotation amounts are positive modulo the vector width.
-Finally, for each vector register just produced (including the original one and any rotated ones), we add all of its scalars and their lanes to the lookup table and proceed to the next time step.
+% At every time step, the schedule compiler finds all scalar instructions scheduled to execute.
+% For each operand, we use the table to look up the name of the register containing that scalar in the appropriate lane.
+% If the data for a single vector operand comes from multiple registers, we emit a blend instruction.
+% Once all the operands have been blended and prepared, we emit the appropriate vector add, subtract, or multiply instruction.
+% We then look ahead to see if any of the scalars produced by this vector instruction get used on different lanes; for each distinct rotation this induces, we emit a vector rotate instruction.
+% To standardize, all rotation amounts are positive modulo the vector width.
+% Finally, for each vector register just produced (including the original one and any rotated ones), we add all of its scalars and their lanes to the lookup table and proceed to the next time step.
 
-Once the circuit is compiled to the vector IR, it can be further lowered to C++ SEAL code.
-This is a straightforward process, and essentially consists of transliterating the IR. 
-SEAL does not support a built-in blend instruction, though, so each of these generate several ciphertext/plaintext multiplies followed by a single ciphertext add.
-While lowering to C++, we also precompute all the blending masks, so that we can encode all of them into the plaintext space once at the beginning of the program and just look up the appropriate one to use each time.
+% Once the circuit is compiled to the vector IR, it can be further lowered to C++ SEAL code.
+% This is a straightforward process, and essentially consists of transliterating the IR. 
+% SEAL does not support a built-in blend instruction, though, so each of these generate several ciphertext/plaintext multiplies followed by a single ciphertext add.
+% While lowering to C++, we also precompute all the blending masks, so that we can encode all of them into the plaintext space once at the beginning of the program and just look up the appropriate one to use each time.
 
 % \subsection{Optimality Tradeoffs}\label{sec:optimality-tradeoffs} 
 % %\raghav{Is this the right name for the section?}
