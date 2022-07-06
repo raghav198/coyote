@@ -118,8 +118,8 @@ Table~\ref{tab:big-ass} also shows the ideal speedup for each benchmark, using o
 \subsection{Speedups}\label{sec:speedups}
 
 \begin{figure}
-    \includegraphics[width=0.6\linewidth]{figures/graphs/vector_speedups.png}
-    \vspace{-1em}
+    \includegraphics[width=0.9\linewidth]{figures/graphs/vector_speedups.png}
+    % \vspace{-1em}
     \caption{Speedup of vectorized code over scalar (higher is better). The darkest bar for each benchmark represents unreplicated inputs, the middle bar is partially replicated, and the lightest bar is fully replicated. The light green bar for the decision tree benchmark represents unpacked inputs.}\label{fig:vector-speedups}
     \Description{Bar graph showing speedup from vectorization for each benchmark}
 \end{figure}
@@ -139,8 +139,8 @@ While it may appear that \system's actual speedups are sometimes well off from t
 
 \subsection{Randomly Generated Irregular Kernels}
 \begin{figure}
-    \includegraphics[width=0.6\linewidth]{figures/graphs/trees.png}
-    \vspace{-2em}
+    \includegraphics[width=0.9\linewidth]{figures/graphs/trees.png}
+    % \vspace{-2em}
     \caption{Speedups for randomly generated polynomial benchmarks (higher is better).}\label{fig:polynomial-speedups}
     \Description{Bar graph showing speedup from vectorization for randomly generated polynomials}
 \end{figure}
@@ -199,7 +199,7 @@ To study the effects of different data layout choices, we did a case study with 
 \begin{table}
     \small
     \caption{Table showing compilation time, scalar and vector operation counts, and ideal speedup for the data layout case study}\label{tab:bigass-data-layout}
-    \vspace{-1em}
+    % \vspace{-1em}
     \begin{tabular}{lcccccccc}
     \toprule
     Benchmark & Time (s) & SAdd+SSub & SMul & VAdd+VSub & VMul & Rot & Blend\\\midrule
@@ -220,29 +220,29 @@ This effect can be seen in Table~\ref{tab:bigass-data-layout}: the layout in cas
 
 \begin{figure}[t]
     \includegraphics[width=0.6\linewidth]{figures/graphs/case_study.png}
-    \vspace{-1em}
+    % \vspace{-1em}
     \caption{Speedups for the five data layout case studies (higher is better). Note that the second bar (``Separate'') corresponds to the leftmost bar of {\sf mm.3} in Figure~\ref{fig:vector-speedups}.}
     \Description{Bar graph showing speedup from vectorization for five data layout case studies}\label{fig:data-layout-case-study}
     
-        \includegraphics[width=0.6\linewidth]{figures/graphs/schedules.png}
-        \vspace{-1em}
-    \caption{Schedule cost over time (lower is better) for different numbers of simulated annealing iterations for data layout per step of scheduling.}
-    \Description{Multiple line graphs showing the schedule cost over time for different optimization parameters}\label{fig:schedule-cost}
+    %     \includegraphics[width=0.6\linewidth]{figures/graphs/schedules.png}
+    %     \vspace{-1em}
+    % \caption{Schedule cost over time (lower is better) for different numbers of simulated annealing iterations for data layout per step of scheduling.}
+    % \Description{Multiple line graphs showing the schedule cost over time for different optimization parameters}\label{fig:schedule-cost}
 \end{figure}
 
 
-\subsection{Effects of Search and Co-Optimization}\label{sec:search-and-cooptimization}
-% \milind{bad section title :-) Call it something like ``Effects of Search and Co-optimization.'' There should be a research question in the intro that directly pertains to the results of this study}
-% \milind{Don't just launch into the figure description. Remind people why we're here :-)}\raghav{Is this better?}
-We would like to know how effective \system's schedule search strategy is, and in particular, how good of a job it does at optimizing data layout and schedule {\em together}.
-To test this, we compile the 5-point distances benchmark with three different levels of data layout by varying the number of iterations of simulated annealing, and record the cost of the generated schedule during each round of the search.
+% \subsection{Effects of Search and Co-Optimization}\label{sec:search-and-cooptimization}
+% % \milind{bad section title :-) Call it something like ``Effects of Search and Co-optimization.'' There should be a research question in the intro that directly pertains to the results of this study}
+% % \milind{Don't just launch into the figure description. Remind people why we're here :-)}\raghav{Is this better?}
+% We would like to know how effective \system's schedule search strategy is, and in particular, how good of a job it does at optimizing data layout and schedule {\em together}.
+% To test this, we compile the 5-point distances benchmark with three different levels of data layout by varying the number of iterations of simulated annealing, and record the cost of the generated schedule during each round of the search.
 
-Figure~\ref{fig:schedule-cost} shows the cost of the vector schedule over time for various levels of data layout.
-The blue line depicts the schedule cost when we use 10k iterations of simulated annealing to find an optimal data layout at each step; the orange line is 15k iterations and the green line is 20k iterations.
-As expected, doing more iterations of simulated annealing has a large effect on the efficiency of the final schedule, since we rely heavily on the fact that the data layout being used to guide each round of the search is close to optimal.
-In compiling all our benchmarks, we use 20k iterations of annealing (the green line).
+% Figure~\ref{fig:schedule-cost} shows the cost of the vector schedule over time for various levels of data layout.
+% The blue line depicts the schedule cost when we use 10k iterations of simulated annealing to find an optimal data layout at each step; the orange line is 15k iterations and the green line is 20k iterations.
+% As expected, doing more iterations of simulated annealing has a large effect on the efficiency of the final schedule, since we rely heavily on the fact that the data layout being used to guide each round of the search is close to optimal.
+% In compiling all our benchmarks, we use 20k iterations of annealing (the green line).
 
-The main tradeoff to be made here is one of compilation time: obviously, annealing for fewer iterations results in faster compilation, but worse schedules.
+% The main tradeoff to be made here is one of compilation time: obviously, annealing for fewer iterations results in faster compilation, but worse schedules.
 %\begin{figure}[t]
 %\end{figure}
 
