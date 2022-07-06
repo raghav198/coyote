@@ -39,12 +39,12 @@ We discuss this further in Section~\ref{sec:related-work}.
 
 In general, without carefully accounting for, and controlling, rotation, traditional vectorization strategies can lead to {\em slowdowns}, rather than speedup, in an FHE setting. It is often beneficial to give up vectorization opportunities to avoid incurring expensive rotations.
 
-\begin{figure*}
-    \includegraphics[width=0.6\linewidth]{figures/compilation_overview/coyote_running_example.drawio.png}
-    \vspace{-1em}
+\begin{figure}
+    \includegraphics[width=0.9\linewidth]{figures/compilation_overview/coyote_running_example.drawio.png}
+    % \vspace{-1em}
     \caption{An example of an arithmetic circuit}\label{fig:example-circuit}
     \Description{A figure of an arithmetic circuit computing ((a + b) * (c + d)) + ((e + f) * (g + h))}
-\end{figure*}
+\end{figure}
 
 
 \begin{figure}
