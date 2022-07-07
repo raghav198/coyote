@@ -32,12 +32,12 @@ Finding a good pre-schedule then requires us to first compute a ``good'' quotien
 The next section discusses what makes one graph quotient ``better'' than another, and exactly how these tradeoffs are quantified.
 
 \subsection{Cost Model}\label{sec:cost-model}
-The cost of a particular pre-schedule comes from two places: the number of rotations we have to perform, and the amount we've ``given up'' on vectorizing.
+The cost of a particular pre-schedule comes from two places: the number of rotations we have to perform, and the amount we have ``given up'' on vectorizing.
 \subsubsection*{Rotations}
 Given a vector schedule, each {\em cross-lane arc} in the graph (an arc connecting vertices of different lanes) represents a rotation that must be performed to align an output from the tail of the arc to where it gets used at the head.
 However, determining the rotation overhead is not as simple as counting these arcs.
 Consider the case where instructions $A$ and $B$ are operands to instructions $A'$ and $B'$, respectively.
-If $A$ and $B$ are assigned lanes $n$ and $m$, $A'$ and $B'$ are assigned $n+k$ and $m+k$, and $A$ and $B$ end up packed together in the same vector instruction, the two separate data movement operations required for the $A\to A'$ arc and the $B\to B'$ can actually be instantiated with a single rotation by $k$ slots of the $[A, B]$ vector (In fact, taking advantage of this fact is the main way we can optimize data layout to require fewer total rotates). 
+If $A$ and $B$ are assigned lanes $n$ and $m$, $A'$ and $B'$ are assigned $n+k$ and $m+k$, and $A$ and $B$ end up packed together in the same vector instruction, the two separate data movement operations required for the $A\to A'$ arc and the $B\to B'$ can actually be performed by a single rotation by $k$ (in fact, taking advantage of this fact is the main way \system optimizes data layout to require fewer total rotates). 
 To compute the {\em actual} number of rotations required for a particular schedule, we instead proceed epoch-by-epoch. 
 For each epoch, we look at all cross-lane arc with tails in that epoch, and compute its {\em span} (the required rotation amount) by subtracting the lane at the tail from the lane at the head.
 The rotation cost for that epoch is then just the number of distinct rotation amounts.
@@ -46,7 +46,7 @@ It follows that the total rotation cost of a schedule is the sum of the rotation
 
 \subsubsection*{Vectorizability}
 Taking successive quotients of the circuit reduces the total number of edges, and by extension, reduces the number of rotates that might be required; however, it also precludes any vectorization within the collapsed subcircuits.
-To account for this, we need a way of quantifying the amount of vectorization we're ``giving up'' with each quotient.
+To account for this, we need a way of quantifying the amount of vectorization we are ``giving up'' with each quotient.
 
 Unfortunately, directly computing the opportunity cost is very messy: the amount of vectorization we give up by identifying a set of vertices is not a property local to the vertices, but rather requires us to look globally at {\em all possible vertices} in those epochs, to see which vectorization opportunities are no longer available after the identification.
 Instead, we use an estimated {\em schedule height} as a proxy, with the justification being that giving up a lot of vectorization generally results in taller, less efficient final schedules. 
@@ -54,7 +54,7 @@ Instead, we use an estimated {\em schedule height} as a proxy, with the justific
 
 The schedule height computation once again proceeds epoch-by-epoch.
 For each epoch, we estimate the minimum number of vector instructions required after packing by taking the maximum number of each type of operation across all the subcircuits associated to the vertices in that epoch.
-For example, the estimated height of an epoch containing one vertex with 3 adds and 2 multiplies and another vertex with 2 adds and 4 multiplies would be 3 adds and 4 multiplies. \raghav{Is this parseable}
+For example, the estimated height of an epoch containing one vertex with 3 adds and 2 multiplies and another vertex with 2 adds and 4 multiplies would be 3 adds and 4 multiplies.
 
 \subsubsection*{Overall Cost}
 The analysis presented above computes an estimate for the number of each type of instruction in the generated vector program.
