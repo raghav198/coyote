@@ -49,39 +49,46 @@ In general, without carefully accounting for, and controlling, rotation, traditi
 
 \begin{figure}
 \small
-    \begin{subfigure}{0.2\columnwidth}
-        \begin{verbatim}
-%0 = a + b
-%1 = c + d
-%2 = %0 * %1
-%3 = e + f
-%4 = g + h
-%5 = %3 * %4
-%6 = %2 + %5
-        \end{verbatim}
-        \vspace{-1em}
+    \begin{subfigure}{0.4\columnwidth}
+%         \begin{verbatim}
+% %0 = a + b
+% %1 = c + d
+% %2 = %0 * %1
+% %3 = e + f
+% %4 = g + h
+% %5 = %3 * %4
+% %6 = %2 + %5
+%         \end{verbatim}
+\includegraphics[width=0.6\linewidth]{figures/possible_schedules/no_vectorization.drawio.pdf}
+        % \vspace{-1em}
         \caption{No vectorization}\label{fig:no-vectorization}
     \end{subfigure}
     \begin{subfigure}{0.6\columnwidth}
-        \begin{verbatim}
-[%0, %1, %3, %4] = [a, c, e, g] + [b, d, f, h]
-[%2, _, %5, _] = [%0, _, %3, _] * [%1, _, %4, _]
-[%6, _, _, _] = [%2, _, _, _] + [%5, _, _, _]
-        \end{verbatim}
+%         \begin{verbatim}
+% [%0, %1, %3, %4] = [a, c, e, g] + 
+%                     [b, d, f, h]
+% [%2, _, %5, _] = [%0, _, %3, _] * 
+%                     [%1, _, %4, _]
+% [%6, _, _, _] = [%2, _, _, _] + 
+%                     [%5, _, _, _]
+%         \end{verbatim}
+\includegraphics[width=0.9\linewidth]{figures/possible_schedules/aggressive_vectorization.drawio.pdf}
         \vspace{-1em}        
         \caption{Aggressive vectorization, incurs two rotates}\label{fig:aggressive-vectorization}
     \end{subfigure}
-    \begin{subfigure}{0.4\columnwidth}
-        \begin{verbatim}
-[%1, %3] = [c, e] + [d, f]
-[%0, %4] = [a, g] + [b, h]
-[%2, %5] = [%0, %3] * [%1, %4]
-[%6, _] = [%2, _] + [%5, _]
-        \end{verbatim}
+    \begin{subfigure}{0.8\columnwidth}
+        \centering
+        \includegraphics[width=0.7\linewidth]{figures/possible_schedules/optimal_schedule.drawio.pdf}
+%         \begin{verbatim}
+% [%1, %3] = [c, e] + [d, f]
+% [%0, %4] = [a, g] + [b, h]
+% [%2, %5] = [%0, %3] * [%1, %4]
+% [%6, _] = [%2, _] + [%5, _]
+%         \end{verbatim}
         \vspace{-1em}        
         \caption{Optimal schedule, incurs one rotate}\label{fig:optimal-schedule}
     \end{subfigure}
-    \vspace{-1em}
+    % \vspace{-1em}
     \caption{Possible schedules for Figure~\ref{fig:example-circuit}}
     \Description{Three possible schedules for an arithmetic circuit; one is scalar, one is aggressively vectorized, and one trades off between the two extremes.}
 \end{figure}
