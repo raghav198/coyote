@@ -8,13 +8,13 @@ The Brakerski/Fan-Vercauteren (BFV) \cite{BFV} cryptosystem, which is the partic
 Ciphertexts in BFV are represented as high degree polynomials with an ``error term'', which is a small amount of noise added to the polynomial to make the scheme ``CPA-secure'' (in other words, the same plaintext will not encrypt to the same ciphertext each time).
 \subsubsection{Limitations}
 % very slow
-While FHE is an attractive approach to performing privacy-preserving computation, it does present a few challenges.
-The first is that the polynomial encoding of ciphertexts incurs a huge overhead for any secure computation.
-To achieve a reasonable degree of security, the polynomials need to be quite large, so a single primitive ciphertext operation like an add or a multiply gets translated into notoriously expensive polynomial math.
+While FHE is an attractive approach to performing privacy-preserving computation, it presents a few challenges.
+First, the polynomial encoding of ciphertexts incurs a huge overhead for any secure computation.
+To achieve a reasonable degree of security, the polynomials need to be quite large, so a single primitive ciphertext operation like an add or a multiply gets translated into very expensive polynomial math.
 This means that all but the smallest FHE applications are often too slow to be run in a practical amount of time.
 
 % multiplicative depth
-Another main challenge of FHE computation is related to the noise added to ciphertexts.
+A second challenge for FHE computation is related to the noise added to ciphertexts.
 When setting up an FHE computation, the encryption parameters used to determine a safe {\em noise margin} for ciphertexts, which describes the level of noise above which ciphertexts can no longer be decrypted.
 Freshly encrypted ciphertexts are well below this margin, but multiplying two ciphertexts increases the amount of noise present in the result.
 BFV does support {\em bootstrapping}, which is a technique for homomorphically computing a fresh encryption of a ciphertext to ``reset'' its noise level; however, bootstrapping is an expensive procedure.

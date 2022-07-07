@@ -103,11 +103,11 @@ Note that for dot product, replication makes no difference as each input is used
 \end{table*}
 
 
-Table~\ref{tab:big-ass} displays various compilation properties, including how long each benchmark took to compile and how many operations each program had before and after vectorization.
-Our benchmarks ranged in size from 5 scalar instructions (size 3 dot product) to 75 instructions (5 point distances)%\footnote{Note that \system is able to handle benchmark sizes much larger than those of Porcupine \cite{Porcupine} while maintaining reasonable compile times}.
+Table~\ref{tab:big-ass} shows benchmark properties, including how long each benchmark took to compile and how many operations each program had before and after vectorization.
+Our benchmarks ranged in size from 5 scalar instructions (size 3 dot product) to 75 instructions (5 point distances) %\footnote{Note that \system is able to handle benchmark sizes much larger than those of Porcupine \cite{Porcupine} while maintaining reasonable compile times}.
 While the number of scalar multiplies went as high as 27 (for the $3\times 3$ matrix multiply), \system was almost always able to pack these into at most one or two vector instructions.
-The main exceptions to this rule were the highly irregular tree benchmarks, which still went from 10 scalar multiplies to between 4 and 5 vector multiplies, and the more unreasonable data layouts in our case studies.
-Another interesting point to notice is the number of rotates. Most benchmarks required fewer than 10 rotates. However, the 5 point distance and $3\times 3$ matrix multiply benchmarks had a very high number of rotations after vectorization, as these were the most data-dense ones---intermediate results are required by many downstream computations, requiring many rotates.
+The main exceptions to this rule were the highly irregular tree benchmarks, which still went from 10 scalar multiplies to between 4 and 5 vector multiplies.
+Another point to notice is the number of rotates. Most benchmarks required fewer than 10 rotates. However, the 5 point distance and $3\times 3$ matrix multiply benchmarks had a very high number of rotations after vectorization, as these were the most data-dense ones---intermediate results are required by many downstream computations, requiring many rotates.
 Furthermore, the unreplicated versions of each benchmark almost always incurred more rotates than the partially or fully replicated versions, validating our hypothesis that input replication helps alleviate the rotation burden when vectorizing.
 %\raghav{anything else interesting to mention?}
 
@@ -117,29 +117,31 @@ Table~\ref{tab:big-ass} also shows the ideal speedup for each benchmark, using o
 \subsection{Speedups}\label{sec:speedups}
 
 \begin{figure}
+	\vspace{-2em}
+	\centering
     \includegraphics[width=0.9\linewidth]{figures/graphs/vector_speedups.png}
-    \vspace{-2em}
+    \vspace{-2.5em}
     \caption{Speedup of vectorized code over scalar (higher is better). The darkest bar for each benchmark represents unreplicated inputs, the middle bar is partially replicated, and the lightest bar is fully replicated. The light green bar for the decision tree benchmark represents ungrouped inputs.}\label{fig:vector-speedups}
     \Description{Bar graph showing speedup from vectorization for each benchmark}
 \end{figure}
 
 % \milind{This is the punchline to your main research question: ``Can we get vectorization speedup.'' So it should be its own subsection.}
-While instruction counts indicate that \system is able to effectively find vector operations for each benchmark, we must also determine whether the actual costs of rotations and blends outweigh the vectorization benefits. Hence, we run each benchmark 50 times in scalar, and 50 times after vectorization to compute the speedup from vectorization.
-The average speedup is computed as the total scalar execution time divided by the total vector execution time.
+While instruction counts indicate that \system is able to effectively find vector operations for each benchmark, we must also determine whether the actual costs of rotations and blends outweigh the vectorization benefits. Hence, we run each benchmark 50 times in scalar, and 50 times after vectorization to compute the speedup from vectorization, shown in Figure~\ref{fig:vector-speedups}.
+%The average speedup is computed as the total scalar execution time divided by the total vector execution time.
 We find very little variance in execution time across individual runs for any benchmark.
-Figure~\ref{fig:vector-speedups} shows the speedups from vectorization. Each benchmark has three bars representing, in order from left to right, the unreplicated, partially replicated, and fully replicated runs. 
+Each benchmark has three bars representing, in order from left to right, the unreplicated, partially replicated, and fully replicated runs. 
 The decision tree benchmark has an extra green bar representing the ungrouped run (without grouping, all inputs are fully replicated no matter what).
 We see speedups ranging from anywhere between $1.5\times$ on the data-dense point cloud distances benchmarks to over $3.5\times$ on the highly vectorizable matrix multiply.
 We also generally notice more speedup as the replication level increases, suggesting that \system is able to take advantage of replicated inputs to eliminate rotations from the schedule.
 
-While it may appear that \system's actual speedups are sometimes well off from the idealized speedups, we note that this is due to the rotations and blends required to implement these benchmarks outside an idealized world where vector permutation is free. For example, in the \textsf{3x3}, fully-replicated matrix multiply case, \system generates 9 rotations to move results into place. We see, though, that in benchmarks where \system can generate schedules with few rotates, it does well despite the data movement costs. For example, in \textsf{conv.4.2}, \system achieves a 2.5$\times$ speedup versus an ideal speedup of 5$\times$; and in \textsf{dot.3}, \system achieves a 1.6$\times$ speedup versus an ideal speedup of 2.7$\times$.
+While it may appear that \system's actual speedups are sometimes well off from the idealized speedups, this is due to the rotations and blends required to implement these benchmarks outside an idealized world where vector permutation is free. For example, in the \textsf{3x3}, fully-replicated matrix multiply case, \system generates 9 rotations to move results into place. We see, though, that in benchmarks where \system can generate schedules with few rotates, it does well despite the data movement costs. For example, in \textsf{conv.4.2}, \system achieves a 2.5$\times$ speedup versus an ideal speedup of 5$\times$; and in \textsf{dot.3}, \system achieves a 1.6$\times$ speedup versus an ideal speedup of 2.7$\times$.
 
 %\milind{This would be a good place to discuss the comparison of our speedups with rotation vs. modeled ideal speedups without rotation costs...}
 
 \subsection{Randomly Generated Irregular Kernels}
 \begin{figure}
     \includegraphics[width=0.9\linewidth]{figures/graphs/trees.png}
-    \vspace{-2em}
+    \vspace{-3em}
     \caption{Speedups for randomly generated polynomial benchmarks (higher is better).}\label{fig:polynomial-speedups}
     \Description{Bar graph showing speedup from vectorization for randomly generated polynomials}
 \end{figure}
