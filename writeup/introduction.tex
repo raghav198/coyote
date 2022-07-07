@@ -25,7 +25,7 @@ However, it is not automated, as it requires a programmer-provided {\em sketch} 
 Other approaches to vectorizing arbitrary, non-loop-based code, such as Superword-Level Parallelism~\cite{SLP}, also fail here.
 SLP aggressively packs isomorphic instructions into vectors, because it assumes that shuffling vector lanes around or indexing into a vector is relatively cheap.
 In FHE, however, the vectors are not physical vector registers with slots for data: %, but rather {\em abstract mathematical objects} which only {\em encode} several ciphertexts.
-The only way to move data between vector lanes in FHE is by performing a cyclic rotation of the entire vector.
+the only way to move data between vector lanes in FHE is by performing a cyclic rotation of the entire vector.
 Realizing the shuffles incurred by SLP with a series of masks and rotates is expensive, and can quickly outweigh any benefits from vectorizing.
 % While it is theoretically possible to encode arbitrary permutations as a series of masks and rotates, realizing the shuffles incurred by SLP in this way can quickly outweigh any benefits from vectorizing in the first place. 
 
@@ -138,7 +138,7 @@ Rather than incurring many expensive data shuffles by aggressively vectorizing t
 
 The specific contributions we make are:
 \begin{enumerate}
-    \item An algorithm for simultaneously searching the space of data layouts and the space of vector packings to find an efficient combination%automatically identifying vectorizable structures in a program
+    \item An algorithm for simultaneously searching the space of data layouts and the space of vector packings to find an efficient combination. %automatically identifying vectorizable structures in a program
     % \item An algorithm for optimally choosing data layout to minimize the total cost of moving data around
     \item A lightweight Python embedded DSL called \system, with a compiler that uses this algorithm to generate efficient FHE code for arbitrary programs
 \end{enumerate}
