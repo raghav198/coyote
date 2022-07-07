@@ -54,8 +54,7 @@ Note that for dot product, replication makes no difference as each input is used
     \vspace{-0.5em}
     \begin{tabular}{lcccccccc}
     \toprule
-    Benchmark & Time (s) & SAdd +& SMul & VAdd + & VMul & Rot & Blend & Ideal \\
-    & & SSub & & VSub & & & & Speedup\\\midrule
+    Benchmark & Time (s) & SAdd + SSub & SMul & VAdd + VSub & VMul & Rot & Blend & Ideal Speedup\\\midrule
     conv.4.2.un & 97 & 3 & 6 & 2 & 1 & 4 & 4 & 5.73\\
     conv.4.2.partially & 80 & 3 & 6 & 2 & 1 & 2 & 1 & 5.73\\
     conv.4.2.fully & 71 & 3 & 6 & 2 & 1 & 1 & 2 & 5.73\\
