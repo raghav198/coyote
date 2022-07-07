@@ -30,7 +30,7 @@ The benchmarks are as follows:
     \item Vector dot product, with vector sizes of 3, 6, and 10 (all of these are regular with no data reuse).
     \item 1D convolution. We do this with a vector of size 4 and a kernel of size 2, and with a vector of size 5 and a kernel of size 3. Both of these are regular and have little data reuse.
     \item Point cloud distances (Given a set of points, compute the square of every pairwise Euclidean distance). We do this for 3, 4, and 5 points. These are all regular but have some substantial data reuse, especially in the 5-point case.
-    \item Decision tree traversal (inputs packed and unpacked). This benchmark is a decision tree that represents sorting a list of three elements. It takes as input three ciphertext ``decisions'' representing comparison results, and six ciphertext ``labels'' representing possible arrangements of the sorted list. In particular, each of the three decisions gets used in multiple branches of the tree. ``Packed'' here means the data layout packs the three decisions into one vector and the six labels into another. This is irregular, and the packed versions have data reuse.
+    \item Decision tree traversal (inputs grouped and ungrouped). This benchmark is a decision tree that represents sorting a list of three elements. It takes as input three ciphertext ``decisions'' representing comparison results, and six ciphertext ``labels'' representing possible arrangements of the sorted list. In particular, each of the three decisions gets used in multiple branches of the tree. ``grouped'' here means the data layout groups the three decisions into one vector and the six labels into another. This is irregular, and the grouped versions have data reuse.
 \end{enumerate}
 
 %\raghav{redundant?}
@@ -96,9 +96,9 @@ Note that for dot product, replication makes no difference as each input is used
     mm.3.partially & 610 & 18 & 27 & 4 & 1 & 18 & 6 & 24.0\\
     mm.3.fully & 607 & 18 & 27 & 4 & 2 & 9 & 3 & 24.0\\
     \midrule
-    tree.packed.un & 238 & 10 & 10 & 8 & 4 & 8 & 6 & 3.24\\
-    tree.packed.partially & 233 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
-    tree.packed.fully & 231 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
+    tree.grouped.un & 238 & 10 & 10 & 8 & 4 & 8 & 6 & 3.24\\
+    tree.grouped.partially & 233 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
+    tree.grouped.fully & 231 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
     tree & 139 & 10 & 10 & 11 & 5 & 1 & 1 & 3.24\\\bottomrule
     \end{tabular}
 \end{table*}
@@ -120,7 +120,7 @@ Table~\ref{tab:big-ass} also shows the ideal speedup for each benchmark, using o
 \begin{figure}
     \includegraphics[width=0.9\linewidth]{figures/graphs/vector_speedups.png}
     % \vspace{-1em}
-    \caption{Speedup of vectorized code over scalar (higher is better). The darkest bar for each benchmark represents unreplicated inputs, the middle bar is partially replicated, and the lightest bar is fully replicated. The light green bar for the decision tree benchmark represents unpacked inputs.}\label{fig:vector-speedups}
+    \caption{Speedup of vectorized code over scalar (higher is better). The darkest bar for each benchmark represents unreplicated inputs, the middle bar is partially replicated, and the lightest bar is fully replicated. The light green bar for the decision tree benchmark represents ungrouped inputs.}\label{fig:vector-speedups}
     \Description{Bar graph showing speedup from vectorization for each benchmark}
 \end{figure}
 
@@ -129,7 +129,7 @@ While instruction counts indicate that \system is able to effectively find vecto
 The average speedup is computed as the total scalar execution time divided by the total vector execution time.
 We find very little variance in execution time across individual runs for any benchmark.
 Figure~\ref{fig:vector-speedups} shows the speedups from vectorization. Each benchmark has three bars representing, in order from left to right, the unreplicated, partially replicated, and fully replicated runs. 
-The decision tree benchmark has an extra green bar representing the unpacked run (without packing, all inputs are fully replicated no matter what).
+The decision tree benchmark has an extra green bar representing the ungrouped run (without grouping, all inputs are fully replicated no matter what).
 We see speedups ranging from anywhere between $1.5\times$ on the data-dense point cloud distances benchmarks to over $3.5\times$ on the highly vectorizable matrix multiply.
 We also generally notice more speedup as the replication level increases, suggesting that \system is able to take advantage of replicated inputs to eliminate rotations from the schedule.
 
@@ -194,11 +194,11 @@ In the case of the dot product, the schedules \system finds all use the same num
 % \milind{Call this ``effects of data layout.'' There should be a research question in the evaluation intro that directly pertains to this case study.}
 To study the effects of different data layout choices, we vary the data layout in $3\times 3$ matrix multiply:
 \begin{description}
-    \item[Together:] The matrices $A$ and $B$ are packed into a single vector of $18$ elements
-    \item[Separate:] $A$ and $B$ are packed into individual vectors (this is the normal layout used in benchmarking in Figure~\ref{fig:vector-speedups})
-    \item[Rows/Cols:] The rows of $A$ are packed into three separate vectors, as are the columns of $B$.
-    \item[Cols/Rows:] The columns of $A$ are packed into three separate vectors, as are the rows of $B$.
-    \item[Individual:] Each of the 18 entries are packed into their own vector (note that this is different from simply leaving them as free scalars, because this precludes \system from choosing to put some of them on the same vector anyway).     
+    \item[Together:] The matrices $A$ and $B$ are grouped into a single vector of $18$ elements
+    \item[Separate:] $A$ and $B$ are grouped into individual vectors (this is the normal layout used in benchmarking in Figure~\ref{fig:vector-speedups})
+    \item[Rows/Cols:] The rows of $A$ are grouped into three separate vectors, as are the columns of $B$.
+    \item[Cols/Rows:] The columns of $A$ are grouped into three separate vectors, as are the rows of $B$.
+    \item[Individual:] Each of the 18 entries are grouped into their own vector (note that this is different from simply leaving them as free scalars, because this precludes \system from choosing to put some of them on the same vector anyway).     
 \end{description}
 %\begin{table}
 %	\centering
@@ -217,7 +217,7 @@ To study the effects of different data layout choices, we vary the data layout i
 %\end{table}
 In each layout, all the inputs are unreplicated.
 Figure~\ref{fig:data-layout-case-study} shows the results of this case study.
-Interestingly, we find that packing the matrices together yields greater speedups than keeping them separate.
+Interestingly, we find that grouping the matrices together yields greater speedups than keeping them separate.
 When multiple entries are on one vector, \system can arrange the elements such that rotating one automatically gives useful rotations of the others.
 By contrast, when each entry is on a separate vector, every rotation must necessarily be done separately, so that schedule ends up with much more overhead. In particular, we find that {\tt indiv} requires more than twice as many rotations as {\tt together}.
 %This effect can be seen in Table~\ref{tab:bigass-data-layout}: {\tt indiv} incurs over twice as many rotates as {\tt together}.
