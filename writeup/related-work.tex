@@ -29,7 +29,7 @@ Gazelle \cite{Gazelle} is a framework for secure neural network inference in FHE
 While it is very optimized for a particular use case, Gazelle is not {\em general}: it consists of a library of highly efficient vectorized kernels that are useful in neural network applications.
 By contrast, \system can take arbitrary kernels and generate efficient vectorized code on the fly. %\raghav{Not sure how to put this nicely, actually.}
 
-\citet{CircuitRewriting} describe a general method for automatically rewriting arithmetic and boolean FHE circuits according to a cost model by learning semantically sound rewrite rules.
+Lee, et. al \cite{CircuitRewriting} describe a general method for automatically rewriting arithmetic and boolean FHE circuits according to a cost model by learning semantically sound rewrite rules.
 This approach explores the space of scalar rewrites but does not directly deal with vectorization, making it orthogonal to ours: a technique like this could first be applied to an arbitrary computation to transform it into one more amenable to vectorization before applying \system.
 
 One class of related work consists of compilers \cite{Ramparts, ALCHEMY, EVA, Cingulata} that automatically lift programs written in a high level DSL into optimized FHE circuits that perform the same computation.
