@@ -1,7 +1,7 @@
 \section{Background}\label{sec:background}
 \subsection{Fully Homomorphic Encryption}
-Fully Homomorphic Encryption (FHE) refers to any encryption scheme with the property that ciphertexts can be added and multiplied, and these operations commute with the encryption and decryption functions. \cite{Gentry}
-In other words, encrypting inputs, computing over them, then decrypting the result is equivalent to computing over the un-encrypted inputs. FHE is hence useful for computing on encrypted data, improving privacy in situations such as computation offloading.
+Fully Homomorphic Encryption (FHE) refers to any encryption scheme with the property that encrypting inputs, computing over them, then decrypting the result is equivalent to computing over the un-encrypted inputs. \cite{Gentry}
+FHE is hence useful for computing on encrypted data, improving privacy in situations such as computation offloading.
 Since addition and multiplication are complete, FHE can theoretically be used to realize arbitrary functions on encrypted data.
 
 The Brakerski/Fan-Vercauteren (BFV) \cite{BFV} cryptosystem, which is the particular FHE scheme that we use in this paper, is based on the Ring Learning With Errors (RLWE) problem.
@@ -15,7 +15,7 @@ This means that all but the smallest FHE applications are often too slow to be r
 
 % multiplicative depth
 A second challenge for FHE computation is related to the noise added to ciphertexts.
-When setting up an FHE computation, the encryption parameters used to determine a safe {\em noise margin} for ciphertexts, which describes the level of noise above which ciphertexts can no longer be decrypted.
+When setting up an FHE computation, the encryption parameters are used to determine a safe {\em noise margin} for ciphertexts, which describes the level of noise above which ciphertexts can no longer be decrypted.
 Freshly encrypted ciphertexts are well below this margin, but multiplying two ciphertexts increases the amount of noise present in the result.
 BFV does support {\em bootstrapping}, which is a technique for homomorphically computing a fresh encryption of a ciphertext to ``reset'' its noise level; however, bootstrapping is an expensive procedure.
 When designing an FHE computation, therefore, it becomes important to limit its multiplicative depth to avoid bootstrapping as much as possible.
@@ -29,8 +29,8 @@ In particular, this precludes FHE computations from having any kind of control f
 Since FHE does not support loops or conditionals, computations have to be represented as combinatorial arithmetic circuits.
 In particular, these arithmetic circuits we work with closely resemble expression forests, where some of the trees may in fact be DAGs (directed acyclic graphs) if any inputs are used in multiple places.
 For the rest of this paper, we assume that the programs we are compiling are already expressed in this way, and talk about how to map the computations encoded as arithmetic circuits to vectors.
-In practice, this is not too restrictive, since any loop with known (plaintext) bounds can be fully unrolled, and any conditional branching on a ciphertext can be converted into a ``mux'' by first evaluating both branches and then selecting the correct output.
-In fact, the frontend DSL of \system does exactly that by staging away python programs to produce arithmetic circuits that can be compiled.
+In practice, this is not too restrictive, since any loop with known (plaintext) bounds can be fully unrolled, and any conditional branching on a ciphertext can be converted into a ``mux'' by evaluating both branches and only selecting the correct output.
+The frontend DSL of \system does exactly that by staging away python programs to produce arithmetic circuits that can be compiled.
 %\raghav{I know I repeat mysef between here and what I wrote above. I just don't know what the best place to put this stuff is.}
 
 \subsection{Vectorization}
@@ -48,8 +48,9 @@ SLP analyzes a whole sequence of scalar instructions at once, looking for sets o
 At each step, it picks such a set and packs its instructions together into a vector, scheduling them together.
 
 \subsubsection*{Vectorization in FHE}
-The polynomial rings into which ciphertexts are encoded in BFV are isomorphic to the direct sum of several copies of their underlying coefficient rings.
-This means that BFV can abstractly represent large vectors of values as being encrypted into a single ciphertext, and in particular, homomorphic operations on such ciphertexts correspond to element-wise operations on the underlying packed vectors \cite{BrakerskiPacking}.
+% The polynomial rings into which ciphertexts are encoded in BFV are isomorphic to the direct sum of several copies of their underlying coefficient rings.
+The polynomial rings that BFV ciphertexts are encoded in allow abstractly representing large vectors of values as being encrypted into a single ciphertext.
+In particular, homomorphic operations on such ciphertexts correspond to element-wise operations on the underlying packed vectors \cite{BrakerskiPacking}.
 These polynomial rings also have specific {\em automorphisms} that cyclically permute the ``slots'' into which elements are packed (hereafter called vector lanes). 
 In other words, ciphertext packing allows us to turn FHE into an abstract SIMD architecture with instructions for (ciphertext) vector addition and multiplication, as well as vector rotation.
 This style of vectorization has a few peculiarities that distinguish it from normal vectorization:
