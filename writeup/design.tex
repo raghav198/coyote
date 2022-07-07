@@ -174,6 +174,5 @@ This causes the dynamic programming strategy of sequence alignment to quickly bl
 
 Instead of wrangling so many subproblems, we can formulate this as an ILP.
 We create a variable for each scalar instruction representing its {\em schedule slot}, or the time at which it executes.
-We add constraints to require that each instruction be scheduled after all of its dependences have been scheduled, and also to require that two instructions with different operations never be scheduled at the same time. 
-Finally, to speed up the search for a solution, we place a bound on the total length of the schedule (in other words, an upper bound on the value of the schedule slot for any scalar instruction).
-The bound is initially very loose but we iteratively tighten it until the solver returns ``unsatisfiable'', meaning no smaller schedule could be found, so the most recent one was the smallest.
+We add constraints to require that each instruction be scheduled after all of its dependences, and also that two instructions with different operations never be scheduled at the same time. 
+Finally, to speed up the search for a solution, we place a bound on the total length of the schedule which is iteratively tightened until the solver returns ``unsatisfiable'', meaning no shorter schedule could be found (so the most recent one was the shortest).
