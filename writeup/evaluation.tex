@@ -107,11 +107,11 @@ Table~\ref{tab:big-ass} shows benchmark properties, including how long each benc
 Our benchmarks ranged in size from 5 scalar instructions (size 3 dot product) to 75 instructions (5 point distances) %\footnote{Note that \system is able to handle benchmark sizes much larger than those of Porcupine \cite{Porcupine} while maintaining reasonable compile times}.
 While the number of scalar multiplies went as high as 27 (for the $3\times 3$ matrix multiply), \system was almost always able to pack these into at most one or two vector instructions.
 The main exceptions to this rule were the highly irregular tree benchmarks, which still went from 10 scalar multiplies to between 4 and 5 vector multiplies.
-Another point to notice is the number of rotates. Most benchmarks required fewer than 10 rotates. However, the 5 point distance and $3\times 3$ matrix multiply benchmarks had a very high number of rotations after vectorization, as these were the most data-dense ones---intermediate results are required by many downstream computations, requiring many rotates.
-Furthermore, the unreplicated versions of each benchmark almost always incurred more rotates than the partially or fully replicated versions, validating our hypothesis that input replication helps alleviate the rotation burden when vectorizing.
+Another point to notice is the number of rotates. Most benchmarks required fewer than 10 rotates. However, the 5 point distance and $3\times 3$ matrix multiply benchmarks had a very high number of rotations after vectorization, as these were the most data-dense ones---intermediate results were required by many downstream computations, incurring considerable overhead. %requiring many rotates.
+Furthermore, the unreplicated versions of each benchmark almost always incurred more rotates than the partially or fully replicated versions, validating our hypothesis that input replication helps alleviate the rotation burden. % when vectorizing.
 %\raghav{anything else interesting to mention?}
 
-Table~\ref{tab:big-ass} also shows the ideal speedup for each benchmark, using our cost model of multiplies being 10$\times$ as expensive as adds and subtracts. Note that this modeled speedup is based on a classic work/span analysis, and hence assumes that permuting and shuffling data between vectors is free. This modeled speedup thus represents a substantial overestimate of the actual speedup that could be achieved in the program. For example, a \textsf{3x3} matrix multiply has 9 3-element dot products. The necessary 27 multiplies can all be performed in one vector operation, but the results of three multiplies need to be added to perform each dot product (which requires two adds each). Thus in reality two of the multiplies are performed in the ``wrong'' lane and need to be shuffled to the correct lane to complete the computation.
+Table~\ref{tab:big-ass} also shows the ideal speedup for each benchmark, using our cost model of multiplies being 10$\times$ as expensive as adds and subtracts. Note that this modeled speedup is based on a classic work/span analysis, and hence assumes that permuting and shuffling data between vectors is free. This modeled speedup thus represents a substantial overestimate of the actual speedup that could be achieved in the program. For example, a \textsf{3x3} matrix multiply has nine 3-element dot products. The necessary 27 multiplies can all be performed in one vector operation, but the results of three multiplies need to be added to perform each dot product (which requires two adds each). Thus in reality two of the multiplies are performed in the ``wrong'' lane and need to be shuffled to the correct lane to complete the computation.
 % \milind{There should be a paragraph or subsubsection here that discusses the benchmark table: how big each benchmark is, what the effects of vectorizing it are in terms of operations saved, etc. This is a precursor to discussing anything runtime related.}
 
 \subsection{Speedups}\label{sec:speedups}
@@ -163,11 +163,11 @@ We find that both sparse and dense homogeneous polynomials see substantial benef
 
 \subsection{Comparison to Hand-Optimized Schedules}\label{sec:expert-comparison}
 To compare \system's vectorized schedules to hand-optimized baselines, we compiled three kernels with \system: matrix/vector multiply, dot product, and point-cloud distance.
-Each of these kernels has a well-known expert-optimized baseline implementation, which we also implemented in \system's vector IR, before compiling both implementations to C++ and measuring the run times.
+Each of these kernels has a well-known expert-optimized baseline implementation, which we also implemented in \system's vector IR, before compiling both implementations to C++ and measuring the time it took to run each one 50 times.
 The results are shown in Table~\ref{tab:expert-comparison-numbers}.
-For smaller sizes, we see \system's vectorization is capable of matching or even outperforming the expert-written baselines, although on larger sizes the search space is often too big to automatically find the expert schedules.
-Manually inspecting the generated code shows that this is usually because the schedule \system generates uses one or two more rotates than the baseline.
-In the case of the dot product, the schedules \system finds all use the same number of rotates as the expert schedule, but occasionally incur more blends.
+For smaller sizes, we see \system's vectorization was capable of matching or even outperforming the expert-written baselines, although on larger sizes the search space was often too big to automatically find the expert schedules.
+Manually inspecting the generated code shows that this was usually because the schedule \system generated used one or two more rotates than the baseline.
+In the case of the dot product, the schedules \system found all used the same number of rotates as the expert schedule, but occasionally incurred more blends.
 
 \begin{table}
 	\centering

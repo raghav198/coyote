@@ -102,7 +102,7 @@ Consider the arithmetic circuit in Figure~\ref{fig:example-circuit} implementing
 A na\"ive vectorization would pack together the four additions at the first level, and the two multiplies at the second level (as in the schedule in Figure~\ref{fig:aggressive-vectorization}).
 The resulting schedule has a vector add, followed by a vector multiply, followed by an add. Rotations are needed between each operation to align the outputs of each operation with the next.
 Using an approximate model\footnote{\citet{AlgosHElib} assigns a ``high latency'' to both multiplies and rotates and a ``low latency'' to adds. For both simplicity and concreteness, we assume a 10:1 ratio between ``high latency'' and ``low latency.''} of the relative latencies of each instruction in which multiplies and rotates have a latency of 1 and addition has a latency of 0.1, the total cost of this schedule is 3.2.
-However, by doing no vectorization and executing the circuit entirely with scalar operations (Figure~\ref{fig:no-vectorization}), we have 5 adds and two multiplies, with an overall cost of 2.5.
+However, by doing no vectorization and executing the circuit entirely with scalar operations (Figure~\ref{fig:no-vectorization}), we have five adds and two multiplies, with an overall cost of 2.5.
 In this case, vectorization actually makes the performance {\em worse}!
 We can do better, though, as shown in Figure~\ref{fig:optimal-schedule}.
 We can pack the the first and the third adds ($a + b$ and $e + f$) separately from the second and the fourth ($c + d$ and $g + h$), so that neither of them require a rotation to align with the multiply above them.
