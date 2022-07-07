@@ -119,7 +119,7 @@ Table~\ref{tab:big-ass} also shows the ideal speedup for each benchmark, using o
 
 \begin{figure}
     \includegraphics[width=0.9\linewidth]{figures/graphs/vector_speedups.png}
-    % \vspace{-1em}
+    \vspace{-2em}
     \caption{Speedup of vectorized code over scalar (higher is better). The darkest bar for each benchmark represents unreplicated inputs, the middle bar is partially replicated, and the lightest bar is fully replicated. The light green bar for the decision tree benchmark represents ungrouped inputs.}\label{fig:vector-speedups}
     \Description{Bar graph showing speedup from vectorization for each benchmark}
 \end{figure}
@@ -140,7 +140,7 @@ While it may appear that \system's actual speedups are sometimes well off from t
 \subsection{Randomly Generated Irregular Kernels}
 \begin{figure}
     \includegraphics[width=0.9\linewidth]{figures/graphs/trees.png}
-    % \vspace{-2em}
+    \vspace{-2em}
     \caption{Speedups for randomly generated polynomial benchmarks (higher is better).}\label{fig:polynomial-speedups}
     \Description{Bar graph showing speedup from vectorization for randomly generated polynomials}
 \end{figure}
@@ -225,7 +225,7 @@ By contrast, when each entry is on a separate vector, every rotation must necess
 
 \begin{figure}[t]
     \includegraphics[width=0.9\linewidth]{figures/graphs/case_study.png}
-    % \vspace{-1em}
+    \vspace{-2em}
     \caption{Speedups for the five data layout case studies (higher is better). Note that the second bar (``Separate'') corresponds to the leftmost bar of {\sf mm.3} in Figure~\ref{fig:vector-speedups}.}
     \Description{Bar graph showing speedup from vectorization for five data layout case studies}\label{fig:data-layout-case-study}
     
