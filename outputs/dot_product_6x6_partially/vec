@@ -1,0 +1,15 @@
+__t0 = [dot_product_6x6_partially(v1):0, dot_product_6x6_partially(v1):1, dot_product_6x6_partially(v1):2, dot_product_6x6_partially(v1):3, dot_product_6x6_partially(v1):5, dot_product_6x6_partially(v1):4]
+__t1 = [dot_product_6x6_partially(v1):0, dot_product_6x6_partially(v1):1, dot_product_6x6_partially(v1):2, dot_product_6x6_partially(v1):3, dot_product_6x6_partially(v1):5, dot_product_6x6_partially(v1):4]
+__v0 = __t0 ~ __t1
+__t2 = [dot_product_6x6_partially(v2):0, dot_product_6x6_partially(v2):1, dot_product_6x6_partially(v2):2, dot_product_6x6_partially(v2):3, dot_product_6x6_partially(v2):5, dot_product_6x6_partially(v2):4]
+__t3 = [dot_product_6x6_partially(v2):0, dot_product_6x6_partially(v2):1, dot_product_6x6_partially(v2):2, dot_product_6x6_partially(v2):3, dot_product_6x6_partially(v2):5, dot_product_6x6_partially(v2):4]
+__v1 = __t2 ~ __t3
+__v2 = __v0 * __v1
+__s0 = __v2 >> 5
+__t4 = blend(__v2@010000, __s0@000010)
+__t5 = blend(__s0@010000, __v2@000010)
+__v3 = __t4 + __t5
+__s1 = __v3 >> 5
+__v4 = __v2 + __s1
+__s2 = __v4 >> 3
+__v5 = __s2 + __v4
