@@ -1,6 +1,6 @@
 import os
 
-base = "/Users/malik22/efficient-FHE-compiler"
+base = "/Users/kabirsheth/efficient-FHE-compiler"
 cmake = "/opt/homebrew/bin/cmake"
 
 def collect_data(benchmark):
@@ -28,7 +28,7 @@ def collect_data(benchmark):
     main.write(new_file_contents)
     main.close()
 
-    os.system("/usr/local/bin/cmake --build /Users/kabirsheth/efficient-FHE-compiler/vector_synth/bfv_backend/build --config Release --target all -j 10 --")
+    os.system("/usr/local/bin/cmake --build /Users/kabirsheth/efficient-FHE-compiler/bfv_backend/build --config Release --target all -j 10 --")
     os.system("/Users/kabirsheth/efficient-FHE-compiler/vector_synth/bfv_backend/build/CoyoteBFVBackend")
 
 # collect_data("mat_mul_det2x2")
@@ -37,10 +37,10 @@ def collect_data(benchmark):
 # collect_data("mat_convol4x4x3x3")
 # collect_data("pairwise_dist2x2")
 # collect_data("pairwise_dist3x3")
-collect_data("mat_mult2x2")
-collect_data("mat_mult3x3")
-collect_data("dot_product3x3")
-collect_data("dot_product6x6")
+# collect_data("mat_mult2x2")
+# collect_data("mat_mult3x3")
+# collect_data("dot_product3x3")
+# collect_data("dot_product6x6")
 
 # collect_data("tree50,50-3_1")
 # collect_data("tree50,50-3_2")
@@ -74,3 +74,5 @@ collect_data("dot_product6x6")
 # collect_data("tree100,100-6_3")
 # collect_data("tree100,100-6_4")
 # collect_data("tree100,100-6_5")
+
+collect_data("max_value")

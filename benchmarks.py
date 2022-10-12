@@ -18,6 +18,27 @@ def decision_tree(c12, c23, c13, o123, o132, o213, o231, o312, o321):
                     o213,
                     cond(c23, o231, o321))))
 
+# Max of 5 Benchmark
+@coyote.define_circuit(c12=scalar(), c13=scalar(), c23=scalar(), c14=scalar(), c34=scalar(), c24=scalar(), c15=scalar(), c45=scalar(), c35=scalar(), c25=scalar(), o1=scalar(), o2=scalar(), o3=scalar(), o4=scalar(), o5=scalar())
+def max_value(c12, c13, c23, c14, c34, c24, c15, c45, c35, c25, o1, o2, o3, o4, o5):
+    return cond(c12, 
+                (cond(c13,
+                    cond(c14,
+                        cond(c15, o1, o5),
+                        cond(c45, o4, o5)),
+                    cond(c34,
+                        cond(c35, o3, o5),
+                        cond(c45, o4, o5)))),
+                    
+                (cond(c23,
+                    cond(c24,
+                        cond(c25, o2, o5),
+                        cond(c45, o4, o5)),
+                    cond(c34,
+                        cond(c35, o3, o5),
+                        cond(c45, o4, o5)))))
+
+
 # Fully Replicated Benchmarks
 @coyote.define_circuit(xs=vector(5, replicate=True), ys=vector(5, replicate=True))
 def distances_5x5_fully(xs, ys):
