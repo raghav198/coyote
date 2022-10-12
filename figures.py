@@ -5,6 +5,12 @@ from matplotlib import pyplot as plt
 
 csv_speedup = lambda name: (lambda arr: (arr[1:, 2] / arr[1:, 6]).mean())(np.genfromtxt(name, delimiter=','))
 
+def aspect(val):
+    ax = plt.gca()
+    x_l, x_r = ax.get_xlim()
+    y_l, y_r = ax.get_ylim()
+    ax.set_aspect(abs((x_r - x_l)/(y_l - y_r)) * val)
+
 ##############################
 ## PLOTTING VECTOR SPEEDUPS ##
 ##############################
@@ -50,6 +56,7 @@ plt.axhline(1, color='red')
 plt.ylabel('(Normalized) Speedup')
 # plt.legend(['Scalar', 'Unreplicated', 'Partially Replicated', 'Fully Replicated', 'Decision Tree Scalar'])#, loc="upper left", bbox_to_anchor=(1,1))
 plt.title('Vectorized Speedups')
+aspect(0.5)
 plt.savefig('writeup/figures/graphs/vector_speedups.png')
 plt.close()
 
@@ -64,6 +71,7 @@ plt.xticks(x, ['Together', 'Separate', 'Rows/Cols', 'Cols/Rows', 'Individual'], 
 plt.ylabel('(Normalized) Speedup')
 plt.axhline(1, color='red')
 plt.title('Data Layout Case Study')
+aspect(0.5)
 plt.savefig('writeup/figures/graphs/case_study.png')
 plt.close()
 
@@ -90,11 +98,12 @@ s10, s5 = zip(*values)
 x = np.arange(len(labels))
 plt.bar(x - width, s5, width=2 * width, color='#253494')
 plt.bar(x + width, s10, width=2 * width, color='#2c7fb8')
-plt.legend(['Depth 5', 'Depth 10'])
+plt.legend(['Depth 5', 'Depth 10'], loc='lower center')
 plt.xticks(x, labels)
 plt.title('Random Polynomial Vectorized Speedups')
 plt.axhline(1, color='red')
 plt.ylabel('(Normalized) Speedup')
+aspect(0.5)
 plt.savefig('writeup/figures/graphs/trees.png')
 plt.close()
 
@@ -116,4 +125,5 @@ plt.title('Schedule cost over time')
 plt.xlabel('Number of rounds')
 plt.ylabel('Cost')
 plt.legend(['10k', '15k', '20k'])
+aspect(0.5)
 plt.savefig('writeup/figures/graphs/schedules.png')
