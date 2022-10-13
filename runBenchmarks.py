@@ -16,7 +16,7 @@ benchmarks = ['decision_tree', 'distances_5x5_fully', 'distances_4x4_fully',
              'matmul_3x3_case2', 'matmul_3x3_case3', 'matmul_3x3_case4', 
              'matmul_3x3_case5']
 
-benchmarks = ['max_value']
+benchmarks = ['max_value_packed_fully', 'max_value_packed_partially', 'max_value_packed_un']
 
 for benchmark in benchmarks:
     os.system("python3 benchmarks.py build " + benchmark)

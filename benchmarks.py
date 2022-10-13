@@ -96,6 +96,25 @@ def decision_tree_packed_fully(cs, os):
                     os[2],
                     cond(cs[1], os[3], os[5]))))
 
+@coyote.define_circuit(cs=vector(10, replicate=True), os=vector(5, replicate=True))
+def max_value_packed_fully(cs, os):
+    return cond(cs[0], 
+                (cond(cs[1],
+                    cond(cs[3],
+                        cond(cs[6], os[0], os[4]),
+                        cond(cs[7], os[3], os[4])),
+                    cond(cs[4],
+                        cond(cs[8], os[2], os[4]),
+                        cond(cs[7], os[3], os[4])))),
+                    
+                (cond(cs[2],
+                    cond(cs[5],
+                        cond(cs[9], os[1], os[4]),
+                        cond(cs[7], os[3], os[4])),
+                    cond(cs[4],
+                        cond(cs[8], os[2], os[4]),
+                        cond(cs[7], os[3], os[4])))))
+
 # Partially Replicated Benchmarks
 @coyote.define_circuit(xs=vector(5, replicate=True), ys=vector(5))
 def distances_5x5_partially(xs, ys):
@@ -153,6 +172,25 @@ def decision_tree_packed_partially(cs, os):
                     os[2],
                     cond(cs[1], os[3], os[5]))))
 
+@coyote.define_circuit(cs=vector(10, replicate=True), os=vector(5))
+def max_value_packed_partially(cs, os):
+    return cond(cs[0], 
+                (cond(cs[1],
+                    cond(cs[3],
+                        cond(cs[6], os[0], os[4]),
+                        cond(cs[7], os[3], os[4])),
+                    cond(cs[4],
+                        cond(cs[8], os[2], os[4]),
+                        cond(cs[7], os[3], os[4])))),
+                    
+                (cond(cs[2],
+                    cond(cs[5],
+                        cond(cs[9], os[1], os[4]),
+                        cond(cs[7], os[3], os[4])),
+                    cond(cs[4],
+                        cond(cs[8], os[2], os[4]),
+                        cond(cs[7], os[3], os[4])))))
+
 # Unreplicated Benchmarks
 @coyote.define_circuit(xs=vector(5), ys=vector(5))
 def distances_5x5_un(xs, ys):
@@ -209,6 +247,25 @@ def decision_tree_packed_un(cs, os):
                 (cond(cs[2],
                     os[2],
                     cond(cs[1], os[3], os[5]))))
+
+@coyote.define_circuit(cs=vector(10), os=vector(5))
+def max_value_packed_un(cs, os):
+    return cond(cs[0], 
+                (cond(cs[1],
+                    cond(cs[3],
+                        cond(cs[6], os[0], os[4]),
+                        cond(cs[7], os[3], os[4])),
+                    cond(cs[4],
+                        cond(cs[8], os[2], os[4]),
+                        cond(cs[7], os[3], os[4])))),
+                    
+                (cond(cs[2],
+                    cond(cs[5],
+                        cond(cs[9], os[1], os[4]),
+                        cond(cs[7], os[3], os[4])),
+                    cond(cs[4],
+                        cond(cs[8], os[2], os[4]),
+                        cond(cs[7], os[3], os[4])))))
 
 
 # 3x3 Unreplicated Mat Mult Case Study
