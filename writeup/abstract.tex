@@ -2,6 +2,9 @@
 
 Fully Homomorphic Encryption (FHE) is a scheme that allows a computational circuit to operate on encrypted data and produce a result that, when decrypted, yields the result of the unencrypted computation. While FHE enables privacy-preserving computation, it is extremely slow. However, the mathematical formulation of FHE supports a SIMD-like execution style, and hence recent work has turned to vectorization to recover some of the missing performance. Unfortunately, these vectorization approaches do not work well for arbitrary computations: they do not account for the high cost of {\em rotating} vector operands to allow data to be used in multiple operations. Hence, the cost of rotation can outweigh the benefits of vectorization.
 
-This paper presents \system, a new approach to vectorizing encrypted circuits that specifically aims to optimize the use of rotations. It vectorizes entire subcircuits at once to eliminate rotations within those subcircuits. It then attempts to ``line up'' operations between subcircuits using a minimal number of rotations. \system uses a careful encoding of the {\em lane placement} problem that allows a solver to identify good rotations without having to explore an impractically large search space. This paper shows that \system is effective at vectorizing computational kernels while minimizing rotation, finding efficient vector schedules and smart rotation schemes to achieve substantial speedups.
+This paper presents \system, a new approach to vectorizing encrypted circuits that specifically aims to optimize the use of rotations. 
+It tackles the scheduling and data layout problems simultaneously, operating at the level of subcircuits that can be vectorized without incurring excessive data movement overhead. 
+By jointly searching for good vectorization and lane placement, \system finds schedules that avoid over-packing, or sacrificing one for the other.
+This paper shows that \system is effective at vectorizing computational kernels while minimizing rotations, thus finding efficient vector schedules and smart rotation schemes to achieve substantial speedups.
 
 \end{abstract}

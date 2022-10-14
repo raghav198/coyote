@@ -3,7 +3,7 @@ from ast_def import Expression, Var
 from typing import Dict, List, Tuple
 
 MATCH_MUL = 10
-MATCH_ADD = 1
+MATCH_ADD = 10
 
 class SimilarityCache:
     def __init__(self):

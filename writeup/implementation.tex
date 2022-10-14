@@ -1,93 +1,225 @@
 \section{Implementation}\label{sec:implementation}
 
-This section discusses the implementation details of \system: how programmers write \system programs, how the code is generated, and several design decisions that allow the system, and the programmer, to trade off optimality for other considerations.
+This section discusses how programmers write \system programs, and how the code is generated.
 
-\subsection{An eDSL and compiler for FHE programs}
-\system provides an embedded DSL (eDSL) in Python for expressing FHE programs. \system provides a \texttt{CoyoteVar} datatype which represents a symbolic encrypted value, and supports addition, subtraction, and multiplication. Executing a program that uses \texttt{CoyoteVar}s stages the execution into an arithmetic circuit (e.g., adding together two \texttt{CoyoteVar}s produces a \texttt{CoyoteExpr} that captures an abstract syntax tree representing the addition). 
+% \subsection{An eDSL and compiler for FHE programs}
+% \begin{figure}
+%     \begin{lstlisting}[language=Python, escapechar=|]
+% def dot(v1, v2):
+%     return sum([a * b for a, b in zip(v1, v2)])|\label{code:zip}|
+  
+% @coyote.define_circuit(A=matrix(3, 3), b=vector(3))
+% def matvec_multiply(A, b):
+%     result = []
+%     for i in range(len(A)):|\label{code:for-loop}|
+%         result.append(dot(A[i], b))
+%     return result
+%     \end{lstlisting}
+%     \caption{Sample \system program for multiplying a vector by a matrix}\label{fig:coyote-program}
+% \end{figure}
 
-Programs written in Python can use {\em non}-{\tt CoyoteVar} variables in conditional statements or as induction variables for loops, and these have the effect of selecting from subcircuits to build (in the case of conditionals) or unrolling a sequence of subcircuits (in the case of loops). Note that FHE limitations mean that {\tt CoyoteVar}s cannot be used in conditionals or as induction variables for loops.
 
-Once the Python program is executed, the generated arithmetic circuit is passed to \system's back end, which vectorizes the computation as described in the previous sections, yielding a set of vector primitives that can be further lowered into C++ code that targets Microsoft's SEAL backend for BFV~\cite{seal}.
+\begin{figure}
+    \small
+    \begin{minted}[linenos,escapeinside=||]{Python}
+def dot(v1, v2):
+    return sum([a * b for a, b in zip(v1, v2)])|\label{code:zip}|
+  
+@coyote.define_circuit(A=matrix(3, 3), b=vector(3))
+def matvec_multiply(A, b):
+    result = []
+    for i in range(len(A)):|\label{code:for_loop}|
+        result.append(dot(A[i], b))
+    return result
+    \end{minted}
+    \vspace{-1em}
+    \caption{Sample \system program for multiplying a vector by a matrix}\label{fig:coyote-program}
+    \Description{Example of a program written in \system that implements a matrix/vector multiply}
+\end{figure}
+
+% \begin{figure}
+%     \begin{lstlisting}[language=Python, escapechar=|]
+            
+% @coyote.define_circuit(signal=vector(4), kernel=vector(2))
+% def convolve(signal, kernel):
+%     output = []
+%     for offset in range(len(signal) - len(kernel) + 1):
+%         output.append(dot(kernel, signal[offset:offset+len(kernel)]))
+%     return output
+  
+% @coyote.define_circuit(A=matrix(3, 3), sig=vector(4), ker=vector(2))
+% def composed_kernels(A, sig, ker):
+%     b = convolve(sig, ker)|\label{code:call-conv}|
+%     return matvec_multiply(A, b)|\label{code:call-matvec}|
+%     \end{lstlisting}
+    
+% \end{figure}
+
+% \begin{figure}
+%     \small
+%     \begin{minted}[escapeinside=||,linenos]{Python}
+% @coyote.define_circuit(signal=vector(4), kernel=vector(2))
+% def convolve(signal, kernel):
+%     output = []
+%     for offset in range(len(signal) - len(kernel) + 1):
+%         output.append(dot(kernel, signal[offset:offset+len(kernel)]))
+%     return output
+    
+% @coyote.define_circuit(A=matrix(3, 3), sig=vector(4), ker=vector(2))
+% def composed_kernels(A, sig, ker):
+%     b = convolve(sig, ker) |\label{code:call_conv}| # returns a vector of length 3
+%     return matvec_multiply(A, b) |\label{code:call_matvec}|
+%     \end{minted}
+%     \vspace{-1em}
+%     \caption{\system programs are normal python functions that can be composed to build larger kernels}\label{fig:coyote-programs-compose}
+%     \Description{Example of a program written in \system that composes two smaller kernels}
+% \end{figure}
+
+\subsection{An eDSL and compiler for FHE programs}\label{sec:surface-language}
+\system consists of an embedded DSL (eDSL) in Python that can be used to write FHE programs, shown in Figure~\ref{fig:coyote-program}.
+The DSL allows for arbitrary arithmetic computation over encrypted variables, and supports conditionals and loops over plaintext values. 
+All conditionals and loops are fully evaluated and unrolled, and all function calls are fully inlined before generating the arithmetic circuit.
+The generated circuit is then passed to \system's back end, which vectorizes the computation as described in the previous sections, yielding a sequence of primitive vector operations that can be further lowered into C++ code targeting Microsoft SEAL's backend for BFV~\cite{seal}.
+
+% The decorator registers the function as defining a \system circuit, and allows the programmer to specify the function signature (i.e. the size and shape of each of its inputs).
+\system currently supports datatypes for encrypted inputs: {\sf scalar()}, {\sf vector(size)}, and {\sf matrix(rows, cols)}.
+Inputs annotated with {\sf scalar()} are free to be placed anywhere in the vector schedule; by contrast, {\sf matrix} and {\sf vector} inputs are always grouped together into vectors. %\raghav{Should I include these sentences here, or just move them down to Section~\ref{sec:duplicating-inputs}?}
+% and by default unreplicated, although the latter option can be overridden by, for example, annotating the type of an input as {\sf vector(size, replicate=True)}.
+% For a full discussion of these packing and replication options, see Section~\ref{sec:duplicating-inputs}.
+The arithmetic circuits \system takes are directed acyclic graphs (DAGs) that fail to be trees exactly when values are used as inputs to multiple computations (e.g. the value $a$ in $ab + ac$).
+Any such DAG can  be turned into a tree by {\em replicating} inputs in a ``reverse-CSE'' process (for example, $ab + ac \to a_1b + a_2c$, where the value of $a$ is supplied to both $a_1$ and $a_2$).
+This results in circuits with better rotation characteristics at the cost of extra computation.
+By default, \system automatically replicates all {\sf scalar} inputs, and leaves all {\sf vector} and {\sf matrix} inputs unreplicated, but this behavior can be overridden by the programmer (note that replicating a {\sf vector} or {\sf matrix} input results in multiple copies of each variable all being grouped into the same vector). %\raghav{Does that make sense?}
+
+\subsubsection*{Automatically choosing a data layout}
+While specifying a set of inputs as a {\sf vector(n)} or {\sf matrix(m, n)}, \system restricts the space of available schedules to the ones that group these inputs together.
+However, it is still free to choose a particular layout within the vector (i.e., $a[0]$ and $a[1]$ need not be placed in adjacent lanes).
+In practice, this allows \system to choose a layout that minimizes the rotations required to align inputs with where they are used.
+We evaluate the effectiveness of this choice in Section~\ref{sec:effects-of-data-layout}.
+% \system internally uses a {\sf CoyoteVar} datatype which represents a symbolic encrypted value, and currently supports addition, subtraction, and multiplication.
+% To produce a circuit, \system creates a number of these {\sf CoyoteVar} variables (as defined by the signature provided in the decorator) and executes the function with these as parameters.
+% This method of generating circuits means that any Python construct that does not involve performing unsupported operations on encrypted values\footnote{Unsupported operations include using ciphertexts in branching conditions, loop bounds, or array indices.} can be used as normal in a \system program (for instance, the {\sf zip} and list comprehension in Figure~\ref{fig:coyote-program} on line~\ref{code:zip}).
+% Notably, \system-decorated functions can include for loops with plaintext induction variables (as on line~\ref{code:for_loop} in Figure~\ref{fig:coyote-program}), and can call other Python functions (including other \system programs, as in Figure~\ref{fig:coyote-programs-compose} on lines~\ref{code:call_conv} and \ref{code:call_matvec}) allowing programmers to write individual kernels and then easily compose them into a larger program.
+% All loops are fully unrolled and nested function calls are fully inlined before compilation.
+
+
+% \system provides an embedded DSL (eDSL) in Python for expressing FHE programs. \system provides a \texttt{CoyoteVar} datatype which represents a symbolic encrypted value, and supports addition, subtraction, and multiplication. Executing a program that uses \texttt{CoyoteVar}s stages the execution into an arithmetic circuit (e.g., adding together two \texttt{CoyoteVar}s produces a \texttt{CoyoteExpr} that captures an abstract syntax tree representing the addition). 
+
+% Programs written in Python can use {\em non}-{\tt CoyoteVar} variables in conditional statements or as induction variables for loops, and these have the effect of selecting from subcircuits to build (in the case of conditionals) or unrolling a sequence of subcircuits (in the case of loops). Note that FHE limitations mean that {\tt CoyoteVar}s cannot be used in conditionals or as induction variables for loops.
+
+% Once the Python program is executed, the generated arithmetic circuit is passed to \system's back end, which vectorizes the computation as described in the previous sections, yielding a set of vector primitives that can be further lowered into C++ code that targets Microsoft's SEAL backend for BFV~\cite{seal}.
 
 
 
 \subsection{Code Generation}\label{sec:codegen}
-The output of the algorithm in Section~\ref{sec:design} is a vector schedule (i.e. a lane and schedule slot for each scalar, where the schedule slot determines the order in which instructions get executed).
-This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction.
-A blend instruction does no data movement, but takes several vectors and ``blends'' them together by choosing specific lanes to take from each one.
-In practice, this is implemented as a series of plaintext/ciphertext multiplies (where each ciphertext vector is multiplied by a plaintext ``bitmask'' to hide certain lanes), followed by several ciphertext/ciphertext adds, where each of the masked vectors is added together.
+The algorithm in Section~\ref{sec:design} produces a vector schedule (i.e. a lane and schedule slot for each scalar, where the schedule slot determines the order in which instructions get executed).
 
-Throughout the compilation, we keep a lookup table that maps a (scalar, lane) pair to the name of the vector register containing it.
-In particular, there may be several vector registers that contain a particular scalar, but on separate lanes (this results from a rotation of the original register where the instruction was produced).
-(For example, the table might say ``The vector register {\texttt s2} has scalar 11 on lane 3'').
+\system compiles this schedule to a simple vector IR by scheduling vector instructions according to a topological sort, inserting rotations as needed.
+The vector ISA supports vector addition, subtraction, multiplication, and rotation, as well as a constant load instruction and a {\em blend} instruction.
+The semantics of the blend instruction are a bit subtle: it mixes lanes from multiple vector registers into the same register {\em while keeping all data on its original lane}.
+For example: $$blend(x_1x_2x_3x_4@1010, y_1y_2y_3y_4@0101) \to [x_1y_2x_3y_4]$$
+In the backend, the blend is implemented as a series of plaintext bitmasks followed by ciphertext adds. 
 
-At every time step, the schedule compiler finds all scalar instructions scheduled to execute.
-For each operand, we use the table to look up the name of the register containing that scalar in the appropriate lane.
-If the data for a single vector operand comes from multiple registers, we emit a blend instruction.
-Once all the operands have been blended and prepared, we emit the appropriate vector add, subtract, or multiply instruction.
-We then look ahead to see if any of the scalars produced by this vector instruction get used on different lanes; for each distinct rotation this induces, we emit a vector rotate instruction.
-To standardize, all rotation amounts are positive modulo the vector width.
-Finally, for each vector register just produced (including the original one and any rotated ones), we add all of its scalars and their lanes to the lookup table and proceed to the next time step.
+% This schedule is then compiled into the actual vector IR, which supports vector addition, subtraction, multiplication, and rotation instructions, as well as a constant load instruction and a {\em blend} instruction. The available vector instructions and their semantics are as follows:
+% %\raghav{Is this table clear?}\milind{Add plain English sentence for each explaining what it's doing.}
+% \begin{description}
+%     \item[Vector Add ($dest = v_1 + v_2$)] adds two vectors of values together: $$dest[i] = v_1[i] + v_2[i]$$
+%     \item[Vector Multiply ($dest = v_1 * v_2$)] multiplies two vectors of values together: $$dest[i] = v_1[i] * v_2[i]$$
+%     \item[Rotate ($dest = v \gg k$)] performs a circular rotation of a vector $k$ slots to the right: $$dest[i] = v[(i - k)\bmod n]$$ %\milind{need to have some modular operation here?}
+%     \item[Blend ($dest = blend(v_1, \dots, v_n)$)] creates a new length-$n$ vector from $n$ input vectors by picking the $i$th slot from the $i$th vector: $$dest[i] = v_i[i]$$
+%     This operation is implemented by multiplying the input vectors by plain-text mask vectors, and adding them together.
+% \end{description}
 
-Once the circuit is compiled to the vector IR, it can be further lowered to C++ SEAL code.
-This is a straightforward process, and essentially consists of transliterating the IR. 
-SEAL does not support a built-in blend instruction, though, so each of these generate several ciphertext/plaintext multiplies followed by a single ciphertext add.
-While lowering to C++, we also precompute all the blending masks, so that we can encode all of them into the plaintext space once at the beginning of the program and just look up the appropriate one to use each time.
-
-% \begin{enumerate}
-%     \item Generate arithmetic circuit within python, pass it to the compiler which tags it and produces scalar code
-%     \item Take compiler object (mostly contains metadata + scalar code) and pass it to vectorization function, which goes through the algorithm described in section~\ref{sec:design} and uses it to produce a vector schedule (this consists of assigning a lane and a time to each scalar instruction).
-%     \item Given a vector schedule, we compile it into the actual vector IR that consists of loads, vector adds/subtracts/multiplies, and rotations.
-%     \item The vector IR as well as the original scalar code are both translated into C++ code for SEAL and put into the appropriate place in a pre-configured CMake project.
-%     \item Building the CMake project links the generated C++ against our test harness, which runs both the vector and scalar C++ code a specified number of times, collects timing information, and dumps it to a CSV.
-% \end{enumerate}
-
-\subsection{Optimality Tradeoffs}\label{sec:optimality-tradeoffs}
-Because each of the compilation steps quickly blows up when given larger programs, we make a number of tradeoffs that sacrifice optimality in exchange for faster compilation times.
-
-\subsubsection*{Finding maximal cliques/synthesizing alignment}\label{sec:iterative-synthesis}
-In many cases, we want a certain optimal solution to the problem we are passing to the solver; for instance, we want the clique with the largest sum of edge weights, or we want the vector schedule that uses the fewest schedule slots.
-One way to accomplish this is to pass an objective function to the solver; however, this technique often takes a long time, since before returning a solution the solver must first prove that no better one exists.
-Instead of supplying an objective function, we first find any legal solution (e.g. any clique, or any schedule that respects instructions and dependences).
-We then add a constraint that require the next solution to be strictly better than the first one, and query the solver again, until eventually it returns ``unsatisfiable'', meaning that no better solution to be found.
-We can then set a time limit so that if no better solution is found within it, we use the best one we have so far.
-By varying the time limit, we can trade off between optimality and compilation time.
-
-\subsubsection*{Computing graph paths}\label{sec:computing-graph-paths}
-To build the hypergraph described in Section~\ref{sec:lane-placement}, we first need to compute all paths through the dependence graph.
-We start with all paths of length one (edges) and inductively computing transitive closures, keeping track of all the cycles we find along the way.
-For very large or complicated dependence graphs, this can take a very long time, so we once again set a time limit after which we stop looking for paths (in practice, this amounts to choosing a maximum length of path to look for).
-This timeout can result in missing some relations: even a properly colored hypergraph may produce an unsolvable integer program.
-In these cases, the solver produces an ``unsat core,'' witnessing the unsatisfiability as a set of paths through the dependence graph that start and end on the same epoch, but sum to the wrong thing (e.g., a cycle that sums to a nonzero value).
-When we encounter this scenario, we ``uncolor'' all the edges along such paths, allowing the solver to assign them whatever values it needs to in order to make the program satisfiable.
-Doing so breaks certain symmetries (e.g., an uncolored edges may no longer have the same value as another edge, necessitating an extra rotation), but the lane assignment is still correct.
-Once again, this amounts to sacrificing optimality for compilation time: by increasing the time limit on finding the paths, we can avoid missing relations, and ensure that we never have to do this.
-
-\subsection{Input Layout}\label{sec:duplicating-inputs}
-The arithmetic circuits input to \system are DAGs, which fail to be trees exactly when values are used as inputs to multiple computations (for instance, in the expression $ab + ac$, the value $a$ is used as an input to both multiplies).
-Any such DAG can be turned into a tree, however, simply by creating copies of each repeated value, in a ``reverse-CSE'' process.
-%Applying this to the example expression yields $a_1b + a_2c$ where $a_1$ and $a_2$ are fresh input variables that both have the same value passed into them.
-By duplicating the data, the new circuit, while strictly bigger, may have better rotation characteristics.
-This is because if $a$ were to be used on two different lanes it would have incurred at least one rotation, but by having two copies of $a$ we can avoid this rotation entirely. The frontend DSL for \system exposes an API by which the programmer can specify which of the input variables to the computation should be duplicated, and which ones should not.
-
-Another input layout control the \system DSL exposes is the {\em input grouping} API, which allows a programmer to specify sets of inputs which are forced to be packed together into a single vector.
-This is useful, for example, when doing a matrix computation.
-By default, \system treats the 9 elements of a $3 \times 3$ matrix as independent inputs to the computation.
-However, by putting all of them into the same input group, the programmer can prevent the matrix from having to be split across multiple ciphertext vectors when input to the computation, and generate vector code that operates on a single packed matrix. 
-There is a tradeoff: \system may have been able to find a schedule with fewer rotates with two matrix entries on the same lane, but forcing the entire matrix to packed into a single vector precludes any such schedule.
-
-Both of these input controls allow programmers to trade off between predictable input layouts, that are good for composing kernels without too much rotation, and flexible input layouts, that can give \system more flexibility to manage data flow. Rather than automatically trying to balance these factors, \system leaves it up to the programmer.
+% %\raghav{Does the table above make this paragraph redundant?}
+% %A blend instruction does no data movement, but takes several vectors and ``blends'' them together by choosing specific lanes to take from each one.
+% %In practice, this is implemented as a series of plaintext/ciphertext multiplies (where each ciphertext vector is multiplied by a plaintext ``bitmask'' to hide certain lanes), followed by several ciphertext/ciphertext adds, where each of the masked vectors is added together.
 
 
+% Throughout the compilation, we keep a lookup table that maps a (scalar, lane) pair to the name of the vector register containing it.
+% In particular, there may be several vector registers that contain a particular scalar, but on separate lanes (this results from a rotation of the original register where the instruction was produced).
+% (For example, the table might say ``The vector register {\sf s2} has scalar 11 on lane 3'').
 
-\subsection{Weighting Cliques for Epoch Selection}\label{sec:penalizing-rotates}%\raghav{Name this section something different?}
-When choosing cliques to form epochs as discussed in Section~\ref{sec:selecting-subexpressions}, we have the option to penalize the rotation overhead of choosing large cliques by subtracting a fixed amount from the weight of each edge (since a larger clique has more edges, it incurs a higher penalty).
-However, doing so often grossly overestimates the rotation overhead, particularly in highly regular programs, where many of the rotations are mostly independent and can easily be folded into a single rotate instruction.
-This overestimation can lead to picking conservatively small cliques that don't have as much vectorizability, even though a larger clique would have been more vectorizable without incurring too many rotations.
-To detect this, we find two sets of epochs: one with rotation penalties applied to the vectorizability graph, and one with no penalties.
-Compilation proceeds as normal, creating two dependence graphs and then two hypergraphs, and coloring them both.
-At this point, by inspecting the two colorings, we can determine how much worse the rotations are in the non-penalized case, and compare this to the increased vectorizability from using larger cliques.
-The better of the two options is then used for the rest of compilation.
+% At every time step, the schedule compiler finds all scalar instructions scheduled to execute.
+% For each operand, we use the table to look up the name of the register containing that scalar in the appropriate lane.
+% If the data for a single vector operand comes from multiple registers, we emit a blend instruction.
+% Once all the operands have been blended and prepared, we emit the appropriate vector add, subtract, or multiply instruction.
+% We then look ahead to see if any of the scalars produced by this vector instruction get used on different lanes; for each distinct rotation this induces, we emit a vector rotate instruction.
+% To standardize, all rotation amounts are positive modulo the vector width.
+% Finally, for each vector register just produced (including the original one and any rotated ones), we add all of its scalars and their lanes to the lookup table and proceed to the next time step.
 
-This does add the overhead of longer compile times, since now the clique finding and hypergraph coloring needs to happen twice instead of just once; fortunately, most of the heavy lifting occurs while determining instruction packing and actual lane placement, both of which only happen once.
+% Once the circuit is compiled to the vector IR, it can be further lowered to C++ SEAL code.
+% This is a straightforward process, and essentially consists of transliterating the IR. 
+% SEAL does not support a built-in blend instruction, though, so each of these generate several ciphertext/plaintext multiplies followed by a single ciphertext add.
+% While lowering to C++, we also precompute all the blending masks, so that we can encode all of them into the plaintext space once at the beginning of the program and just look up the appropriate one to use each time.
+
+% \subsection{Optimality Tradeoffs}\label{sec:optimality-tradeoffs} 
+% %\raghav{Is this the right name for the section?}
+% Because the instruction alignment phase only happens once a pre-schedule has been computed, the results of alignment are not available to our cost model.
+% This is by design, since the instruction alignment problem is formulated as an ILP (Section~\ref{sec:instruction-alignment}), and making multiple expensive calls to an ILP solver in each round of the pre-schedule search would quickly make the entire search procedure intractable.
+% However, this does have an impact on the cost model, as without alignment results, we are forced to work at the level of granularity of entire epochs, resulting in approximations of the schedule height and number of rotations.
+% In particular, the approximations tend to underestimate the true cost of the final realized schedule in two ways: (i) undercounting the number of rotations; and (ii) underestimating the height of a given epoch.
+
+% When counting rotations, we assume that if two cross-lane arcs originate from the same epoch and have the same span, they can be realized with a single rotation instruction.
+% This assumption fails if the instructions whose results each arc rotates do not get aligned in the final schedule, since there are now multiple vectors in that epoch that require the same rotation.
+% This is impossible to avoid without fully aligning everything before computing rotation costs, which as mentioned before is intractable; in practice, however, the estimated rotation costs do not differ from the actual rotation costs by too much, so we still get good schedules. %\raghav{stronger way to say this? technically the only evidence I have to back this up is ``I looked at the debug output telling me the estimated costs and compared it by hand to the actual cost by counting ops for a couple small benchmarks and didn't see much of a difference''}\milind{I think this is OK.}
+
+% The other approximation we make is when computing the ``height'' of a single epoch, we do not take into account dependences between instructions before counting them. 
+% In other words, if two columns in the epoch each have an add and a multiply, but the add depends on the multiply in one and vice-versa in the other, the alignment would pack together the multiplies and not the adds, resulting in an actual height of two adds and one multiply; by contrast, \system records the height as one add and one multiply.
+% We could do a more sophisticated analysis at this step to get estimates that are closer to the true height; however, as before, such analyses are often too expensive to do in the inner loop of a search procedure, and in practice, our estimated heights are still sufficient to guide the search towards more efficient schedules.
+ %\raghav{same as before, is there a better way to say this without committing to doing a full case study of the differences between estimated and actual costs?}
+
+
+% Because each of the compilation steps quickly blows up when given larger programs, we make a number of tradeoffs that sacrifice optimality in exchange for faster compilation times.
+
+% \subsubsection*{Finding maximal cliques/synthesizing alignment}\label{sec:iterative-synthesis}
+% In many cases, we want a certain optimal solution to the problem we are passing to the solver; for instance, we want the clique with the largest sum of edge weights, or we want the vector schedule that uses the fewest schedule slots.
+% One way to accomplish this is to pass an objective function to the solver; however, this technique often takes a long time, since before returning a solution the solver must first prove that no better one exists.
+% Instead of supplying an objective function, we first find any legal solution (e.g. any clique, or any schedule that respects instructions and dependences).
+% We then add a constraint that require the next solution to be strictly better than the first one, and query the solver again, until eventually it returns ``unsatisfiable'', meaning that no better solution to be found.
+% We can then set a time limit so that if no better solution is found within it, we use the best one we have so far.
+% By varying the time limit, we can trade off between optimality and compilation time.
+
+% \subsubsection*{Computing graph paths}\label{sec:computing-graph-paths}
+% To build the hypergraph described in Section~\ref{sec:lane-placement}, we first need to compute all paths through the dependence graph.
+% We start with all paths of length one (edges) and inductively computing transitive closures, keeping track of all the cycles we find along the way.
+% For very large or complicated dependence graphs, this can take a very long time, so we once again set a time limit after which we stop looking for paths (in practice, this amounts to choosing a maximum length of path to look for).
+% This timeout can result in missing some relations: even a properly colored hypergraph may produce an unsolvable integer program.
+% In these cases, the solver produces an ``unsat core,'' witnessing the unsatisfiability as a set of paths through the dependence graph that start and end on the same epoch, but sum to the wrong thing (e.g., a cycle that sums to a nonzero value).
+% When we encounter this scenario, we ``uncolor'' all the edges along such paths, allowing the solver to assign them whatever values it needs to in order to make the program satisfiable.
+% Doing so breaks certain symmetries (e.g., an uncolored edges may no longer have the same value as another edge, necessitating an extra rotation), but the lane assignment is still correct.
+% Once again, this amounts to sacrificing optimality for compilation time: by increasing the time limit on finding the paths, we can avoid missing relations, and ensure that we never have to do this.
+
+% \subsection{Input Layout}\label{sec:duplicating-inputs}
+% % \milind{The first paragraph of this, or some variation of it, should go in design...}
+% The arithmetic circuits input to \system are DAGs, which fail to be trees exactly when values are used as inputs to multiple computations (for instance, in the expression $ab + ac$, the value $a$ is used as an input to both multiplies).
+% Any such DAG can be turned into a tree, however, simply by creating copies of each repeated value, in a ``reverse-CSE'' process.
+% %Applying this to the example expression yields $a_1b + a_2c$ where $a_1$ and $a_2$ are fresh input variables that both have the same value passed into them.
+% By duplicating the data, the new circuit, while strictly bigger, may have better rotation characteristics.
+% This is because if $a$ were to be used on two different lanes it would have incurred at least one rotation, but by having two copies of $a$ we can avoid this rotation entirely. The frontend DSL for \system exposes an API by which the programmer can specify which of the input variables to the computation should be duplicated, and which ones should not.
+
+% Another input layout control the \system DSL exposes is the {\em input grouping} API, which allows a programmer to specify sets of inputs which are forced to be packed together into a single vector.
+% This is useful, for example, when doing a matrix computation: \system treats the 9 elements of a {\sf matrix(3, 3)} input as all being packed into a single vector.
+% This prevents the matrix from having to be split across multiple ciphertext vectors when input to the computation, and generate vector code that operates on a single packed matrix.
+% There is a tradeoff: \system may have been able to find a schedule with fewer rotates with two matrix entries on the same lane, but forcing the entire matrix to packed into a single vector precludes any such schedule.
+% Different data layouts can be realized by, e.g. specifying three {\sf vector(3)} inputs or nine {\sf scalar()} inputs.
+
+% Both of these input controls allow programmers to trade off between predictable input layouts, that are good for composing kernels without too much rotation, and flexible input layouts, that can give \system more flexibility to manage data flow. Rather than automatically trying to balance these factors, \system leaves it up to the programmer.
+% We specifically investigate the effects of choosing different packing strategies in Section~\ref{sec:eval}, with our matrix multiply case studies.
+
+% \subsubsection*{Automatically choosing a data layout}
+% While specifying a set of inputs as a {\sf vector(n)} or {\sf matrix(m, n)}, \system restricts the space of available schedules to the ones that pack these inputs together.
+% However, it is still free to choose a particular layout within the vector (i.e., $a[0]$ and $a[1]$ need not be placed in adjacent lanes).
+% In practice, this allows \system to choose a layout that minimizes the rotations required to align inputs with where they are used.
+% We evaluate the effectiveness of this choice in Section~\ref{sec:effects-of-data-layout}.
+
+% \subsection{Weighting Cliques for Epoch Selection}\label{sec:penalizing-rotates}%\raghav{Name this section something different?}
+% When choosing cliques to form epochs as discussed in Section~\ref{sec:selecting-subexpressions}, we have the option to penalize the rotation overhead of choosing large cliques by subtracting a fixed amount from the weight of each edge (since a larger clique has more edges, it incurs a higher penalty).
+% However, doing so often grossly overestimates the rotation overhead, particularly in highly regular programs, where many of the rotations are mostly independent and can easily be folded into a single rotate instruction.
+% This overestimation can lead to picking conservatively small cliques that don't have as much vectorizability, even though a larger clique would have been more vectorizable without incurring too many rotations.
+% To detect this, we find two sets of epochs: one with rotation penalties applied to the vectorizability graph, and one with no penalties.
+% Compilation proceeds as normal, creating two dependence graphs and then two hypergraphs, and coloring them both.
+% At this point, by inspecting the two colorings, we can determine how much worse the rotations are in the non-penalized case, and compare this to the increased vectorizability from using larger cliques.
+% The better of the two options is then used for the rest of compilation.
+
+% This does add the overhead of longer compile times, since now the clique finding and hypergraph coloring needs to happen twice instead of just once; fortunately, most of the heavy lifting occurs while determining instruction packing and actual lane placement, both of which only happen once.
 %\raghav{Should I add a sentence like ``Furthermore, since you should only be compiling once and then running a bunch of times, we think this is justified''?}\milind{Nah, that's implied, and we can always say it in a rebuttal if we need to.}

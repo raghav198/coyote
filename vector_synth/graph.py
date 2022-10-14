@@ -24,3 +24,7 @@ def edges_on_path(path: List[Node]) -> List[Edge]:
 def connect(graph: Graph[Node], v1: Node, v2: Node):
     graph[v1].append(v2)
     graph[v2].append(v1)
+
+def dir_connect(graph: Graph[Node], v1: Node, v2: Node):
+    graph[v1].append(v2)
+    graph[v2] # force a lookup

@@ -1,8 +1,7 @@
-# from collections import namedtuple
 from dataclasses import dataclass
 from inspect import signature
-from coyote_ast import Atom, Compiler, CompilerV2, Var
-from vector_compiler import vector_compile
+from .coyote_ast import CompilerV2, Var
+from .vectorize_circuit import vectorize
 
 @dataclass
 class matrix:
@@ -42,7 +41,7 @@ class copy_matrix:
     def __getitem__(self, i):
         if i >= self.rows:
             raise IndexError('list index out of range')
-        return copy_vector(self.cols, f'{self.name}:{i}', var_conv=f'{self.name}:{i},{{i}}')
+        return copy_vector(self.cols, f'{self.name}:{i}', var_conv=f'{self.name}:{i};{{i}}')
 
     def __len__(self):
         return self.rows
@@ -51,31 +50,31 @@ class copy_matrix:
 class coyote_compiler:
     def __init__(self):
         self.func_signatures = {}
+        self.outputs = []
 
     def vectorize(self):
-        return vector_compile(self.compiler)
+        return vectorize(self.compiler)
 
 
     def instantiate(self, *funcs):
+        self.outputs = []
         input_groups, outputs = self.get_outputs(funcs)
             
         self.compiler = CompilerV2(input_groups)
 
         for out in outputs:
-            self.compiler.compile(out)
+            self.outputs.append(self.compiler.compile(out).val)
 
-        return list(map(str, self.compiler.code))
+        return [' '.join(f'%{reg}' for reg in self.outputs)] + list(map(str, self.compiler.code))
+
 
     def get_outputs(self, funcs):
-
         input_groups = []
         outputs = []
 
         if len(funcs) == 0:
             funcs = self.func_signatures
         else:
-            print([(func.__name__, funcs, func.__name__ in funcs) for func in self.func_signatures.keys()])
-
             funcs = list(filter(lambda func: func.__name__ in funcs, self.func_signatures.keys()))
 
         for func in funcs:
@@ -87,14 +86,13 @@ class coyote_compiler:
                     if t.replicate:
                         params[_p] = copy_matrix(t.rows, t.cols, p)
                     else:
-                        params[_p] = [[Var(f'{p}:{i},{j}') for i in range(t.rows)] for j in range(t.cols)]
-                    input_groups.append({f'{p}:{i},{j}' for i in range(t.rows) for j in range(t.cols)})
+                        params[_p] = [[Var(f'{p}:{i};{j}') for i in range(t.rows)] for j in range(t.cols)]
+                    input_groups.append({f'{p}:{i};{j}' for i in range(t.rows) for j in range(t.cols)})
                 elif isinstance(t, vector):
                     if t.replicate:
                         params[_p] = copy_vector(t.size, p)
                     else:
                         params[_p] = [Var(f'{p}:{i}') for i in range(t.size)]
-
                     input_groups.append({f'{p}:{i}' for i in range(t.size)})
                 else:
                     params[_p] = Var(p)
@@ -105,7 +103,6 @@ class coyote_compiler:
             else:
                 outputs.append(out)
         return input_groups,outputs
-
 
 
     def define_circuit(self, **types):
@@ -149,8 +146,13 @@ def recursive_sum(vals):
     return recursive_sum(vals[:mid]) + recursive_sum(vals[mid:])
 
 
-
-
+def alternating_sum(vals):
+    if len(vals) == 1:
+        return vals[0]
+    mid = len(vals) // 2
+    if mid % 2:
+        return alternating_sum(vals[:mid]) - alternating_sum(vals[mid:])
+    return alternating_sum(vals[:mid]) + alternating_sum(vals[mid:])
 
 if __name__ == '__main__':
     coyote = coyote_compiler()
@@ -194,7 +196,6 @@ if __name__ == '__main__':
     #     z = x * x
     #     return y + z
 
-
     # IMG_SIZE = 3
     # KER_SIZE = 2
     # @coyote.define_circuit(ker=matrix(KER_SIZE, KER_SIZE), img=matrix(IMG_SIZE, IMG_SIZE))
@@ -218,5 +219,5 @@ if __name__ == '__main__':
         total_rotates.append(ans.count('>>'))
 
     print(sum(total_rotates) / 20, min(total_rotates), max(total_rotates), total_rotates)
-
+        
     

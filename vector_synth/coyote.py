@@ -49,15 +49,21 @@ if __name__ == '__main__':
 
     ######################################################
     
+<<<<<<< HEAD
     ## Matrix Multiply Determinant Benchmark
     # input_groups = get_mmd_input_groups('a', 'b', 2, 2)
     # c = Compiler({}, allow_replicating ='all')
+=======
+    # Matrix Multiply Determinant Benchmark
+    input_groups = get_mmd_input_groups('a', 'b', 2, 2)
+    c = Compiler({}, input_groups, allow_replicating = [])
+>>>>>>> master
 
-    # tag_list = []
-    # tree = (mat_mul_det_benchmark(2, 2)).a
-    # print(tree)
-    # tag_list.append(c.compile(tree))
-    ## End Matrix Multiply Determinant Benchmark
+    tag_list = []
+    tree = (mat_mul_det_benchmark(2, 2)).a
+    print(tree)
+    tag_list.append(c.compile(tree))
+    # End Matrix Multiply Determinant Benchmark
 
     ## Matrix Multiply Determinant Benchmark
     # input_groups = get_mmd_input_groups('a', 'b', 3, 3)
