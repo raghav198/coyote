@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Tuple
 
 from .coyote_ast import *
-import z3
+import z3 # type: ignore
 from sys import stderr
 from time import time
 
@@ -31,11 +31,13 @@ def dependency_graph(program: List[Instr]) -> List[List[int]]:
     for line in program:
         deps = []
         if line.lhs.reg:
+            assert isinstance(line.lhs.val, int)
             deps.extend(lookup(line.lhs.val))
         #     deps.append(lookup(line.lhs.val))
         # else:
         #     deps.append(-1)
         if line.rhs.reg:
+            assert isinstance(line.rhs.val, int)
             deps.extend(lookup(line.rhs.val))
         #     deps.append(lookup(line.rhs.val))
         # else:
@@ -323,17 +325,29 @@ def synthesize_schedule(program: List[Instr], warp: int, lanes: List[int], log=s
 
     synthesizer = ScheduleSynthesizer(program, warp, lanes, log=log)
     # synthesizer.add_bound(4 * max_height)
-    synthesizer.add_bound(len(program))
+    # synthesizer.add_bound(len(program))
     best_so_far = None
-    while True:
+
+    schedule_exists = False
+    i = 1
+    while schedule_exists == False:
+        synthesizer.push()
+        synthesizer.add_bound(i)
         answer = synthesizer.solve()
         if answer == z3.unsat:
             if best_so_far is None:
                 raise Exception("No model was ever found!")
             return best_so_far
         best_so_far = answer
-        print(f'Found schedule of length {max(answer)}, trying to improve', file=log)
-        synthesizer.add_bound(max(answer))
+        if best_so_far == z3.sat:
+            schedule_exists = True
+            return best_so_far
+        else:
+            synthesizer.pop()
+            i += 1
+        #print(f'Found schedule of length {max(answer)}, trying to improve', file=log)
+        print(f'Found schedule of length {max(answer)}', file=log)
+        #synthesizer.add_bound(max(answer))
 
     # for max_len in range(max_height, len(program) + 1):
     #     result = synthesize_schedule_bounded(program, warp, max_len, log=log)
