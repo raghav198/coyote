@@ -3,9 +3,24 @@ project(CoyoteBFVBackend VERSION 0.1.0)
 
 list(APPEND BENCHMARKS 
 # add all the benchmarks you want to build here, one per line
-	max_value_packed_fully
-	max_value_packed_partially
-	max_value_packed_un
+	conv_4x2_fully
+	conv_4x2_partially
+	conv_4x2_un
+	conv_5x3_fully
+	conv_5x3_partially
+	conv_5x3_un
+	dot_product_3x3_fully
+	dot_product_3x3_partially
+	dot_product_3x3_un
+	dot_product_6x6_fully
+	dot_product_6x6_partially
+	dot_product_6x6_un
+	dot_product_10x10_fully
+	dot_product_10x10_partially
+	dot_product_10x10_un
+	distances_5x5_fully
+	distances_5x5_partially
+	distances_5x5_un
 	)
 
 include(CTest)
