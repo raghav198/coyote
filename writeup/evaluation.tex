@@ -30,7 +30,8 @@ The benchmarks are as follows:
     \item Vector dot product, with vector sizes of 3, 6, and 10 (all of these are regular with no data reuse).
     \item 1D convolution. We do this with a vector of size 4 and a kernel of size 2, and with a vector of size 5 and a kernel of size 3. Both of these are regular and have little data reuse.
     \item Point cloud distances (Given a set of points, compute the square of every pairwise Euclidean distance). We do this for 3, 4, and 5 points. These are all regular but have some substantial data reuse, especially in the 5-point case.
-    \item Decision tree traversal (inputs grouped and ungrouped). This benchmark is a decision tree that represents sorting a list of three elements. It takes as input three ciphertext ``decisions'' representing comparison results, and six ciphertext ``labels'' representing possible arrangements of the sorted list. In particular, each of the three decisions gets used in multiple branches of the tree. ``grouped'' here means the data layout groups the three decisions into one vector and the six labels into another. This is irregular, and the grouped versions have data reuse.
+    \item Sorting a list of size 3. This benchmark implements the sort as a ``decision tree'', taking as input three ciphertexts representing pairwise comparison results and six ciphertext ``labels'' representing possible arrangements of the sorted list. In particular, each of the three comparison results gets used in multiple branches of the tree. ``grouped'' here means the data layout groups the three comparisons into one vector and the six labels into another. This is irregular, and the grouped versions have data reuse.
+    \item Finding the maximum element in a list of size 5. This benchmark takes as input five ciphertexts representing the elements of the list, and ten ciphertexts representing pairwise comparison results.
 \end{enumerate}
 
 %\raghav{redundant?}
@@ -95,10 +96,16 @@ Note that for dot product, replication makes no difference as each input is used
     mm.3.partially & 610 & 18 & 27 & 4 & 1 & 18 & 6 & 24.0\\
     mm.3.fully & 607 & 18 & 27 & 4 & 2 & 9 & 3 & 24.0\\
     \midrule
-    tree.grouped.un & 238 & 10 & 10 & 8 & 4 & 8 & 6 & 3.24\\
-    tree.grouped.partially & 233 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
-    tree.grouped.fully & 231 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
-    tree & 139 & 10 & 10 & 11 & 5 & 1 & 1 & 3.24\\\bottomrule
+    sort.3.grouped.un & 238 & 10 & 10 & 8 & 4 & 8 & 6 & 3.24\\
+    sort.3.grouped.partially & 233 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
+    sort.3.grouped.fully & 231 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
+    sort.3 & 139 & 10 & 10 & 11 & 5 & 1 & 1 & 3.24\\
+    \midrule
+    max.5.grouped.un & ?? & 30 & 30 & 15 & 11 & 30 & 18 & ??\\
+    max.5.grouped.partially & ?? & 30 & 30 & 12 & 9 & 27 & 15 & ??\\
+    max.5.grouped.fully & ?? & 30 & 30 & 19 & 9 & 24 & 23 & ??\\
+    max.5 & ?? & 30 & 30 & 17 & 6 & 15 & 13 & ??\\
+    \bottomrule
     \end{tabular}
 \end{table*}
 
