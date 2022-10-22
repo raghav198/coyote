@@ -12,7 +12,7 @@ In this evaluation, we aim to answer the following questions:
     \item {\bf How effective is \system's vectorization?} To answer this, we count the number of instructions generated in the vector code compared to the scalar code. (Section~\ref{sec:compilation-stuff})
     \item {\bf How well do \system's schedules compare to hand-optimized code?} We compare the run times of various hand-optimized benchmarks to the run time of the vector code that \system generates for them. (Section~\ref{sec:expert-comparison})
     \item {\bf To what extent does the data layout chosen by the programmer affect \system's ability to vectorize?} We conduct a case study exploring various data layout schemes for a $3\times 3$ matrix multiply, and measure the vectorization speedup for each layout. (Section~\ref{sec:effects-of-data-layout})
-%    \item {\bf How effective is the layout/schedule co-optimization strategy?} We track the progress of the schedule-search procedure over time for various levels of data layout optimization. This discussion can be found in Section~\ref{sec:search-and-cooptimization}.
+   \item {\bf How effective is the layout/schedule co-optimization strategy?} We track the progress of the schedule-search procedure over time for various levels of data layout optimization. This discussion can be found in Section~\ref{sec:search-and-cooptimization}.
 \end{enumerate}
 
 \subsection{Computational Kernels}
@@ -228,23 +228,23 @@ By contrast, when each entry is on a separate vector, every rotation must necess
     \caption{Speedups for the five data layout case studies (higher is better). Note that the second bar (``Separate'') corresponds to the leftmost bar of {\sf mm.3} in Figure~\ref{fig:vector-speedups}.}
     \Description{Bar graph showing speedup from vectorization for five data layout case studies}\label{fig:data-layout-case-study}
     
-    %     \includegraphics[width=0.6\linewidth]{figures/graphs/schedules.png}
-    %     \vspace{-1em}
-    % \caption{Schedule cost over time (lower is better) for different numbers of simulated annealing iterations for data layout per step of scheduling.}
-    % \Description{Multiple line graphs showing the schedule cost over time for different optimization parameters}\label{fig:schedule-cost}
+        \includegraphics[width=0.9\linewidth]{figures/graphs/schedules.png}
+        \vspace{-1em}
+    \caption{Schedule cost over time (lower is better) for different numbers of simulated annealing iterations for data layout per step of scheduling.}
+    \Description{Multiple line graphs showing the schedule cost over time for different optimization parameters}\label{fig:schedule-cost}
 \end{figure}
 
 
-% \subsection{Effects of Search and Co-Optimization}\label{sec:search-and-cooptimization}
+\subsection{Effects of Search and Co-Optimization}\label{sec:search-and-cooptimization}
 % % \milind{bad section title :-) Call it something like ``Effects of Search and Co-optimization.'' There should be a research question in the intro that directly pertains to the results of this study}
 % % \milind{Don't just launch into the figure description. Remind people why we're here :-)}\raghav{Is this better?}
-% We would like to know how effective \system's schedule search strategy is, and in particular, how good of a job it does at optimizing data layout and schedule {\em together}.
-% To test this, we compile the 5-point distances benchmark with three different levels of data layout by varying the number of iterations of simulated annealing, and record the cost of the generated schedule during each round of the search.
+We would like to know how effective \system's schedule search strategy is, and in particular, how good of a job it does at optimizing data layout and schedule {\em together}.
+To test this, we compile the 5-point distances benchmark with three different levels of data layout by varying the number of iterations of simulated annealing, and record the cost of the generated schedule during each round of the search.
 
-% Figure~\ref{fig:schedule-cost} shows the cost of the vector schedule over time for various levels of data layout.
-% The blue line depicts the schedule cost when we use 10k iterations of simulated annealing to find an optimal data layout at each step; the orange line is 15k iterations and the green line is 20k iterations.
-% As expected, doing more iterations of simulated annealing has a large effect on the efficiency of the final schedule, since we rely heavily on the fact that the data layout being used to guide each round of the search is close to optimal.
-% In compiling all our benchmarks, we use 20k iterations of annealing (the green line).
+Figure~\ref{fig:schedule-cost} shows the cost of the vector schedule over time for various levels of data layout.
+The blue line depicts the schedule cost when we use 10k iterations of simulated annealing to find an optimal data layout at each step; the orange line is 15k iterations and the green line is 20k iterations.
+As expected, doing more iterations of simulated annealing has a large effect on the efficiency of the final schedule, since we rely heavily on the fact that the data layout being used to guide each round of the search is close to optimal.
+In compiling all our benchmarks, we use 20k iterations of annealing (the green line).
 
 % The main tradeoff to be made here is one of compilation time: obviously, annealing for fewer iterations results in faster compilation, but worse schedules.
 %\begin{figure}[t]
