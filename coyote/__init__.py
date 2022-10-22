@@ -13,6 +13,7 @@ class matrix:
 class vector:
     size: int
     replicate: bool = False
+    pack: bool = False
 
 @dataclass
 class scalar:
@@ -52,15 +53,15 @@ class coyote_compiler:
         self.func_signatures = {}
         self.outputs = []
 
-    def vectorize(self):
-        return vectorize(self.compiler)
+    def vectorize(self, lanes_out=[]):
+        return vectorize(self.compiler, lanes_out)
 
 
-    def instantiate(self, *funcs):
+    def instantiate(self, *funcs, _input_groups=None, _force_lanes=None):
         self.outputs = []
-        input_groups, outputs = self.get_outputs(funcs)
+        input_groups, force_lanes, outputs = self.get_outputs(funcs)
             
-        self.compiler = CompilerV2(input_groups)
+        self.compiler = CompilerV2(input_groups, force_lanes=force_lanes)
 
         for out in outputs:
             self.outputs.append(self.compiler.compile(out).val)
@@ -70,6 +71,7 @@ class coyote_compiler:
 
     def get_outputs(self, funcs):
         input_groups = []
+        force_lanes = {}
         outputs = []
 
         if len(funcs) == 0:
@@ -89,11 +91,18 @@ class coyote_compiler:
                         params[_p] = [[Var(f'{p}:{i};{j}') for i in range(t.rows)] for j in range(t.cols)]
                     input_groups.append({f'{p}:{i};{j}' for i in range(t.rows) for j in range(t.cols)})
                 elif isinstance(t, vector):
+                    
+                    if t.replicate and t.pack:
+                        raise TypeError('`replicate` and `pack` options not allowed together!')
+                    
                     if t.replicate:
                         params[_p] = copy_vector(t.size, p)
                     else:
                         params[_p] = [Var(f'{p}:{i}') for i in range(t.size)]
                     input_groups.append({f'{p}:{i}' for i in range(t.size)})
+                    
+                    if t.pack:
+                        force_lanes.update({f'{p}:{i}': i for i in range(t.size)})
                 else:
                     params[_p] = Var(p)
 
@@ -102,7 +111,7 @@ class coyote_compiler:
                 outputs += out
             else:
                 outputs.append(out)
-        return input_groups,outputs
+        return input_groups, force_lanes, outputs
 
 
     def define_circuit(self, **types):

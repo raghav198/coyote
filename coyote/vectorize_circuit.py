@@ -61,18 +61,19 @@ def producers(graph: nx.DiGraph, nbunch) -> Set[int]:
     return {p for p, _ in graph.in_edges(nbunch)}
 
 
-def nx_columnize(_graph: nx.DiGraph):
-    graph = _graph.to_undirected()
+def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
+    # graph = nx.quotient_graph(_graph.to_undirected(), lambda u, v: u in force_lanes and v in force_lanes and force_lanes[u] == force_lanes[v])
     # graph = _graph
+    graph = _graph.to_undirected()
 
     epochs: Dict[int, List[int]] = defaultdict(list)
-
     for node in graph:
-        epochs[graph.nodes[node]['epoch']].append(node)
+        epochs[_graph.nodes[node]['epoch']].append(node)
 
     num_epochs = max(epochs.keys()) + 1
 
-    # print('epochs:', epochs)
+    print('epochs:', epochs)
+    
 
     # bipartite pieces, indexed by (source, target) epoch
     pieces: Dict[Tuple[int, int], nx.graph.Graph] = {}
@@ -107,9 +108,16 @@ def nx_columnize(_graph: nx.DiGraph):
             # print(f'Putting {bp_subgraph.edges} in for {i, j}')
             pieces[i, j] = bp_subgraph
             # print(f'{i, j} weights: {bp_subgraph.edges(data=True)}')
-
-    columns: DisjointSet[int] = DisjointSet()
+    # print(pieces)
+    columns: DisjointSet[tuple[int]] = DisjointSet()
     total_degree = 0
+    
+    preloaded: dict[int, set[tuple[int]]] = defaultdict(set)
+    for node in force_lanes:
+        preloaded[force_lanes[node]].add((node,))
+    for group in preloaded.values():
+        print(f'Grouping {group} into a column')
+        columns.new_class(*group)
 
     for i, j in sorted(pieces.keys()):
         bp_piece = pieces[i, j]
@@ -119,6 +127,7 @@ def nx_columnize(_graph: nx.DiGraph):
         # TODO: this is not the right condition for marking an edge 'unmatchable'
         ## also check if the edge connects an unmatched vertex to one already matched with something in the same epoch
         matchable_graph = nx.graphviews.subgraph_view(bp_piece, filter_edge=lambda u, v: not (columns.contains(u) and columns.contains(v)))
+        # matchable_graph = nx.graphviews.subgraph_view(matchable_graph, filter_edge=lambda u, v: not (u in force_lanes and v in force_lanes and force_lanes[u] != force_lanes[v]))
         
         # print(f'Marking edges {[(u, v) for u, v in bp_piece.edges if columns.contains(u) and columns.contains(v)]} as unmatchable')
         # print(f'{matchable_graph.edges} are all matchable')
@@ -146,7 +155,9 @@ def nx_columnize(_graph: nx.DiGraph):
         rotation_graph = nx.graphviews.subgraph_view(graph, filter_edge=lambda u, v: (u, v) not in matching and (v, u) not in matching)
 
         total_degree += max(rotation_graph.degree(), key=lambda n: n[1])[1]
-
+    list(map(print, map(sorted, columns.all_classes())))
+    # quit()
+    
     for i, col in enumerate(columns.all_classes()):
         for node in col:
             _graph.nodes[node]['column'] = i
@@ -187,7 +198,7 @@ def permute(graph, num_cols, num_epochs):
     return s1, s2, n1, n2
 
 
-def lane_placement(graph: nx.DiGraph, t=10, beta=0.05, rounds=10000):
+def lane_placement(graph: nx.DiGraph, force_lanes: dict[int, int], t=10, beta=0.05, rounds=10000):
     current, _ = rotation_cost(graph)
     num_cols = 1 + max(d for _, d in graph.nodes(data='column'))
     num_epochs = 1 + max(d for _, d in graph.nodes(data='epoch'))
@@ -204,6 +215,13 @@ def lane_placement(graph: nx.DiGraph, t=10, beta=0.05, rounds=10000):
 
         # generate candidate solution
         s1, s2, n1, n2 = permute(graph, num_cols, num_epochs)
+        # disallow changing lanes which have already been fixed
+        fixed = set(force_lanes.keys())
+        s1 = {n for n in s1 if not set(n).intersection(fixed)}
+        s2 = {n for n in s2 if not set(n).intersection(fixed)}
+        # s1 -= set(force_lanes.keys())
+        # s2 -= set(force_lanes.keys())
+        # apply permutation
         graph.add_nodes_from(s1, column=n2)
         graph.add_nodes_from(s2, column=n1)
         
@@ -236,13 +254,13 @@ def contract_edge(graph: nx.DiGraph, edge):
     return nx.relabel_nodes(contracted, {u: u + v}, copy=False)
 
 
-def iterate_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], max_iter=10, max_edges=5, sample_freq=0.3):
+def iterate_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], force_lanes: dict[int, int], max_iter=10, max_edges=5, sample_freq=0.3):
     # setup: add metadata to the graph
     grade_nx_graph(graph, groups)
-    nx_columnize(graph)
+    nx_columnize(graph, force_lanes)
     
     # anneal the cells into a good column arrangement
-    base_cost = lane_placement(graph)
+    base_cost = lane_placement(graph, force_lanes)
 
     for _ in range(max_iter):
         # annotate for cross edges, used to find contraction candidates
@@ -265,7 +283,7 @@ def iterate_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], max_iter=1
         for edge in edges_to_try:
             contracted = contract_edge(graph, edge)
             grade_nx_graph(contracted, groups)
-            contracted_cost = lane_placement(contracted)
+            contracted_cost = lane_placement(contracted, force_lanes)
 
             if contracted_cost <= base_cost:
                 options.append((contracted_cost, contracted))
@@ -283,13 +301,13 @@ def iterate_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], max_iter=1
     return graph, base_cost
 
 
-def bfs_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], max_edges=10, max_iter=20):
+def bfs_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], force_lanes: dict[int, int], max_edges=10, max_iter=20):
     # compute initial metadata
     grade_nx_graph(graph, groups)
-    nx_columnize(graph)
+    nx_columnize(graph, force_lanes)
 
     # anneal into a good column arrangement
-    min_cost = lane_placement(graph, t=50, beta=0.01, rounds=50000)
+    min_cost = lane_placement(graph, force_lanes, t=50, beta=0.01, rounds=50000)
     best_graph = graph
 
     queue = [graph] # queue of schedules to anneal
@@ -337,7 +355,7 @@ def bfs_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], max_edges=10, 
             contracted = contract_edge(cur, edge)
             # print(f'Contracted {num_contracted} edges')
             grade_nx_graph(contracted, groups)
-            contracted_cost = lane_placement(contracted)
+            contracted_cost = lane_placement(contracted, force_lanes)
 
             if contracted_cost > min_cost:
                 print(f'\t(failed to beat {min_cost}, skipping this one)')
@@ -373,13 +391,13 @@ def schedule_height(graph: nx.DiGraph, debug=False):
 
     return cost
 
-def anneal_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], t=20, beta=0.001, rounds=100, plot=False, max_restarts=None):
+def anneal_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], force_lanes: dict[int, int], t=20, beta=0.001, rounds=100, plot=False, max_restarts=None):
     # initial metadata
     grade_nx_graph(graph, groups)
-    nx_columnize(graph)
+    nx_columnize(graph, force_lanes)
 
     # anneal into a good column arrangement
-    current_cost = lane_placement(graph, t=50, beta=0.001, rounds=50000)
+    current_cost = lane_placement(graph, force_lanes, t=50, beta=0.001, rounds=50000)
     current_cost += schedule_height(graph)
 
     cur = nx.DiGraph(graph)
@@ -433,7 +451,7 @@ def anneal_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], t=20, beta=
         
         # compute the new estimated (sub-annealed) cost
         grade_nx_graph(contracted, groups)
-        contracted_cost = lane_placement(contracted)
+        contracted_cost = lane_placement(contracted, force_lanes)
         contracted_cost += schedule_height(contracted)
 
         # accept/reject the solution
@@ -465,7 +483,7 @@ def anneal_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], t=20, beta=
     return best_graph, best_cost
 
 
-def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], rounds=200):
+def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], force_lanes: Dict[int, int], rounds=200):
     @dataclass(order=True)
     class schedule:
         cost: int
@@ -473,13 +491,23 @@ def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], rounds=200):
         edges: Optional[List[Tuple]]=field(compare=False)
 
     grade_nx_graph(graph, groups)
-    nx_columnize(graph)
+    nx_columnize(graph, force_lanes)
+    print(force_lanes)
+    print(graph.nodes(data=True))
+    print(f'Original rotation cost: {rotation_cost(graph)}')
+    for reg, lane in force_lanes.items():
+        print(f'Setting {graph.nodes[reg,]["column"]} to {lane}')
+        graph.nodes[reg,]['column'] = lane
 
     cost_history = []
     best_history = []
 
-    current_cost = lane_placement(graph, t=50, beta=0.001, rounds=50000)
+    current_cost = lane_placement(graph, force_lanes, t=50, beta=0.001, rounds=50000)
     current_cost += schedule_height(graph)
+    
+    for reg, lane in force_lanes.items():
+        print(f'Setting {graph.nodes[reg,]["column"]} to {lane}')
+        graph.nodes[reg,]['column'] = lane
 
     best = schedule(cost=current_cost, graph=nx.DiGraph(graph), edges=None)
     
@@ -532,7 +560,7 @@ def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], rounds=200):
         contracted = nx.relabel_nodes(contracted, relabeling)
 
         grade_nx_graph(contracted, groups)
-        contracted_cost = lane_placement(contracted, t=50, beta=0.001, rounds=20000)
+        contracted_cost = lane_placement(contracted, force_lanes, t=50, beta=0.001, rounds=20000)
         contracted_cost += schedule_height(contracted)
 
         heappush(pqueue, schedule(cost=contracted_cost, graph=nx.DiGraph(contracted), edges=None))
@@ -582,16 +610,17 @@ def get_lanes(graph: nx.DiGraph, warp_size: int) -> List[int]:
     return lanes
         
 
-def vectorize(comp: CompilerV2):
+def vectorize(comp: CompilerV2, lanes_out=[]):
     # compute the schedule
     
     loaded_groups = [set().union(*(comp.loaded_regs[g] for g in group)) for group in comp.input_groups]
+    loaded_lanes = {next(iter(comp.loaded_regs[g])): comp.force_lanes[g] for g in comp.force_lanes}
     
     graph = instr_sequence_to_nx_graph(comp.code)
     actual_instrs = list(filter(lambda n: all(isinstance(m, int) for m in n), graph.nodes))
     graph = nx.DiGraph(nx.subgraph(graph, actual_instrs))
 
-    relaxed_schedule = pq_relax_schedule(graph, loaded_groups, rounds=50).graph
+    relaxed_schedule = pq_relax_schedule(graph, loaded_groups, loaded_lanes, rounds=200).graph
 
     # relaxed_schedule, _ = anneal_relax_schedule(graph, loaded_groups, t=20, beta=0.001, rounds=200)
 
@@ -629,6 +658,8 @@ def vectorize(comp: CompilerV2):
         inv_schedule[schedule[instr.dest.val]][lanes[instr.dest.val]] = instr.dest.val
 
     print(relaxed_schedule.nodes)
+    
+    lanes_out[:] = lanes
 
     return codegen(vector_program, relaxed_schedule, lanes, schedule, warp_size)
 

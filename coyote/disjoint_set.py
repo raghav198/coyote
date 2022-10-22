@@ -13,6 +13,19 @@ class DisjointSet(Generic[T]):
         self.vertices: Set[T] = set()
         self.parent: Dict[T, T] = {}
         self.children: Dict[T, Set[T]] = {}
+        
+        
+    def new_class(self, *items: T):
+        """
+        :param *items: List[T]. List of items to add to the DisjointSet
+        :return None
+        :raises ItemAlreadyPresent if any item is already contained in the structure
+        
+        Adds all items into the same fresh equivalence class
+        """
+        self.add(*items)
+        for item in items[1:]:
+            self.union(items[0], item)
 
     def contains(self, item: T) -> bool:
         """

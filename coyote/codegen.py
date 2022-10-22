@@ -175,5 +175,5 @@ def codegen(vector_program: List[VecInstr], graph: nx.DiGraph, lanes: List[int],
         for shift_amt, shifted_name in shifted_names.items():
             generated_code.append(f'{shifted_name} = {instr.dest} >> {shift_amt}')
 
-    return generated_code
+    # return generated_code
     return remove_repeated_ops(generated_code)

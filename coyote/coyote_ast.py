@@ -219,7 +219,7 @@ class Compiler:
 
 
 class CompilerV2:
-    def __init__(self, input_groups: List[Set[str]] = [], allow_replicating=[]):
+    def __init__(self, input_groups: List[Set[str]] = [], allow_replicating=[], force_lanes: Dict[str, int] = {}):
         self.code: List[Instr] = []
         self.tag_lookup: Dict[int, Expression] = {}
         self.dependences: Dict[int, Set[int]] = defaultdict(set)
@@ -237,6 +237,8 @@ class CompilerV2:
                     self.allow_duplicates |= self.input_groups[thing]
                 else:
                     self.allow_duplicates.add(thing)
+                    
+        self.force_lanes = force_lanes
 
 
     def compile(self, e: Expression):
