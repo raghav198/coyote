@@ -7,12 +7,14 @@
 %  }
 
 In this evaluation, we aim to answer the following questions:
+
+\raghav{flipped the first two around so its in order :)}
 \begin{enumerate}
-    \item {\bf How much speedup does compiling with \system get us?} To address this, we compile several realistic benchmarks and measure the speedup of the vectorized code over scalar execution. (Section~\ref{sec:speedups})
     \item {\bf How effective is \system's vectorization?} To answer this, we count the number of instructions generated in the vector code compared to the scalar code. (Section~\ref{sec:compilation-stuff})
+    \item {\bf How much speedup does compiling with \system get us?} To address this, we compile several realistic benchmarks and measure the speedup of the vectorized code over scalar execution. (Section~\ref{sec:speedups})
     \item {\bf How well do \system's schedules compare to hand-optimized code?} We compare the run times of various hand-optimized benchmarks to the run time of the vector code that \system generates for them. (Section~\ref{sec:expert-comparison})
     \item {\bf To what extent does the data layout chosen by the programmer affect \system's ability to vectorize?} We conduct a case study exploring various data layout schemes for a $3\times 3$ matrix multiply, and measure the vectorization speedup for each layout. (Section~\ref{sec:effects-of-data-layout})
-   \item {\bf How effective is the layout/schedule co-optimization strategy?} We track the progress of the schedule-search procedure over time for various levels of data layout optimization. This discussion can be found in Section~\ref{sec:search-and-cooptimization}.
+   \item {\bf How effective is the layout/schedule co-optimization strategy?} We track the progress of the schedule-search procedure over time for various levels of data layout optimization. (Section~\ref{sec:search-and-cooptimization})
 \end{enumerate}
 
 \subsection{Computational Kernels}
@@ -31,7 +33,7 @@ The benchmarks are as follows:
     \item 1D convolution. We do this with a vector of size 4 and a kernel of size 2, and with a vector of size 5 and a kernel of size 3. Both of these are regular and have little data reuse.
     \item Point cloud distances (Given a set of points, compute the square of every pairwise Euclidean distance). We do this for 3, 4, and 5 points. These are all regular but have some substantial data reuse, especially in the 5-point case.
     \item Sorting a list of size 3. This benchmark implements the sort as a ``decision tree'', taking as input three ciphertexts representing pairwise comparison results and six ciphertext ``labels'' representing possible arrangements of the sorted list. In particular, each of the three comparison results gets used in multiple branches of the tree. ``grouped'' here means the data layout groups the three comparisons into one vector and the six labels into another. This is irregular, and the grouped versions have data reuse.
-    \item Finding the maximum element in a list of size 5. This benchmark takes as input five ciphertexts representing the elements of the list, and ten ciphertexts representing pairwise comparison results.
+    \item Finding the maximum element in a list of size 5. This benchmark takes as input five ciphertexts representing the elements of the list, and ten ciphertexts representing pairwise comparison results. Similar to the sorting benchmark, this is irregular, and the grouped versions have data reuse.
 \end{enumerate}
 
 %\raghav{redundant?}
@@ -105,6 +107,8 @@ Note that for dot product, replication makes no difference as each input is used
     max.5.grouped.partially & ?? & 30 & 30 & 12 & 9 & 27 & 15 & ??\\
     max.5.grouped.fully & ?? & 30 & 30 & 19 & 9 & 24 & 23 & ??\\
     max.5 & ?? & 30 & 30 & 17 & 6 & 15 & 13 & ??\\
+    \midrule
+    mm.16.blocked & ?? & 3840 & 4096 & 414 & 128 & 4446 & 872 & 3200\\
     \bottomrule
     \end{tabular}
 \end{table*}
