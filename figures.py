@@ -26,11 +26,14 @@ for benchmark in benchmarks:
 
 width = 0.2
 
-speedups['dtree'] = tuple(1 / csv_speedup(f'csvs/decision_tree/decision_tree_packed_{suf}.csv') for suf in 'un,partially,fully'.split(','))
+speedups['sort[3]'] = tuple(1 / csv_speedup(f'csvs/decision_tree/decision_tree_packed_{suf}.csv') for suf in 'un,partially,fully'.split(','))
+speedups['max[5]'] = tuple(1 / csv_speedup(f'csvs/max_value/max_value_packed_{suf}.csv') for suf in 'un,partially,fully'.split(','))
+
 dtree_scalar_speedup = 1 / csv_speedup('csvs/decision_tree/decision_tree.csv')
+max_scalar_speedup = 1 / csv_speedup('csvs/max_value/max_value.csv')
 
 labels = [(lambda n, s: (n, eval(s)))(*l.split('.', 1)) for l in speedups.keys() if '.' in l]
-labels = list(map(lambda l: f'{l[0]}.{l[1]}', sorted(labels))) + ['dtree']
+labels = list(map(lambda l: f'{l[0]}.{l[1]}', sorted(labels))) + ['sort[3]', 'max[5]']
 values = [speedups[l] for l in labels]
 
 x = np.arange(len(labels))
@@ -39,12 +42,12 @@ x = np.arange(len(labels))
 
 
 us, ps, fs = zip(*values)
-
 # plt.bar(x-2*width, np.ones(len(labels)), width, color='black')
 plt.bar(x-width, us, width, color='#253494')
 plt.bar(x, ps, width, color='#2c7fb8')
 plt.bar(x+width, fs, width, color='#41b6c4')
-plt.bar(max(x)+width*2, dtree_scalar_speedup, width, color='#a1dab4')
+plt.bar(labels.index('sort[3]')+width*2, dtree_scalar_speedup, width, color='#a1dab4')
+plt.bar(labels.index('max[5]')+width*2, max_scalar_speedup, width, color='#a1dab4')
 plt.xticks(x, labels, rotation=30)
 plt.axhline(1, color='red')
 plt.ylabel('(Normalized) Speedup')
