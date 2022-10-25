@@ -4,31 +4,31 @@
 std::map<std::string, ptxt> VectorProgram::make_bits(RuntimeContext &info)
 {
     std::map<std::string, ptxt> bits;
-    add_bitstring(bits, "0000000100000000", info);
-    add_bitstring(bits, "1100000011000000", info);
-    add_bitstring(bits, "0000000000000001", info);
-    add_bitstring(bits, "0000000000100000", info);
-    add_bitstring(bits, "0001000100000000", info);
-    add_bitstring(bits, "0010001000000000", info);
-    add_bitstring(bits, "0100000001000000", info);
+    add_bitstring(bits, "0011000100000000", info);
+    add_bitstring(bits, "0000000000010000", info);
+    add_bitstring(bits, "0001001000001000", info);
     add_bitstring(bits, "0000010000000000", info);
     add_bitstring(bits, "0000000001000000", info);
-    add_bitstring(bits, "0000000000010000", info);
-    add_bitstring(bits, "0011100000100110", info);
-    add_bitstring(bits, "0100100000100000", info);
-    add_bitstring(bits, "0001001000001000", info);
-    add_bitstring(bits, "0011000000001000", info);
-    add_bitstring(bits, "0001001101001000", info);
-    add_bitstring(bits, "0001000000100000", info);
     add_bitstring(bits, "0000001000000000", info);
-    add_bitstring(bits, "0001000000000000", info);
-    add_bitstring(bits, "0100000000000000", info);
-    add_bitstring(bits, "0000011000000000", info);
-    add_bitstring(bits, "0100000101000000", info);
+    add_bitstring(bits, "0000000100000000", info);
+    add_bitstring(bits, "1100000011000000", info);
     add_bitstring(bits, "0000010000010000", info);
-    add_bitstring(bits, "0010000000000000", info);
+    add_bitstring(bits, "0001000000100000", info);
+    add_bitstring(bits, "0000000000100000", info);
+    add_bitstring(bits, "0000011000000000", info);
+    add_bitstring(bits, "0100000001000000", info);
+    add_bitstring(bits, "0011100000100110", info);
     add_bitstring(bits, "0000000000001000", info);
-    add_bitstring(bits, "0011000100000000", info);
+    add_bitstring(bits, "0001000100000000", info);
+    add_bitstring(bits, "0100000000000000", info);
+    add_bitstring(bits, "0011000000001000", info);
+    add_bitstring(bits, "0010000000000000", info);
+    add_bitstring(bits, "0001000000000000", info);
+    add_bitstring(bits, "0000000000000001", info);
+    add_bitstring(bits, "0100100000100000", info);
+    add_bitstring(bits, "0100000101000000", info);
+    add_bitstring(bits, "0001001101001000", info);
+    add_bitstring(bits, "0010001000000000", info);
     return bits;
 }
 

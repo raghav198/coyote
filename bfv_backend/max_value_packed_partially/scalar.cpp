@@ -7,7 +7,7 @@ int ScalarProgram::num_registers()
 
 std::vector<std::string> ScalarProgram::vars_used()
 {
-    return {"max_value_packed_partially(os):4", "max_value_packed_partially(cs):9", "max_value_packed_partially(cs):1", "max_value_packed_partially(os):3", "max_value_packed_partially(cs):2", "max_value_packed_partially(os):2", "max_value_packed_partially(os):1", "max_value_packed_partially(cs):7", "max_value_packed_partially(cs):8", "max_value_packed_partially(os):0", "max_value_packed_partially(cs):0", "max_value_packed_partially(cs):3", "max_value_packed_partially(cs):6", "max_value_packed_partially(cs):4", "max_value_packed_partially(cs):5", "1"};
+    return {"1", "max_value_packed_partially(cs):4", "max_value_packed_partially(os):2", "max_value_packed_partially(cs):9", "max_value_packed_partially(os):3", "max_value_packed_partially(cs):2", "max_value_packed_partially(cs):5", "max_value_packed_partially(os):4", "max_value_packed_partially(cs):1", "max_value_packed_partially(cs):3", "max_value_packed_partially(cs):7", "max_value_packed_partially(os):0", "max_value_packed_partially(os):1", "max_value_packed_partially(cs):0", "max_value_packed_partially(cs):8", "max_value_packed_partially(cs):6"};
 }
 
 std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, RuntimeContext &info)

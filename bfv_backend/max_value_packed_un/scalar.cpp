@@ -7,7 +7,7 @@ int ScalarProgram::num_registers()
 
 std::vector<std::string> ScalarProgram::vars_used()
 {
-    return {"max_value_packed_un(cs):6", "max_value_packed_un(cs):4", "max_value_packed_un(os):1", "max_value_packed_un(cs):8", "max_value_packed_un(os):2", "max_value_packed_un(cs):1", "max_value_packed_un(os):3", "max_value_packed_un(os):4", "1", "max_value_packed_un(cs):0", "max_value_packed_un(cs):3", "max_value_packed_un(cs):7", "max_value_packed_un(os):0", "max_value_packed_un(cs):2", "max_value_packed_un(cs):5", "max_value_packed_un(cs):9"};
+    return {"max_value_packed_un(os):3", "max_value_packed_un(cs):4", "max_value_packed_un(cs):0", "1", "max_value_packed_un(cs):5", "max_value_packed_un(cs):8", "max_value_packed_un(cs):6", "max_value_packed_un(cs):7", "max_value_packed_un(os):4", "max_value_packed_un(os):2", "max_value_packed_un(cs):9", "max_value_packed_un(os):0", "max_value_packed_un(cs):1", "max_value_packed_un(cs):3", "max_value_packed_un(os):1", "max_value_packed_un(cs):2"};
 }
 
 std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, RuntimeContext &info)

@@ -7,12 +7,12 @@ int ScalarProgram::num_registers()
 
 std::vector<std::string> ScalarProgram::vars_used()
 {
-    return {"max_value(o5)", "max_value(c12)", "max_value(o2)", "max_value(o1)", "max_value(c35)", "max_value(c24)", "max_value(c34)", "max_value(c25)", "max_value(c14)", "max_value(o4)", "max_value(c23)", "max_value(c15)", "max_value(c13)", "max_value(c45)", "max_value(o3)", "1"};
+    return {"max_value(c25)", "max_value(c35)", "max_value(o4)", "max_value(c23)", "max_value(c12)", "max_value(c24)", "max_value(o5)", "max_value(o2)", "max_value(c45)", "max_value(c34)", "max_value(c13)", "max_value(c15)", "max_value(o1)", "1", "max_value(o3)", "max_value(c14)"};
 }
 
 std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, RuntimeContext &info)
 {
-    seal::RelinKeys rk = info.keys->rk;
+    seal::RelinKeys& rk = info.keys->rk;
     ctxt regs[num_registers()];
     info.eval->multiply(locs["max_value(c15)"], locs["max_value(o1)"], regs[0]);
     info.eval->relinearize_inplace(regs[0], rk);
