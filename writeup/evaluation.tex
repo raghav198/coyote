@@ -12,9 +12,11 @@ In this evaluation, we aim to answer the following questions:
 \begin{enumerate}
     \item {\bf How effective is \system's vectorization?} To answer this, we count the number of instructions generated in the vector code compared to the scalar code. (Section~\ref{sec:compilation-stuff})
     \item {\bf How much speedup does compiling with \system get us?} To address this, we compile several realistic benchmarks and measure the speedup of the vectorized code over scalar execution. (Section~\ref{sec:speedups})
+    \item {\bf How well does \system scale up to larger kernel sizes?} To measure this, we compile a much larger circuit by vectorizing and composing its components. (Section~\ref{sec:scalability}) \raghav{does this sound okay}
     \item {\bf How well do \system's schedules compare to hand-optimized code?} We compare the run times of various hand-optimized benchmarks to the run time of the vector code that \system generates for them. (Section~\ref{sec:expert-comparison})
     \item {\bf To what extent does the data layout chosen by the programmer affect \system's ability to vectorize?} We conduct a case study exploring various data layout schemes for a $3\times 3$ matrix multiply, and measure the vectorization speedup for each layout. (Section~\ref{sec:effects-of-data-layout})
    \item {\bf How effective is the layout/schedule co-optimization strategy?} We track the progress of the schedule-search procedure over time for various levels of data layout optimization. (Section~\ref{sec:search-and-cooptimization})
+   \item {\bf How much optimality do we sacrifice by setting synthesis timeouts?} We turn off the synthesis timeouts to guarantee optimal schedule alignments and compare the results. (Section~\ref{sec:ilp-ablation})
 \end{enumerate}
 
 \subsection{Computational Kernels}
@@ -106,7 +108,7 @@ Note that for dot product, replication makes no difference as each input is used
     max[5].grouped.un & 880 & 30 & 30 & 15 & 11 & 30 & 18 & 7.33\\
     max[5].grouped.partially & 905 & 30 & 30 & 12 & 9 & 27 & 15 & 7.33\\
     max[5].grouped.fully & 902 & 30 & 30 & 19 & 9 & 24 & 23 & 7.33\\
-    max[5] & 537 & 30 & 30 & 17 & 6 & 15 & 13 & 7.33
+    max[5] & 537 & 30 & 30 & 17 & 6 & 15 & 13 & 7.33\\
     \midrule
     mm.16.blocked & ?? & 3840 & 4096 & 414 & 128 & 4446 & 872 & 3200\\
     \bottomrule
@@ -146,6 +148,15 @@ We also generally notice more speedup as the replication level increases, sugges
 While it may appear that \system's actual speedups are sometimes well off from the idealized speedups, this is due to the rotations and blends required to implement these benchmarks outside an idealized world where vector permutation is free. For example, in the \textsf{3x3}, fully-replicated matrix multiply case, \system generates 9 rotations to move results into place. We see, though, that in benchmarks where \system can generate schedules with few rotates, it does well despite the data movement costs. For example, in \textsf{conv.4.2}, \system achieves a 2.5$\times$ speedup versus an ideal speedup of 5$\times$; and in \textsf{dot.3}, \system achieves a 1.6$\times$ speedup versus an ideal speedup of 2.7$\times$.
 
 %\milind{This would be a good place to discuss the comparison of our speedups with rotation vs. modeled ideal speedups without rotation costs...}
+\subsection{Scalability}\label{sec:scalability}
+Many of the benchmarks we evaluate on have relatively small input sizes, since it is often intractable to directly apply the search procedure \system uses for lane placement.
+However, it is possible to scale \system up to larger input sizes by ``blocking'', or vectorizing smaller kernels separately and then composing the vector programs.
+To investigate how well this scaling works, we used \system to compile a $16\times 16$ matrix multiply as follows.
+We vectorized the multiplication of a single $4\times 4$ ``block'', and recorded the input/output layouts \system chose.
+The output layout of each $4\times 4$ block was provided as an input layout constraint \raghav{check: do we talk about the ability to constrain input layouts anywhere?} to another kernel, which took 64 of these blocks and performed the necessary reductions to arrange them into the final result of the $16\times 16$ matrix multiplication.
+The metadata for this benchmark is shown under {\tt mm.16} in Table~\ref{tab:big-ass} (the compilation time includes the time to compile the $4\times 4$ block as well as the reduction circuit).
+After vectorizing, the blocked $16\times 16$ matrix multiply takes 3433 seconds, compared to 4541 seconds before vectorizing, for a total 32\% speedup.
+This shows that by composing smaller kernels, \system is able to scale up to vectorizing much larger circuits and still see relatively significant speedups over unvectorized code. \raghav{stronger/better way to make this point maybe?}
 
 \subsection{Randomly Generated Irregular Kernels}
 \begin{figure}[t]
@@ -256,6 +267,17 @@ Figure~\ref{fig:schedule-cost} shows the cost of the vector schedule over time f
 The blue line depicts the schedule cost when we use 10k iterations of simulated annealing to find an optimal data layout at each step; the orange line is 15k iterations and the green line is 20k iterations.
 As expected, doing more iterations of simulated annealing has a large effect on the efficiency of the final schedule, since we rely heavily on the fact that the data layout being used to guide each round of the search is close to optimal.
 In compiling all our benchmarks, we use 20k iterations of annealing (the green line).
+
+\subsection{Optimality Tradeoffs from Timeouts}\label{sec:ilp-ablation}
+The synthesis procedure we use for generating the final (aligned) schedule from a pre-schedule uses iterative calls to an ILP solver bounded by a timeout.
+This is to prevent the synthesis time from blowing up, but it does come at the cost of sacrificing some optimality, since the solver might time out before finding the smallest possible schedule. 
+In this section, we investigate the extent to which this choice matters by turning the timeout off for a handful of benchmarks, so that the synthesized schedules are guaranteed to be the optimal ones. 
+The results are summarized in Table~\ref{tab:ilp-ablation}.\raghav{check}
+
+\begin{table}
+    {\tt fun and interactive numbers go here!!}
+    \caption{Compile times and performance with and without using synthesis timeouts. N/A indicates that the compilation timed out after one hour.}\label{tab:ilp-ablation}
+\end{table}
 
 % The main tradeoff to be made here is one of compilation time: obviously, annealing for fewer iterations results in faster compilation, but worse schedules.
 %\begin{figure}[t]
