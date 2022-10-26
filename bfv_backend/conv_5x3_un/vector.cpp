@@ -4,14 +4,14 @@
 std::map<std::string, ptxt> VectorProgram::make_bits(RuntimeContext &info)
 {
     std::map<std::string, ptxt> bits;
-    add_bitstring(bits, "000010000", info);
-    add_bitstring(bits, "000000111", info);
-    add_bitstring(bits, "111000000", info);
-    add_bitstring(bits, "100000000", info);
-    add_bitstring(bits, "100100000", info);
     add_bitstring(bits, "010111010", info);
-    add_bitstring(bits, "001000101", info);
+    add_bitstring(bits, "100000000", info);
     add_bitstring(bits, "000111000", info);
+    add_bitstring(bits, "100100000", info);
+    add_bitstring(bits, "000000111", info);
+    add_bitstring(bits, "000010000", info);
+    add_bitstring(bits, "001000101", info);
+    add_bitstring(bits, "111000000", info);
     return bits;
 }
 

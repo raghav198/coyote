@@ -7,7 +7,7 @@ int ScalarProgram::num_registers()
 
 std::vector<std::string> ScalarProgram::vars_used()
 {
-    return {"dot_product_10x10_partially(v2):7", "dot_product_10x10_partially(v1):6", "dot_product_10x10_partially(v2):5", "dot_product_10x10_partially(v2):2", "dot_product_10x10_partially(v1):0", "dot_product_10x10_partially(v1):4", "dot_product_10x10_partially(v1):3", "dot_product_10x10_partially(v2):6", "dot_product_10x10_partially(v2):8", "dot_product_10x10_partially(v1):7", "dot_product_10x10_partially(v2):4", "dot_product_10x10_partially(v1):8", "dot_product_10x10_partially(v1):1", "dot_product_10x10_partially(v2):9", "dot_product_10x10_partially(v2):0", "dot_product_10x10_partially(v1):9", "dot_product_10x10_partially(v2):1", "dot_product_10x10_partially(v2):3", "dot_product_10x10_partially(v1):5", "dot_product_10x10_partially(v1):2"};
+    return {"dot_product_10x10_partially(v2):3", "dot_product_10x10_partially(v2):9", "dot_product_10x10_partially(v1):8", "dot_product_10x10_partially(v1):7", "dot_product_10x10_partially(v1):0", "dot_product_10x10_partially(v2):4", "dot_product_10x10_partially(v1):4", "dot_product_10x10_partially(v1):6", "dot_product_10x10_partially(v2):2", "dot_product_10x10_partially(v2):6", "dot_product_10x10_partially(v2):7", "dot_product_10x10_partially(v1):9", "dot_product_10x10_partially(v1):2", "dot_product_10x10_partially(v1):3", "dot_product_10x10_partially(v2):5", "dot_product_10x10_partially(v2):1", "dot_product_10x10_partially(v1):5", "dot_product_10x10_partially(v2):0", "dot_product_10x10_partially(v2):8", "dot_product_10x10_partially(v1):1"};
 }
 
 std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, RuntimeContext &info)

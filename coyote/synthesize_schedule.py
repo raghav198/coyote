@@ -80,7 +80,7 @@ class ScheduleSynthesizer:
         ops = ['+' if i in adds else ('-' if i in subs else '*') for i in range(self.num_instr)]
 
         self.opt = z3.Solver()
-        self.opt.set('timeout', timeout * 1000)
+        #self.opt.set('timeout', timeout * 1000)
 
         self._schedule = z3.IntVector('schedule', self.num_instr)
         self._lanes = z3.IntVector('lanes', self.num_instr)
@@ -122,6 +122,12 @@ class ScheduleSynthesizer:
         print(f'Current solution: {schedule}')
 
         return schedule
+
+    def push(self):
+        self.opt.push()
+
+    def pop(self):
+        self.opt.pop()
 
 
 def synthesize_schedule_bounded_consider_blends(program: List[Instr], max_len: int, log=stderr):
@@ -328,26 +334,27 @@ def synthesize_schedule(program: List[Instr], warp: int, lanes: List[int], log=s
     synthesizer.add_bound(len(program))
     best_so_far = None
 
-    # schedule_exists = False
-    # i = 1
+    schedule_exists = False
+    i = 1
     while schedule_exists == False:
-        # synthesizer.push()
-        # synthesizer.add_bound(i)
+        synthesizer.push()
+        synthesizer.add_bound(i)
         answer = synthesizer.solve()
-        if answer == z3.unsat:
-            if best_so_far is None:
-                raise Exception("No model was ever found!")
-            return best_so_far
-        best_so_far = answer
-        # if best_so_far == z3.sat:
-        #     schedule_exists = True
+        # if answer == z3.unsat:
+        #     if best_so_far is None:
+        #         raise Exception("No model was ever found!")
         #     return best_so_far
-        # else:
-        #     synthesizer.pop()
-        #     i += 1
-        print(f'Found schedule of length {max(answer)}, trying to improve', file=log)
-        # print(f'Found schedule of length {max(answer)}', file=log)
-        synthesizer.add_bound(max(answer))
+        best_so_far = answer
+        if best_so_far != z3.unsat:
+            schedule_exists = True
+            print(f'Found schedule of length {i}', file=log)
+            return best_so_far
+        else:
+            synthesizer.pop()
+            i += 1
+        #print(f'Found schedule of length {max(answer)}, trying to improve', file=log)
+        print(f'Found schedule of length {max(answer)}', file=log)
+        #synthesizer.add_bound(max(answer))
 
     # for max_len in range(max_height, len(program) + 1):
     #     result = synthesize_schedule_bounded(program, warp, max_len, log=log)
