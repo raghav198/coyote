@@ -353,7 +353,7 @@ def synthesize_schedule(program: List[Instr], warp: int, lanes: List[int], log=s
             synthesizer.pop()
             i += 1
         #print(f'Found schedule of length {max(answer)}, trying to improve', file=log)
-        print(f'Found schedule of length {max(answer)}', file=log)
+        #print(f'Found schedule of length {max(answer)}', file=log)
         #synthesizer.add_bound(max(answer))
 
     # for max_len in range(max_height, len(program) + 1):

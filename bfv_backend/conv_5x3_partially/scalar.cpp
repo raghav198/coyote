@@ -7,7 +7,7 @@ int ScalarProgram::num_registers()
 
 std::vector<std::string> ScalarProgram::vars_used()
 {
-    return {"conv_5x3_partially(sig):2", "conv_5x3_partially(ker):0", "conv_5x3_partially(sig):1", "conv_5x3_partially(ker):2", "conv_5x3_partially(sig):3", "conv_5x3_partially(sig):0", "conv_5x3_partially(ker):1", "conv_5x3_partially(sig):4"};
+    return {"conv_5x3_partially(sig):4", "conv_5x3_partially(sig):2", "conv_5x3_partially(ker):1", "conv_5x3_partially(sig):1", "conv_5x3_partially(ker):2", "conv_5x3_partially(ker):0", "conv_5x3_partially(sig):0", "conv_5x3_partially(sig):3"};
 }
 
 std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, RuntimeContext &info)

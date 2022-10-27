@@ -7,7 +7,7 @@ int ScalarProgram::num_registers()
 
 std::vector<std::string> ScalarProgram::vars_used()
 {
-    return {"dot_product_6x6_un(v1):5", "dot_product_6x6_un(v1):1", "dot_product_6x6_un(v2):3", "dot_product_6x6_un(v2):4", "dot_product_6x6_un(v1):3", "dot_product_6x6_un(v1):4", "dot_product_6x6_un(v2):2", "dot_product_6x6_un(v1):0", "dot_product_6x6_un(v2):0", "dot_product_6x6_un(v2):5", "dot_product_6x6_un(v2):1", "dot_product_6x6_un(v1):2"};
+    return {"dot_product_6x6_un(v1):3", "dot_product_6x6_un(v2):4", "dot_product_6x6_un(v2):3", "dot_product_6x6_un(v2):2", "dot_product_6x6_un(v1):1", "dot_product_6x6_un(v2):1", "dot_product_6x6_un(v1):5", "dot_product_6x6_un(v1):2", "dot_product_6x6_un(v2):5", "dot_product_6x6_un(v2):0", "dot_product_6x6_un(v1):4", "dot_product_6x6_un(v1):0"};
 }
 
 std::vector<ctxt> ScalarProgram::computation(std::map<std::string, ctxt> locs, RuntimeContext &info)

@@ -1,35 +1,21 @@
 import os
 
-base = "/Users/kabirsheth/efficient-FHE-compiler"
-cmake = "/opt/homebrew/bin/cmake"
+benchmarks = ['distances_5x5_fully',
+             'conv_4x2_fully', 'conv_5x3_fully', 'dot_product_3x3_fully',
+             'dot_product_6x6_fully', 'dot_product_10x10_fully', 
+             'distances_5x5_partially',
+             'conv_4x2_partially',
+             'conv_5x3_partially', 'dot_product_3x3_partially', 
+             'dot_product_6x6_partially', 'dot_product_10x10_partially',
+             'distances_5x5_un', 'conv_4x2_un',
+             'conv_5x3_un', 'dot_product_3x3_un', 'dot_product_6x6_un',
+             'dot_product_10x10_un']
 
 def collect_data(benchmark):
-    CMake = open("CMakeLists.txt", "r")
-    CMake_lines = CMake.readlines()
-    CMake.close() 
-    for i in range(len(CMake_lines)):
-            if ((CMake_lines[i].rstrip()).strip())[-10:] == "scalar.cpp":
-                CMake_lines[i] = "\t" + benchmark + "/scalar.cpp" + "\n"
-            elif ((CMake_lines[i].rstrip()).strip())[-10:] == "vector.cpp":
-                CMake_lines[i] = "\t" + benchmark + "/vector.cpp" + "\n"
-    new_file_contents = "".join(CMake_lines)
-    CMake = open("CMakeLists.txt", "w")
-    CMake.write(new_file_contents)
-    CMake.close()
+    os.system("./build/" + benchmark)
 
-    main = open("main.cpp", "r")
-    main_lines = main.readlines()
-    main.close() 
-    for i in range(len(main_lines)):
-            if ((main_lines[i].rstrip()).strip())[0:20] == "std::ofstream myfile":
-                main_lines[i] = 'std::ofstream myfile(' + '"' + benchmark + ".csv" + '"' + ');\n'
-    new_file_contents = "".join(main_lines)
-    main = open("main.cpp", "w")
-    main.write(new_file_contents)
-    main.close()
-
-    os.system("/usr/local/bin/cmake --build /Users/kabirsheth/efficient-FHE-compiler/bfv_backend/build --config Release --target all -j 10 --")
-    os.system("/Users/kabirsheth/efficient-FHE-compiler/vector_synth/bfv_backend/build/CoyoteBFVBackend")
+for benchmark in benchmarks:
+    collect_data(benchmark)
 
 # collect_data("mat_mul_det2x2")
 # collect_data("mat_mul_det3x3")
@@ -75,4 +61,4 @@ def collect_data(benchmark):
 # collect_data("tree100,100-6_4")
 # collect_data("tree100,100-6_5")
 
-collect_data("max_value")
+# collect_data("max_value")

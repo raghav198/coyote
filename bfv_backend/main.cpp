@@ -24,7 +24,7 @@ int main(int argc, char** argv)
     std::string csv_filename = __(BENCHMARK_NAME);
     csv_filename += ".csv";
     std::cout << "Running benchmark " << __(BENCHMARK_NAME) << "...\n";
-std::ofstream myfile(BENCHMARK_NAME + ".csv");
+std::ofstream myfile(csv_filename);
     myfile << "VEC,ENC,RUN,ENC + RUN,SCAL,ENC,RUN,ENC + RUN,\n";
     for (int runs = 0; runs < RUNS; runs++) {
         seal::EncryptionParameters params(seal::scheme_type::bfv);
