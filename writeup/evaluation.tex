@@ -277,6 +277,34 @@ The results are summarized in Table~\ref{tab:ilp-ablation}.\raghav{check}
 \begin{table}
     {\tt fun and interactive numbers go here!!}
     \caption{Compile times and performance with and without using synthesis timeouts. N/A indicates that the compilation timed out after one hour.}\label{tab:ilp-ablation}
+    \begin{tabular}{lcccc}
+        \toprule
+        Benchmark & Compile Time (s) w Timeout & Speedup w Timeout & Compile Time (s) w/o Timeout & Speedup w/o Timeout \\\midrule
+        dist.5.un & 777 & 1.70 & 752 & 1.75 \\
+        dist.5.partially & 771 & 1.73 & 751 & 1.76 \\
+        dist.5.fully & 798 & 2.08 & 752 & 2.16 \\
+        \midrule
+        conv.4.2.un & 128 & 1.75 & 122 & 1.78 \\
+        conv.4.2.partially & 104 & 3.12 & 102 & 3.19 \\
+        conv.4.2.fully & 94 & 3.21 & 87 & 3.15 \\
+        \midrule
+        conv.5.3.un & 264 & 1.79 & 260 & 1.80 \\
+        conv.5.3.partially & 270 & 2.48 & 261 & 2.57 \\
+        conv.5.3.fully & 258 & 3.32 & 254 & 3.30 \\
+        \midrule
+        dot.3.un & 14 & 2.11 & 13 & 2.15 \\
+        dot.3.partially & 21 & 2.11 & 13 & 2.13 \\
+        dot.3.fully & 14 & 2.12 & 13 & 2.14 \\
+        \midrule
+        dot.6.un & 200 & 2.51 & 202 & 2.20 \\
+        dot.6.partially & 200 & 2.51 & 193 & 2.21 \\
+        dot.6.fully & 192 & 2.51 & 198 & 2.20 \\
+        \midrule
+        dot.10.un & 357 & 2.21 & 320 & 2.75 \\
+        dot.10.partially & 313 & 2.15 & 323 & 2.77 \\
+        dot.10.fully & 319 & 2.27 & 311 & 2.74 \\
+        \bottomrule
+    \end{tabular}
 \end{table}
 
 % The main tradeoff to be made here is one of compilation time: obviously, annealing for fewer iterations results in faster compilation, but worse schedules.
