@@ -274,12 +274,14 @@ This is to prevent the synthesis time from blowing up, but it does come at the c
 In this section, we investigate the extent to which this choice matters by turning the timeout off for a handful of benchmarks, so that the synthesized schedules are guaranteed to be the optimal ones. 
 The results are summarized in Table~\ref{tab:ilp-ablation}.\raghav{check}
 
-\begin{table}
-    {\tt fun and interactive numbers go here!!}
-    \caption{Compile times and performance with and without using synthesis timeouts. N/A indicates that the compilation timed out after one hour.}\label{tab:ilp-ablation}
+\begin{table*}
+    \caption{Compile times and performance with and without using synthesis timeouts.}\label{tab:ilp-ablation}
+    \centering
     \begin{tabular}{lcccc}
         \toprule
-        Benchmark & Compile Time (s) w Timeout & Speedup w Timeout & Compile Time (s) w/o Timeout & Speedup w/o Timeout \\\midrule
+        Benchmark & \multicolumn{2}{c}{With Timeout} & \multicolumn{2}{c}{Without Timeout}\\\cline{2-5}
+
+         & Compile Time (s) & Speedup & Compile Time (s) & Speedup \\\midrule
         dist.5.un & 777 & 1.70 & 752 & 1.75 \\
         dist.5.partially & 771 & 1.73 & 751 & 1.76 \\
         dist.5.fully & 798 & 2.08 & 752 & 2.16 \\
@@ -305,7 +307,7 @@ The results are summarized in Table~\ref{tab:ilp-ablation}.\raghav{check}
         dot.10.fully & 319 & 2.27 & 311 & 2.74 \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
 % The main tradeoff to be made here is one of compilation time: obviously, annealing for fewer iterations results in faster compilation, but worse schedules.
 %\begin{figure}[t]
