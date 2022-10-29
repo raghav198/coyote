@@ -29,38 +29,10 @@ Aggressively vectorizing SLP-style can be recovered by assigning a trivial subci
 On the other end of the spectrum, we could instead quotient the circuit into the discrete graph of its connected components and assign each discrete vertex an arbitrary lane; since this graph has no edges it requires no rotations, but also precludes any vectorization within connected components.
 
 Finding a good pre-schedule then requires us to first compute a ``good'' quotient that trades off between these extremes, together with a lane assignment that somehow maximizes our ability to vectorize without incurring too many rotations.
-The next section discusses what makes one graph quotient ``better'' than another, and exactly how these tradeoffs are quantified.
-
-\subsection{Cost Model}\label{sec:cost-model}
-The cost of a particular pre-schedule comes from two places: the number of rotations we have to perform, and the amount we have ``given up'' on vectorizing.
-\subsubsection*{Rotations}
-Given a vector schedule, each {\em cross-lane arc} in the graph (an arc connecting vertices of different lanes) represents a rotation that must be performed to align an output from the tail of the arc to where it gets used at the head.
-However, determining the rotation overhead is not as simple as counting these arcs.
-Consider the case where instructions $A$ and $B$ are operands to instructions $A'$ and $B'$, respectively.
-If $A$ and $B$ are assigned lanes $n$ and $m$, $A'$ and $B'$ are assigned $n+k$ and $m+k$, and $A$ and $B$ end up packed together in the same vector instruction, the two separate data movement operations required for the $A\to A'$ arc and the $B\to B'$ can actually be performed by a single rotation by $k$ (in fact, taking advantage of this fact is the main way \system optimizes data layout to require fewer total rotates). 
-To compute the {\em actual} number of rotations required for a particular schedule, we instead proceed epoch-by-epoch. 
-For each epoch, we look at all cross-lane arcs with tails in that epoch, and compute their {\em span} (the required rotation amount) by subtracting the lane at the tail from the lane at the head.
-The rotation cost for that epoch is then just the number of distinct rotation amounts.
-For example, if a particular epoch has five cross-lane arcs, of which three represent a rotation of $-1$ and two represent a rotation of $6$, its rotation cost is $2$.
-It follows that the total rotation cost of a schedule is the sum of the rotation costs of each epoch.
-
-\subsubsection*{Vectorizability}
-Taking successive quotients of the circuit reduces the total number of edges, and by extension, reduces the number of rotates that might be required; however, it also precludes any vectorization within the collapsed subcircuits.
-To account for this, we need a way of quantifying the amount of vectorization we are ``giving up'' with each quotient.
-
-Unfortunately, directly computing the opportunity cost is very messy: the amount of vectorization we give up by identifying a set of vertices is not a property local to the vertices, but rather requires us to look globally at {\em all possible vertices} in those epochs, to see which vectorization opportunities are no longer available after the identification.
-Instead, we use an estimated {\em schedule height} as a proxy, with the justification being that giving up a lot of vectorization generally results in taller, less efficient final schedules. 
-%\milind{this is good.}\raghav{Is it enough to say this? Or do I need to justify it further? Or should I remove these paragraphs entirely and just directly describe the schedule height computation?}
-
-The schedule height computation once again proceeds epoch-by-epoch.
-For each epoch, we estimate the minimum number of vector instructions required after packing by taking the maximum number of each type of operation across all the subcircuits associated to the vertices in that epoch.
-For example, the estimated height of an epoch containing one vertex with 3 adds and 2 multiplies and another vertex with 2 adds and 4 multiplies would be 3 adds and 4 multiplies.
-
-\subsubsection*{Overall Cost}
-The analysis presented above computes an estimate for the number of each type of instruction in the generated vector program.
-The final cost used a linear combination of all of these, with weights determined empirically by how expensive each instruction type is relative to the rest.
-In our implementation, we scale rotates and multiplies by $1$, and addition and subtraction by $0.1$. 
-%\raghav{Should this last sentence go here, or in implementation? Or both?}\milind{Both is good.}
+This is expressed in the search procedure \system uses when finding a vector schedule: an outer loop performs a best-first search over possible quotient graphs, and an inner loop uses simulated annealing on each quotient to find a good lane placement. 
+The result of the search procedure is a quotient of the circuit and a lane placement for the quotient, which together minimize\footnote{(relative to the other quotients and lane placements visited in the search)} the cost of the resulting vector schedule. \raghav{how is this (including the footnote)?}
+The next section discusses this search procedure in more detail.
+% The next section discusses what makes one graph quotient ``better'' than another, and exactly how these tradeoffs are quantified.
 
 \subsection{Schedule Search}\label{sec:schedule-search}
 Given a cost model, we use a two-layer optimization strategy to produce a schedule that has good packing properties without incurring too much data movement overhead.
@@ -155,7 +127,7 @@ After a fixed number of rounds have elapsed (see footnote), this algorithm retur
 The outer layer searches the space of quotients for a graph that admits a good lane placement without giving up too much vectorizability.
 Here, we use a priority queue to implement a simple best-first search.
 Each graph in the queue is assumed to already be equipped with an optimal lane placement, via the algorithm described above.
-At each step, a graph is dequeued, and a new candidate solution is generated by looking at its set of cross-lane arcs and choosing one to contract.
+At each step, a graph is dequeued, and a new candidate solution is generated by looking at its set of cross-lane arcs and choosing one to contract (removing the edge and identifying its endpoints into a single vertex).
 The contracted graph may not be acyclic, so we continue contracting cycles until it is (in effect computing the condensation). %\raghav{better?} %first mod out by all cycles before running the lane placement algorithm again.\milind{It's not clear what ``mod out by all cycles'' means -- add more meat here...}
 The candidate solution is then enqueued with a priority based on its cost from the annealed lane placement.
 If there are more available arcs to contract, the original graph is enqueued again.
@@ -163,6 +135,39 @@ If there are more available arcs to contract, the original graph is enqueued aga
 After a fixed number of rounds have elapsed, or once the queue is empty, the algorithm terminates and returns the best graph.
 Since each step of this algorithm involves an expensive call to the lane placement procedure, this runs for a much smaller number of rounds, usually between 150 and 200.
 In practice, this is enough to find highly efficient schedules.
+
+The next section discusses what makes one graph quotient or lane assigment ``better'' than another, and how these tradeoffs are quantified in \system's cost model.
+
+\subsection{Cost Model}\label{sec:cost-model}
+The cost of a particular pre-schedule comes from two places: the number of rotations we have to perform, and the amount we have ``given up'' on vectorizing.
+\subsubsection*{Rotations}
+Given a vector schedule, each {\em cross-lane arc} in the graph (an arc connecting vertices of different lanes) represents a rotation that must be performed to align an output from the tail of the arc to where it gets used at the head.
+However, determining the rotation overhead is not as simple as counting these arcs.
+Consider the case where instructions $A$ and $B$ are operands to instructions $A'$ and $B'$, respectively.
+If $A$ and $B$ are assigned lanes $n$ and $m$, $A'$ and $B'$ are assigned $n+k$ and $m+k$, and $A$ and $B$ end up packed together in the same vector instruction, the two separate data movement operations required for the $A\to A'$ arc and the $B\to B'$ can actually be performed by a single rotation by $k$ (in fact, taking advantage of this fact is the main way \system optimizes data layout to require fewer total rotates). 
+To compute the {\em actual} number of rotations required for a particular schedule, we instead proceed epoch-by-epoch. 
+For each epoch, we look at all cross-lane arcs with tails in that epoch, and compute the number of columns each spans (i.e. the required rotation amount) by subtracting the lane at the tail from the lane at the head.
+The rotation cost for that epoch is then just the number of distinct rotation amounts.
+For example, if a particular epoch has five cross-lane arcs, of which three represent a rotation of $-1$ and two represent a rotation of $6$, its rotation cost is $2$.
+It follows that the total rotation cost of a schedule is the sum of the rotation costs of each epoch.
+
+\subsubsection*{Vectorizability}
+Taking successive quotients of the circuit reduces the total number of edges, and by extension, reduces the number of rotates that might be required; however, it also precludes any vectorization within the collapsed subcircuits.
+To account for this, we need a way of quantifying the amount of vectorization we are ``giving up'' with each quotient.
+
+Unfortunately, directly computing the opportunity cost is very messy: the amount of vectorization we give up by identifying a set of vertices is not a property local to the vertices, but rather requires us to look globally at {\em all possible vertices} in those epochs, to see which vectorization opportunities are no longer available after the identification.
+Instead, we use an estimated {\em schedule height} as a proxy, with the justification being that giving up a lot of vectorization generally results in taller, less efficient final schedules. 
+%\milind{this is good.}\raghav{Is it enough to say this? Or do I need to justify it further? Or should I remove these paragraphs entirely and just directly describe the schedule height computation?}
+
+The schedule height computation once again proceeds epoch-by-epoch.
+For each epoch, we estimate the minimum number of vector instructions required after packing by taking the maximum number of each type of operation across all the subcircuits associated to the vertices in that epoch.
+For example, the estimated height of an epoch containing one vertex with 3 adds and 2 multiplies and another vertex with 2 adds and 4 multiplies would be 3 adds and 4 multiplies.
+
+\subsubsection*{Overall Cost}
+The analysis presented above computes an estimate for the number of each type of instruction in the generated vector program.
+The final cost used a linear combination of all of these, with weights determined empirically by how expensive each instruction type is relative to the rest.
+In our implementation, we scale rotates and multiplies by $1$, and addition and subtraction by $0.1$. 
+%\raghav{Should this last sentence go here, or in implementation? Or both?}\milind{Both is good.}
 
 \subsection{Instruction Alignment}\label{sec:instruction-alignment}
 %\raghav{I just lifted this from the old version, is it still good or do we need to update it?}
@@ -176,3 +181,13 @@ Instead of wrangling so many subproblems, we can formulate this as an ILP.
 We create a variable for each scalar instruction representing its {\em schedule slot}, or the time at which it executes.
 We add constraints to require that each instruction be scheduled after all of its dependences, and also that two instructions with different operations never be scheduled at the same time. 
 Finally, to speed up the search for a solution, we place a bound on the total length of the schedule which is iteratively tightened until the solver returns ``unsatisfiable'', meaning no shorter schedule could be found. % (so the most recent one was the shortest).
+
+\subsection{Data Layout}\raghav{Is this a good place for this to go?}
+The circuit obtained after vectorization necessarily operates on inputs that have been ``packed'' into vectors.
+Choosing a good layout within these vectors is crucial, since a poor choice of layout could incur many additional rotations to line operands up with where they are used. \raghav{Don't love this wording.}
+\system can automatically select a good layout as part of the vectorization process.
+An input that is only used once is placed on the lane within its vector corresponding to the unique lane where it is used, and any two inputs that are placed on the same lane by this rule are packed into separate input vectors.
+
+For inputs that are used multiple times (or inputs that are required to be packed into the same vector, e.g. elements of the same matrix), \system places a no-op ``load'' gate in the scalar circuit (so that the input is only used once, by the load gate).
+Two load gates are placed in the same epoch in the circuit if and only if their corresponding inputs are required to be packed together (thus ensuring that they are given different lanes).
+The layout for these inputs is then determined by the lanes chosen for their corresponding load gates. \raghav{I could explain this better, but I'm not sure how.}
