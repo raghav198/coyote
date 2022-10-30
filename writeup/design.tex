@@ -182,7 +182,7 @@ We create a variable for each scalar instruction representing its {\em schedule 
 We add constraints to require that each instruction be scheduled after all of its dependences, and also that two instructions with different operations never be scheduled at the same time. 
 Finally, to speed up the search for a solution, we place a bound on the total length of the schedule which is iteratively tightened until the solver returns ``unsatisfiable'', meaning no shorter schedule could be found. % (so the most recent one was the shortest).
 
-\subsection{Data Layout}\raghav{Is this a good place for this to go?}
+\subsection{Data Layout}\label{sec:data-layout}\raghav{Is this a good place for this to go?}
 The circuit obtained after vectorization necessarily operates on inputs that have been ``packed'' into vectors.
 Choosing a good layout within these vectors is crucial, since a poor choice of layout could incur many additional rotations to line operands up with where they are used. \raghav{Don't love this wording.}
 \system can automatically select a good layout as part of the vectorization process.
