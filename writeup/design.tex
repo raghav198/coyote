@@ -190,4 +190,7 @@ An input that is only used once is placed on the lane within its vector correspo
 
 For inputs that are used multiple times (or inputs that are required to be packed into the same vector, e.g. elements of the same matrix), \system places a no-op ``load'' gate in the scalar circuit (so that the input is only used once, by the load gate).
 Two load gates are placed in the same epoch in the circuit if and only if their corresponding inputs are required to be packed together (thus ensuring that they are given different lanes).
-The layout for these inputs is then determined by the lanes chosen for their corresponding load gates. \milind{forward reference to 5.1 for how this can be overriden}
+<<<<<<< HEAD
+The layout for these inputs is then determined by the lanes chosen for their corresponding load gates. 
+This determines the data layout, as each input is placed on the same lane as its corresponding load gate. \milind{forward reference to 5.1 for how this can be overriden}
+% The layout for these inputs is then determined by the lanes chosen for their corresponding load gates. \raghav{I could explain this better, but I'm not sure how.}

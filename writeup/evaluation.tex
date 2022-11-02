@@ -110,7 +110,7 @@ Note that for dot product, replication makes no difference as each input is used
     max[5].grouped.fully & 902 & 30 & 30 & 19 & 9 & 24 & 23 & 7.33\\
     max[5] & 537 & 30 & 30 & 17 & 6 & 15 & 13 & 7.33\\
     \midrule
-    mm.16.blocked & ?? & 3840 & 4096 & 414 & 128 & 4446 & 872 & 3200\\
+    mm.16.blocked & 7139 & 3840 & 4096 & 414 & 128 & 4446 & 872 & 3200\\
     \bottomrule
     \end{tabular}
 \end{table*}
@@ -153,8 +153,8 @@ Many of the benchmarks we evaluate on have relatively small input sizes, since i
 However, it is possible to scale \system up to larger input sizes by ``blocking'', or vectorizing smaller kernels separately and then composing the vector programs.
 To investigate how well this scaling works, we used \system to compile a $16\times 16$ matrix multiply as follows.
 We vectorized the multiplication of a single $4\times 4$ ``block'', and recorded the input/output layouts \system chose.
-The output layout of each $4\times 4$ block was provided as an input layout constraint (see Section~\ref{sec:using-coyote})
-to another kernel, which took 64 of these blocks and performed the necessary reductions to arrange them into the final result of the $16\times 16$ matrix multiplication.
+
+The output layout of each $4\times 4$ block was used to fix the input layout to another kernel (see Section~\ref{sec:using-coyote}), which took 64 of these blocks and performed the necessary reductions to arrange them into the final result of the $16\times 16$ matrix multiplication.
 The metadata for this benchmark is shown under {\tt mm.16} in Table~\ref{tab:big-ass} (the compilation time includes the time to compile the $4\times 4$ block as well as the reduction circuit).
 After vectorizing, the blocked $16\times 16$ matrix multiply takes 3433 seconds, compared to 4541 seconds before vectorizing, for a total 32\% speedup.
 This shows that by composing smaller kernels, \system is able to scale up to vectorizing much larger circuits and still see relatively significant speedups over unvectorized code. Note that this understates Coyote's potential speedup as it does not currently attempt to vectorize separate, identical kernels together (which, note, is a regular process so could use standard vectorization techniques).

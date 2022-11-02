@@ -87,13 +87,13 @@ Inputs annotated with {\sf scalar()} are free to be placed anywhere in the vecto
 % and by default unreplicated, although the latter option can be overridden by, for example, annotating the type of an input as {\sf vector(size, replicate=True)}.
 % For a full discussion of these packing and replication options, see Section~\ref{sec:duplicating-inputs}.
 The arithmetic circuits \system takes are directed acyclic graphs (DAGs) that fail to be trees exactly when values are used as inputs to multiple computations (e.g. the value $a$ in $ab + ac$).
-Any such DAG can  be turned into a tree by {\em replicating} inputs in a ``reverse-CSE'' process (for example, $ab + ac \to a_1b + a_2c$, where the value of $a$ is supplied to both $a_1$ and $a_2$).
+Any such DAG can  be turned into a tree by {\em replicating} inputs (Section~\ref{sec:using-coyote}) in a ``reverse-CSE'' process (for example, $ab + ac \to a_1b + a_2c$, where the value of $a$ is supplied to both $a_1$ and $a_2$).
 This results in circuits with better rotation characteristics at the cost of extra computation.
 By default, \system automatically replicates all {\sf scalar} inputs, and leaves all {\sf vector} and {\sf matrix} inputs unreplicated, but this behavior can be overridden by the programmer (note that replicating a {\sf vector} or {\sf matrix} input results in multiple copies of each variable all being grouped into the same vector). %\raghav{Does that make sense?}
 
 \subsubsection*{Automatically choosing a data layout}
 While specifying a set of inputs as a {\sf vector(n)} or {\sf matrix(m, n)}, \system restricts the space of available schedules to the ones that group these inputs together.
-However, it is still free to choose a particular layout within the vector (i.e., $a[0]$ and $a[1]$ need not be placed in adjacent lanes). \milind{back ref to overview for how this can be overridden}
+However, it is still free to choose a particular layout within the vector (i.e., $a[0]$ and $a[1]$ need not be placed in adjacent lanes\footnote{Note that a noncanonical input layout potentially means that two kernels compiled by \system may not be composable. We overcome this by allowing the programmer to manually provide their own layout (Section~\ref{sec:using-coyote}). }).
 In practice, this allows \system to choose a layout that minimizes the rotations required to align inputs with where they are used.
 We evaluate the effectiveness of this choice in Section~\ref{sec:effects-of-data-layout}.
 % \system internally uses a {\sf CoyoteVar} datatype which represents a symbolic encrypted value, and currently supports addition, subtraction, and multiplication.

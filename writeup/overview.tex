@@ -73,11 +73,12 @@ We will use the circuit in Figure~\ref{fig:example-circuit} as a running example
 Compilation proceeds as follows:
 \begin{enumerate}
     \item \system \textit{quotients} an input circuit (collapses subcircuits into single vertices) and assigns lanes to resulting vertices to produce a new circuit (a {\em pre-schedule}) that can be realized into a more efficient vector program. The result is a graph whose vertices correspond to connected subgraphs of the original circuit, such that no two vertices at the same height have the same lane (and hence are eligible to be vectorized together). \system collapses a subcircuit when it determines that the overhead of internally vectorizing it is not worth the gain from vectorization, so this step essentially forces certain operations to happen in scalar on a single lane. %\raghav{I feel I haven't done a good enough job of justifying this.}
+    Section~\ref{sec:schedule-search} describes how \system makes this decision. 
     
     In the example in Figure~\ref{fig:subcircuits-identified}, the two circled pairs of vertices are collapsed, yielding the quotient circuit in Figure~\ref{fig:quotiented-circuit}.
     The lane assignment for this pre-schedule puts each un-quotiented addition on the same lane as its quotiented parent vertex, and chooses one of these lanes on which to place the root of the tree.
 %     \raghav{better?}\milind{This is confusing. Does ``bottom level addition'' mean the addition {\em inside} the subcircuit? Or the other addition that isn't quotiented? I think you need to be more explicit about which operations you're talking about here.} Note that this lane assignment is not intended to be optimal (hence, is a pre-schedule).\raghav{what does this last part mean?}
-    Section~\ref{sec:schedule-search} describes how \system searches for such a quotient. 
+    
 %    \raghav{where do I put this?}
     
     \item The (collapsed) vertices at each height are aligned to pack together isomorphic nodes, turning the pre-schedule into an actual vector schedule. 
@@ -126,13 +127,13 @@ Compilation proceeds as follows:
 % After the entire circuit has been split up into stages, the subgraphs from each stage are assigned specific vector lanes to minimize the number of distinct rotations required to line up the outputs of one stage with the inputs of the next.
 % Finally, \system computes and inserts these rotation instructions between stages and emits the vector code.
 
-\subsection{Using \system}
-A programmer can use a high-level Python DSL to specify a computation and generate an arithmetic circuit. \milind{give example here}
+\subsection{Using \system}\label{sec:using-coyote}
+A programmer can use \system's DSL to specify a computation and generate an arithmetic circuit. \milind{move example here}
 The DSL exposes a number of ways to annotate inputs to the computation: {\em replication}, {\em packing}, and fixing a {\em layout}.
 Annotating an input with ``replicate'' indicates that a copy of the input should be passed to the circuit for each place it is used (ensuring that each copy gets used exactly once).
-By default, inputs are unreplicated, meaning that an input that gets used in multiple places will have a fan-out corresponding to its usage.
+By default, inputs are unreplicated, meaning that an input that gets used in multiple places will have a fan-out corresponding to its usage frequency.
 
-Specifying a ``packing'' constraint for a set of inputs requires that they be packed into a single input vector in the final vectorized circuit (and in particular, that they be placed on different lanes).
+Specifying a ``packing'' constraint for a set of inputs requires that they be packed into a single input vector in the final vectorized circuit (note that inputs in the same vector are necessarily in different lanes).
 For example, a packing constraint might require that each entry of a matrix be placed in the same input vector.
 
 After \system vectorizes the circuit as described above, it automatically packs the circuit inputs into vectors (while satisfying any provided packing constraints) and chooses the data layouts within these vectors.
