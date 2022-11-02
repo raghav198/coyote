@@ -153,10 +153,11 @@ Many of the benchmarks we evaluate on have relatively small input sizes, since i
 However, it is possible to scale \system up to larger input sizes by ``blocking'', or vectorizing smaller kernels separately and then composing the vector programs.
 To investigate how well this scaling works, we used \system to compile a $16\times 16$ matrix multiply as follows.
 We vectorized the multiplication of a single $4\times 4$ ``block'', and recorded the input/output layouts \system chose.
-The output layout of each $4\times 4$ block was provided as an input layout constraint \raghav{check: do we talk about the ability to constrain input layouts anywhere?} to another kernel, which took 64 of these blocks and performed the necessary reductions to arrange them into the final result of the $16\times 16$ matrix multiplication.
+The output layout of each $4\times 4$ block was provided as an input layout constraint (see Section~\ref{sec:using-coyote})
+to another kernel, which took 64 of these blocks and performed the necessary reductions to arrange them into the final result of the $16\times 16$ matrix multiplication.
 The metadata for this benchmark is shown under {\tt mm.16} in Table~\ref{tab:big-ass} (the compilation time includes the time to compile the $4\times 4$ block as well as the reduction circuit).
 After vectorizing, the blocked $16\times 16$ matrix multiply takes 3433 seconds, compared to 4541 seconds before vectorizing, for a total 32\% speedup.
-This shows that by composing smaller kernels, \system is able to scale up to vectorizing much larger circuits and still see relatively significant speedups over unvectorized code. \raghav{stronger/better way to make this point maybe?}
+This shows that by composing smaller kernels, \system is able to scale up to vectorizing much larger circuits and still see relatively significant speedups over unvectorized code. Note that this understates Coyote's potential speedup as it does not currently attempt to vectorize separate, identical kernels together (which, note, is a regular process so could use standard vectorization techniques).
 
 \subsection{Randomly Generated Irregular Kernels}
 \begin{figure}[t]
@@ -269,13 +270,11 @@ As expected, doing more iterations of simulated annealing has a large effect on 
 In compiling all our benchmarks, we use 20k iterations of annealing (the green line).
 
 \subsection{Optimality Tradeoffs from Timeouts}\label{sec:ilp-ablation}
-The synthesis procedure we use for generating the final (aligned) schedule from a pre-schedule uses iterative calls to an ILP solver bounded by a timeout.
+The synthesis procedure we use for generating the final (aligned) schedule from a pre-schedule uses iterative calls to an ILP solver that reduce the schedule height constraint until hitting a timeout.
 This is to prevent the synthesis time from blowing up, but it does come at the cost of sacrificing some optimality, since the solver might time out before finding the smallest possible schedule. 
-In this section, we investigate the extent to which this choice matters by turning the timeout off for a handful of benchmarks, so that the synthesized schedules are guaranteed to be the optimal ones. 
-The results are summarized in Table~\ref{tab:ilp-ablation}. 
-Removing the timeout almost always causes the compilation time to increase, but doesn't significantly affect the speedup of the resulting schedule. \raghav{better way to say this?}
+In this section, we investigate the extent to which this choice matters by instead using a version of the scheduler that directly finds the minimal-height schedule with no timeout. This approach guarantees that the synthesized schedules have minimal height.\footnote{Note that because the alignment algorithm cannot account for blend costs---they arise after alignment---the minimal {\em height} schedule may not be the minimal {\em cost} schedule.} Table~\ref{tab:ilp-ablation} summarizes the results. We see that compilation time increases with the optimal ILP, but speedups are comparable (sometimes faster, and even sometimes slower, due to different blends).
 
-\begin{table*}
+\begin{table}
     \caption{Comparison of compilation time (seconds) and vectorization speedup with vs. without synthesis timeouts.}\label{tab:ilp-ablation}
     \small
     \centering
@@ -309,7 +308,7 @@ Removing the timeout almost always causes the compilation time to increase, but 
         dot.10.fully & 251 & 2.27 & 311 & 2.74 \\
         \bottomrule
     \end{tabular}
-\end{table*}
+\end{table}
 
 % The main tradeoff to be made here is one of compilation time: obviously, annealing for fewer iterations results in faster compilation, but worse schedules.
 %\begin{figure}[t]

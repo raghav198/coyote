@@ -93,7 +93,7 @@ By default, \system automatically replicates all {\sf scalar} inputs, and leaves
 
 \subsubsection*{Automatically choosing a data layout}
 While specifying a set of inputs as a {\sf vector(n)} or {\sf matrix(m, n)}, \system restricts the space of available schedules to the ones that group these inputs together.
-However, it is still free to choose a particular layout within the vector (i.e., $a[0]$ and $a[1]$ need not be placed in adjacent lanes).
+However, it is still free to choose a particular layout within the vector (i.e., $a[0]$ and $a[1]$ need not be placed in adjacent lanes). \milind{back ref to overview for how this can be overridden}
 In practice, this allows \system to choose a layout that minimizes the rotations required to align inputs with where they are used.
 We evaluate the effectiveness of this choice in Section~\ref{sec:effects-of-data-layout}.
 % \system internally uses a {\sf CoyoteVar} datatype which represents a symbolic encrypted value, and currently supports addition, subtraction, and multiplication.

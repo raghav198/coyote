@@ -182,12 +182,12 @@ We create a variable for each scalar instruction representing its {\em schedule 
 We add constraints to require that each instruction be scheduled after all of its dependences, and also that two instructions with different operations never be scheduled at the same time. 
 Finally, to speed up the search for a solution, we place a bound on the total length of the schedule which is iteratively tightened until the solver returns ``unsatisfiable'', meaning no shorter schedule could be found. % (so the most recent one was the shortest).
 
-\subsection{Data Layout}\label{sec:data-layout}\raghav{Is this a good place for this to go?}
+\subsection{Data Layout}\label{sec:data-layout}
 The circuit obtained after vectorization necessarily operates on inputs that have been ``packed'' into vectors.
-Choosing a good layout within these vectors is crucial, since a poor choice of layout could incur many additional rotations to line operands up with where they are used. \raghav{Don't love this wording.}
+Choosing a good layout within these vectors is crucial, since a poor choice of layout could incur many additional rotations to line operands up with where they are used.
 \system can automatically select a good layout as part of the vectorization process.
 An input that is only used once is placed on the lane within its vector corresponding to the unique lane where it is used, and any two inputs that are placed on the same lane by this rule are packed into separate input vectors.
 
 For inputs that are used multiple times (or inputs that are required to be packed into the same vector, e.g. elements of the same matrix), \system places a no-op ``load'' gate in the scalar circuit (so that the input is only used once, by the load gate).
 Two load gates are placed in the same epoch in the circuit if and only if their corresponding inputs are required to be packed together (thus ensuring that they are given different lanes).
-The layout for these inputs is then determined by the lanes chosen for their corresponding load gates. \raghav{I could explain this better, but I'm not sure how.}
+The layout for these inputs is then determined by the lanes chosen for their corresponding load gates. \milind{forward reference to 5.1 for how this can be overriden}
