@@ -8,11 +8,11 @@
 
 In this evaluation, we aim to answer the following questions:
 
-\raghav{flipped the first two around so its in order :)}
+%\raghav{flipped the first two around so its in order :)}
 \begin{enumerate}
     \item {\bf How effective is \system's vectorization?} To answer this, we count the number of instructions generated in the vector code compared to the scalar code. (Section~\ref{sec:compilation-stuff})
     \item {\bf How much speedup does compiling with \system get us?} To address this, we compile several realistic benchmarks and measure the speedup of the vectorized code over scalar execution. (Section~\ref{sec:speedups})
-    \item {\bf How well does \system scale up to larger kernel sizes?} To measure this, we compile a much larger circuit by vectorizing and composing its components. (Section~\ref{sec:scalability}) \raghav{does this sound okay}
+    \item {\bf How well does \system scale up to larger kernel sizes?} To measure this, we compile a much larger circuit by vectorizing and composing its components. (Section~\ref{sec:scalability}) %\raghav{does this sound okay}
     \item {\bf How well do \system's schedules compare to hand-optimized code?} We compare the run times of various hand-optimized benchmarks to the run time of the vector code that \system generates for them. (Section~\ref{sec:expert-comparison})
     \item {\bf To what extent does the data layout chosen by the programmer affect \system's ability to vectorize?} We conduct a case study exploring various data layout schemes for a $3\times 3$ matrix multiply, and measure the vectorization speedup for each layout. (Section~\ref{sec:effects-of-data-layout})
    \item {\bf How effective is the layout/schedule co-optimization strategy?} We track the progress of the schedule-search procedure over time for various levels of data layout optimization. (Section~\ref{sec:search-and-cooptimization})

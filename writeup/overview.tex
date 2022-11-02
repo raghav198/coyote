@@ -1,6 +1,10 @@
 \section{\system Overview}\label{sec:overview}
-
-\system provides an embedded DSL (eDSL) that allows programmers to use a high level language to express computations in FHE. This computation is translated into an arithmetic circuit representing the computation, which is then compiled into vectorized FHE code. The process of compiling a circuit into vectorized code is as follows: \milind{overview figure?}
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/coyote_algorithm_overview.drawio.pdf}
+    \caption{High-level compilation steps}\label{fig:high-level-compilation-steps}
+\end{figure*}
+\system provides an embedded DSL (eDSL) that allows programmers to use a high level language to express computations in FHE. This computation is translated into an arithmetic circuit representing the computation, which is then compiled into vectorized FHE code. The process of compiling a circuit into vectorized code is as follows: %\milind{overview figure?}
 
 % \milind{You should put the step-by-step procedure for coyote here, then describe them in more detail: break the computation down into aligned subgraphs, assigning scheduling slots, choosing lanes. This is also a good place for a picture explaining these steps: show a tree, show picking bits of a tree, show moving when the computations happen around, show lane assignment}
 
@@ -68,7 +72,7 @@
     \label{fig:toy-running-example}
 \end{figure}
 
-This section gives an overview of how \system vectorizes an arbitrary arithmetic circuit.
+This section gives an overview of how \system vectorizes an arbitrary arithmetic circuit using the process laid out in Figure~\ref{fig:high-level-compilation-steps}.
 We will use the circuit in Figure~\ref{fig:example-circuit} as a running example.
 Compilation proceeds as follows:
 \begin{enumerate}
@@ -128,7 +132,24 @@ Compilation proceeds as follows:
 % Finally, \system computes and inserts these rotation instructions between stages and emits the vector code.
 
 \subsection{Using \system}\label{sec:using-coyote}
-A programmer can use \system's DSL to specify a computation and generate an arithmetic circuit. \milind{move example here}
+\begin{figure}
+    \small
+    \begin{minted}[linenos,escapeinside=||]{Python}
+def dot(v1, v2):
+    return sum([a * b for a, b in zip(v1, v2)])|\label{code:zip}|
+  
+@coyote.define_circuit(A=matrix(3, 3), b=vector(3))
+def matvec_multiply(A, b):
+    result = []
+    for i in range(len(A)):|\label{code:for_loop}|
+        result.append(dot(A[i], b))
+    return result
+    \end{minted}
+    \vspace{-1em}
+    \caption{\system program for multiplying a vector by a matrix}\label{fig:coyote-program}
+    \Description{Example of a program written in \system that implements a matrix/vector multiply}
+\end{figure}
+A programmer can use \system's DSL (shown in Figure~\ref{fig:coyote-program}) to specify a computation and generate an arithmetic circuit. %\milind{move example here}
 The DSL exposes a number of ways to annotate inputs to the computation: {\em replication}, {\em packing}, and fixing a {\em layout}.
 Annotating an input with ``replicate'' indicates that a copy of the input should be passed to the circuit for each place it is used (ensuring that each copy gets used exactly once).
 By default, inputs are unreplicated, meaning that an input that gets used in multiple places will have a fan-out corresponding to its usage frequency.
@@ -137,10 +158,10 @@ Specifying a ``packing'' constraint for a set of inputs requires that they be pa
 For example, a packing constraint might require that each entry of a matrix be placed in the same input vector.
 
 After \system vectorizes the circuit as described above, it automatically packs the circuit inputs into vectors (while satisfying any provided packing constraints) and chooses the data layouts within these vectors.
-Alternatively, the programmer can choose to override this and manually provide a layout. \milind{maybe clarify that the layout choice is for inputs and outputs?} 
+Alternatively, the programmer can choose to override this and manually provide an input layout. %\milind{maybe clarify that the layout choice is for inputs and outputs?} 
 This is useful, for example, when composing multiple circuits, as the output layout of one determines the input layout of the next.
 
-The details of how these choices are made are discussed in Section~\ref{sec:data-layout}, and the tradeoffs these annotations provide are discussed in Section~\ref{sec:surface-language}. \raghav{To what extent do I still have to include the stuff in Section~\ref{sec:surface-language} given what I've talked about here?} \milind{still include it}
+The details of how these choices are made are discussed in Section~\ref{sec:data-layout}, and the tradeoffs these annotations provide are discussed in Section~\ref{sec:surface-language}.% \raghav{To what extent do I still have to include the stuff in Section~\ref{sec:surface-language} given what I've talked about here?} \milind{still include it}
 \subsection{Backend}
 \system targets the BFV backend \footnote{We could have instead chosen to use the CKKS backend, but BFV's cost model is more amenable to general vectorization. In particular, an operation we use often is ``blending'' slots from several vectors into one; while this is almost free in BFV, the cost of doing this in CKKS is nontrivial. } for Microsoft SEAL\cite{seal}.
 The encryption parameters are hardcoded, and are chosen to allow for 8192 vector slots and a standard 128 bits of security.

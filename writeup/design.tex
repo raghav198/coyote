@@ -30,7 +30,7 @@ On the other end of the spectrum, we could instead quotient the circuit into the
 
 Finding a good pre-schedule then requires us to first compute a ``good'' quotient that trades off between these extremes, together with a lane assignment that somehow maximizes our ability to vectorize without incurring too many rotations.
 This is expressed in the search procedure \system uses when finding a vector schedule: an outer loop performs a best-first search over possible quotient graphs, and an inner loop uses simulated annealing on each quotient to find a good lane placement. 
-The result of the search procedure is a quotient of the circuit and a lane placement for the quotient, which together minimize\footnote{(relative to the other quotients and lane placements visited in the search)} the cost of the resulting vector schedule. \raghav{how is this (including the footnote)?}
+The result of the search procedure is a quotient of the circuit and a lane placement for the quotient, which together minimize\footnote{relative to the other quotients and lane placements visited in the search} the cost of the resulting vector schedule. %\raghav{how is this (including the footnote)?}
 The next section discusses this search procedure in more detail.
 % The next section discusses what makes one graph quotient ``better'' than another, and exactly how these tradeoffs are quantified.
 
@@ -190,7 +190,6 @@ An input that is only used once is placed on the lane within its vector correspo
 
 For inputs that are used multiple times (or inputs that are required to be packed into the same vector, e.g. elements of the same matrix), \system places a no-op ``load'' gate in the scalar circuit (so that the input is only used once, by the load gate).
 Two load gates are placed in the same epoch in the circuit if and only if their corresponding inputs are required to be packed together (thus ensuring that they are given different lanes).
-<<<<<<< HEAD
 The layout for these inputs is then determined by the lanes chosen for their corresponding load gates. 
-This determines the data layout, as each input is placed on the same lane as its corresponding load gate. \milind{forward reference to 5.1 for how this can be overriden}
+This determines the data layout, as each input is placed on the same lane as its corresponding load gate (Section~\ref{sec:using-coyote}). %\milind{forward reference to 5.1 for how this can be overriden}
 % The layout for these inputs is then determined by the lanes chosen for their corresponding load gates. \raghav{I could explain this better, but I'm not sure how.}

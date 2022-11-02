@@ -19,24 +19,6 @@ This section discusses how programmers write \system programs, and how the code 
 % \end{figure}
 
 
-\begin{figure}
-    \small
-    \begin{minted}[linenos,escapeinside=||]{Python}
-def dot(v1, v2):
-    return sum([a * b for a, b in zip(v1, v2)])|\label{code:zip}|
-  
-@coyote.define_circuit(A=matrix(3, 3), b=vector(3))
-def matvec_multiply(A, b):
-    result = []
-    for i in range(len(A)):|\label{code:for_loop}|
-        result.append(dot(A[i], b))
-    return result
-    \end{minted}
-    \vspace{-1em}
-    \caption{Sample \system program for multiplying a vector by a matrix}\label{fig:coyote-program}
-    \Description{Example of a program written in \system that implements a matrix/vector multiply}
-\end{figure}
-
 % \begin{figure}
 %     \begin{lstlisting}[language=Python, escapechar=|]
             
