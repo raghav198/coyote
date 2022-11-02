@@ -44,7 +44,7 @@ The benchmarks are as follows:
 To investigate the effect of data replication we used three different replication strategies for each benchmark: 
 
 \begin{enumerate}[label=(\roman*)]
-\item {\em unreplicated}, where each input appears in only one input vector, and hence must be used by multiple operations in the circuit.
+\item {\em unreplicated}, where each input appears in only one input vector, and hence must be used by multiple operations.
 \item {\em partially replicated} in which one of the two inputs is fully replicated---and hence each operation that requires that input gets its own copy, obviating the need for data movement---while the other is not.
 \item {\em fully replicated} in which both inputs are fully replicated. 
 \end{enumerate}
@@ -186,7 +186,7 @@ We find that both sparse and dense homogeneous polynomials see substantial benef
 
 \subsection{Comparison to Hand-Optimized Schedules}\label{sec:expert-comparison}
 To compare \system's vectorized schedules to hand-optimized baselines, we compiled three kernels with \system: matrix/vector multiply, dot product, and point-cloud distance.
-Each of these kernels has a well-known expert-optimized baseline implementation, which we also implemented in \system's vector IR, before compiling both implementations to C++ and measuring the time it took to run each one 50 times.
+Each of these kernels has a well-known expert-optimized baseline implementation, which we also implemented in \system's vector IR, before compiling both to C++ and measuring the time it took to run each one 50 times.
 The results are shown in Table~\ref{tab:expert-comparison-numbers}.
 For smaller sizes, we see \system's vectorization was capable of matching or even outperforming the expert-written baselines, although on larger sizes the search space was often too big to automatically find the expert schedules.
 Manually inspecting the generated code shows that this was usually because the schedule \system generated used one or two more rotates than the baseline.

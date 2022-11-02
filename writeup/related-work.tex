@@ -68,7 +68,7 @@ First, SwizzleInventor tackles the data movement problem {\em after the kernel h
 Second, the sketches SwizzleInventor uses to guide its synthesis rely on the ability to efficiently access arbitrary slots of a packed vector. However, this is not possible with FHE vectors without incurring significant rotation overheads.
 
 Diospyros~\cite{Diospyros} is an equality saturation--based vectorization strategy that constructs an e-graph~\cite{EqualitySaturation, egg} of programs that are semantically equivalent to a given specification, and then uses a custom cost model to extract an efficient vector program, together with necessary shuffles.
-However, the simplicity of the cost model it associates to various shuffles makes it unsuitable to deal with the peculiarities and inflexibility of FHE rotations.
+The simplicity of the cost model it associates to various shuffles makes it unsuitable to deal with the peculiarities and inflexibility of FHE rotations.
 
 %By reasoning globally about the entire dependence graph of the program at once, \system can identify such phenomena when making vector packs.
 %\system can also automatically find vector schedules that are amenable to more efficient data movement, and can propagate this information back through the program this to identify more optimal data layouts.

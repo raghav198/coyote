@@ -145,7 +145,7 @@ Given a vector schedule, each {\em cross-lane arc} in the graph (an arc connecti
 However, determining the rotation overhead is not as simple as counting these arcs.
 Consider the case where instructions $A$ and $B$ are operands to instructions $A'$ and $B'$, respectively.
 If $A$ and $B$ are assigned lanes $n$ and $m$, $A'$ and $B'$ are assigned $n+k$ and $m+k$, and $A$ and $B$ end up packed together in the same vector instruction, the two separate data movement operations required for the $A\to A'$ arc and the $B\to B'$ can actually be performed by a single rotation by $k$ (in fact, taking advantage of this fact is the main way \system optimizes data layout to require fewer total rotates). 
-To compute the {\em actual} number of rotations required for a particular schedule, we instead proceed epoch-by-epoch. 
+To compute the {\em actual} number of required rotations, we instead proceed epoch-by-epoch. 
 For each epoch, we look at all cross-lane arcs with tails in that epoch, and compute the number of columns each spans (i.e. the required rotation amount) by subtracting the lane at the tail from the lane at the head.
 The rotation cost for that epoch is then just the number of distinct rotation amounts.
 For example, if a particular epoch has five cross-lane arcs, of which three represent a rotation of $-1$ and two represent a rotation of $6$, its rotation cost is $2$.
@@ -173,8 +173,8 @@ In our implementation, we scale rotates and multiplies by $1$, and addition and 
 %\raghav{I just lifted this from the old version, is it still good or do we need to update it?}
 We align the instructions corresponding to the subcircuits in each epoch to produce a final vector schedule.
 % Given a set of subcircuits to compute in a single epoch of the program, we can align the instructions between subcircuits to actually produce a vector schedule.
-It may seem like the solution to this is just sequence alignment, but aligning circuits is actually more complicated than that.
-At each step, the number of available children that can be aligned roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
+It may seem like the solution to this is just sequence alignment, but aligning circuits is actually more complicated.
+At each step, the number of available children to align roughly doubles, meaning that the total number of subproblems to solve is exponential in the depth instead of linear. 
 This causes the dynamic programming strategy of sequence alignment to quickly blow up.
 
 Instead of wrangling so many subproblems, we can formulate this as an ILP.

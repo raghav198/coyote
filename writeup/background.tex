@@ -30,7 +30,7 @@ Since FHE does not support loops or conditionals, computations have to be repres
 In particular, these arithmetic circuits we work with closely resemble expression forests, where some of the trees may in fact be DAGs (directed acyclic graphs) if any inputs are used in multiple places.
 For the rest of this paper, we assume that the programs we are compiling are already expressed in this way, and talk about how to map the computations encoded as arithmetic circuits to vectors.
 In practice, this is not too restrictive, since any loop with known (plaintext) bounds can be fully unrolled, and any conditional branching on a ciphertext can be converted into a ``mux'' by evaluating both branches and only selecting the correct output.
-The frontend DSL of \system does exactly that by staging away python programs to produce arithmetic circuits that can be compiled.
+The frontend DSL of \system does exactly that by staging python programs, producing arithmetic circuits it can compile.
 %\raghav{I know I repeat mysef between here and what I wrote above. I just don't know what the best place to put this stuff is.}
 
 \subsection{Vectorization}

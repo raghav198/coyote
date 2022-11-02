@@ -154,7 +154,7 @@ The DSL exposes a number of ways to annotate inputs to the computation: {\em rep
 Annotating an input with ``replicate'' indicates that a copy of the input should be passed to the circuit for each place it is used (ensuring that each copy gets used exactly once).
 By default, inputs are unreplicated, meaning that an input that gets used in multiple places will have a fan-out corresponding to its usage frequency.
 
-Specifying a ``packing'' constraint for a set of inputs requires that they be packed into a single input vector in the final vectorized circuit (note that inputs in the same vector are necessarily in different lanes).
+Specifying a ``packing'' constraint for a set of inputs requires that they be packed into a single input vector in the final circuit (note that inputs in the same vector are necessarily in different lanes).
 For example, a packing constraint might require that each entry of a matrix be placed in the same input vector.
 
 After \system vectorizes the circuit as described above, it automatically packs the circuit inputs into vectors (while satisfying any provided packing constraints) and chooses the data layouts within these vectors.
