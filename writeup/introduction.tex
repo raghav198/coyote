@@ -127,7 +127,7 @@ This approach yields a natural question: how do we decide which computations to 
 This paper presents \system, the first vectorizing, FHE-aware compiler for programs that do not have regular structure. \system breaks the circular dependence between vector packing and data layout by using an iterative process that alternates between making packing decisions and determining data layout. \system uses simulated annealing to find optimal data layouts, and uses these to guide a best-first search towards optimal vector packs. Crucially, \system uses layouts from previous iterations of scheduling to identify profitable subcircuits to merge, and then re-schedules based on the new subcircuits.
 
 
-Rather than incurring many expensive data shuffles by aggressively vectorizing the whole program, \system's subcircuit-based scheduling and FHE-specific cost model co-optimize the data layout and vector packing, producing a schedule that enjoys the benefits of vectorization while still being able to efficiently realize the necessary rotations. For example, \system is able to correctly generate the better vectorization schedule in Figure~\ref{fig:optimal-schedule}.
+Rather than incurring many expensive data shuffles by aggressively vectorizing the whole program, \system's subcircuit-based scheduling and FHE-specific cost model co-optimize the data layout and vector packing, producing a schedule that enjoys the benefits of vectorization while still being able to efficiently realize the necessary rotations. For example, \system is able to correctly generate the better schedule in Figure~\ref{fig:optimal-schedule}.
 
 %\milind{High level idea of find subcircuits -> vectorize subcircuits -> do layout -> tweak subcircuits}\raghav{Is this the right level of generality?}
 

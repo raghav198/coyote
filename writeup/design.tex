@@ -1,6 +1,6 @@
 \section{Design}\label{sec:design}
-When vectorizing arithmetic circuits with an SLP-style approach, at each step, we look at all available scalar instructions (i.e. instructions whose source operands have all already been scheduled), pick the largest set with the same operation, and schedule them together.
-This na\"ive strategy makes no guarantees about values being computed and used on the same lane; in other words, it incurs arbitrarily many shuffles to make the computation line up on the correct lanes.
+When vectorizing arithmetic circuits with an SLP-style approach, at each step, we look at all available scalar instructions (whose source operands have all been scheduled), pick the largest set with the same operation, and schedule them together.
+This na\"ive strategy makes no guarantees about values being computed and used on the same lane; in other words, lining the computation up on incurs arbitrarily many shuffles.
 Unlike in normal vectorization, where applying arbitrary permutations to the lanes is relatively cheap, in FHE we are only allowed to rotate the entire vector by a fixed number of slots, and this rotation operation is expensive.
 Hence, the cost of bookkeeping quickly outweighs whatever benefit we might get from vectorization, making this approach not worth it.
 

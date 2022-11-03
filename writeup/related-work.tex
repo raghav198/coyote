@@ -5,8 +5,8 @@ There are two main categories of related work. This section first discusses work
 \subsection{Compilation and Vectorization for FHE}
 Prior work has been done on building vectorizing compilers for FHE applications \cite{CHET, Porcupine}.
 CHET \cite{CHET} is a vectorizing compiler for homomorphic tensor programs that automatically selects encryption parameters, and chooses optimal data layout strategies.
-CHET is specifically targeted towards optimizing the dense tensor computations found in neural network inference, and does not apply to a broader class of programs, especially those with irregular computations that are not so easily vectorized.
-\system makes no assumptions about the domain of the program, and can generalize to vectorizing even highly irregular computations.
+CHET is specifically targeted towards optimizing the dense tensor computations in neural network inference, and does not apply to a broader class of programs, especially those with irregular computations that are not so easily vectorized.
+\system makes no assumptions about the domain of the program, and can vectorize even highly irregular computations.
 
 Porcupine~\cite{Porcupine} is a vectorizing compiler that uses a sketch-based synthesis approach to generate vectorized kernels given a reference implementation. While Porcupine is more general than CHET, it relies on programmers providing partial implementations in the form of sketches, making it less automatic than Coyote. Furthermore, Porcupine relies on the sketches to constrain the search space of rotations, while Coyote is specifically designed to reduce the number of rotations.
 
@@ -50,13 +50,14 @@ For example, VeGen can reason about the rotation costs to pack together operands
 However, this reasoning only happens locally, and VeGen does not incorporate information about how instruction packing might affect rotations much later in the program.
 
 %\raghav{Spotcheck again?}
-goSLP \cite{goSLP} reasons about globally optimal packing, and tries to find lane placements that minimize data shuffling costs. 
+goSLP \cite{goSLP} reasons about globally optimal packing, and finds lane placements that minimize data shuffling costs. 
 However, there are assumptions baked into its cost model that make it fundamentally unsuitable for the FHE setting.
 goSLP frames vectorization overhead in terms of the number of {\em pack} and {\em unpack} operations incurred.
 For example, permuting the slots of a single vector incurs one unpack, whereas blending the contents of N vectors (without any permutation) incurs N unpacks.
-This results in a cost model that implicitly requires wide blends to be much more expensive than arbitrary permutations, almost the opposite of FHE's cost model. In FHE, blends are almost free (instantiated as cheap plaintext multiplies and ciphertext adds) whereas a ``bad'' permutation can require O(n) rotates to realize.
-In other words, in the FHE world, there are often highly profitable schedules that require many blends and few rotates, but the framing goSLP uses for vectorization overhead will cause it to forego these schedules for more conservative ones.
-Additionally, goSLP does lane placement (permutation selection) {\em after} finding vector packs, creating situations like the one we described in Section~\ref{sec:intro} in which the ostensibly profitable packing does not admit a good data layout.
+This cost model implicitly requires wide blends to be more expensive than arbitrary permutations, almost the opposite of FHE's cost model. In FHE, blends are almost free (instantiated as cheap plaintext multiplies and ciphertext adds) whereas a ``bad'' permutation can require O(n) rotates to realize.
+% In other words, in the FHE world, there are often highly profitable schedules that require many blends and few rotates, but the framing goSLP uses for vectorization overhead will cause it to forego these schedules for more conservative ones.
+In other words, goSLP will often forego a highly profitable schedule with many blends and few rotates, and instead opt for a more conservative one.    
+Additionally, goSLP does lane placement (permutation selection) {\em after} finding vector packs, creating situations like the one described in Section~\ref{sec:intro} in which the ostensibly profitable packing does not admit a good data layout.
 By contrast, \system's cooperative scheduling strategy ensures that this does not happen.
 
 % While goSLP does reason globally about lane placement, it has two drawbacks in an FHE context. First, it packs instructions into vectors before considering shuffling costs, so may over-aggressively vectorize, while \system may forego some vectorization opportunities in the name of getting packing larger expressions without rotation. Second, its lane placement algorithm considers arbitrary permutations, which are impractically expensive in FHE.
@@ -64,8 +65,8 @@ By contrast, \system's cooperative scheduling strategy ensures that this does no
 
 Swizzle Inventor \cite{SwizzleInventor} is a system which automatically synthesizes efficient data movement kernels for vectorized GPU code.
 There are two primary obstacles \system faces in directly applying this approach to our setting.
-First, SwizzleInventor tackles the data movement problem {\em after the kernel has been vectorized}. As we discussed earlier, in the world of FHE, packing and data movement are problems that cannot be reasoned about separately, and must be addressed together.
-Second, the sketches SwizzleInventor uses to guide its synthesis rely on the ability to efficiently access arbitrary slots of a packed vector. However, this is not possible with FHE vectors without incurring significant rotation overheads.
+First, SwizzleInventor tackles the data movement problem {\em after the kernel has been vectorized}. As we discussed earlier, in the world of FHE, packing and data movement are problems that must be reasoned about together.
+Second, the sketches SwizzleInventor uses to guide its synthesis rely on efficiently accessing arbitrary slots of a packed vector. However, this is not possible with FHE vectors without incurring significant rotation overheads.
 
 Diospyros~\cite{Diospyros} is an equality saturation--based vectorization strategy that constructs an e-graph~\cite{EqualitySaturation, egg} of programs that are semantically equivalent to a given specification, and then uses a custom cost model to extract an efficient vector program, together with necessary shuffles.
 The simplicity of the cost model it associates to various shuffles makes it unsuitable to deal with the peculiarities and inflexibility of FHE rotations.

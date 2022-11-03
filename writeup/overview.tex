@@ -86,8 +86,9 @@ Compilation proceeds as follows:
 %    \raghav{where do I put this?}
     
     \item The (collapsed) vertices at each height are aligned to pack together isomorphic nodes, turning the pre-schedule into an actual vector schedule. 
-    In the example, the two adds at a height of 1 get trivially aligned, and the two ``supernodes'' at height 2 get aligned by packing together the two adds and the two multiplies.
-    Since there is a single vertex at height 3, no alignment needs to be done there. 
+    In the example, the two adds at height 1 get trivially aligned, and the two ``supernodes'' at height 2 get aligned by packing together the two adds and the two multiplies.
+    % Since there is a single vertex at height 3, no alignment needs to be done there. 
+    No alignment is needed for the single vertex at height 3.
 %    \raghav{Is this description clear?}
     The details of the alignment procedure are given in Section~\ref{sec:instruction-alignment}.
     Figure~\ref{fig:aligned-schedule} shows the result of this alignment.
@@ -98,7 +99,6 @@ Compilation proceeds as follows:
     Notice that the generated code contains two blends and one rotate.
     The blends are necessary\footnote{In this particular example, exchanging the positions of {\sf \%3} and {\sf \%4} would have produced semantically equivalent code that does not require the blends. However, automatically performing arithmetic rewrites such as this one is outside the scope of this work.} because on line 3 of the schedule, {\sf \%0} and {\sf \%3} are used in the same vector despite being produced in two separate vectors. 
     Since none of the operands need to shift lanes, the vector instruction {\sf t0 = blend(v0@10, v1@01)} takes {\sf [\%0, \%4]} and {\sf [\%1, \%3]} and blends them together to produce {\sf [\%0, \%3]}, which is exactly the operand used on line 3. 
-
     \system emits a rotation because {\sf \%5} gets used on a different lane than it is produced.
     The vector instruction {\sf s0 = v2 $\gg$ 1} takes {\sf [\%2, \%5]} in {\sf v2} and produces {\sf [\%5, \%2]} in {\sf s0}.
     Section~\ref{sec:codegen} describes the specifics of code generation.
@@ -160,7 +160,6 @@ For example, a packing constraint might require that each entry of a matrix be p
 After \system vectorizes the circuit as described above, it automatically packs the circuit inputs into vectors (while satisfying any provided packing constraints) and chooses the data layouts within these vectors.
 Alternatively, the programmer can choose to override this and manually provide an input layout. %\milind{maybe clarify that the layout choice is for inputs and outputs?} 
 This is useful, for example, when composing multiple circuits, as the output layout of one determines the input layout of the next.
-
 The details of how these choices are made are discussed in Section~\ref{sec:data-layout}, and the tradeoffs these annotations provide are discussed in Section~\ref{sec:surface-language}.% \raghav{To what extent do I still have to include the stuff in Section~\ref{sec:surface-language} given what I've talked about here?} \milind{still include it}
 \subsection{Backend}
 \system targets the BFV backend \footnote{We could have instead chosen to use the CKKS backend, but BFV's cost model is more amenable to general vectorization. In particular, an operation we use often is ``blending'' slots from several vectors into one; while this is almost free in BFV, the cost of doing this in CKKS is nontrivial. } for Microsoft SEAL\cite{seal}.
