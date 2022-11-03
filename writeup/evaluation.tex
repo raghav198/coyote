@@ -12,11 +12,11 @@ In this evaluation, we aim to answer the following questions:
 \begin{enumerate}
     \item {\bf How effective is \system's vectorization?} To answer this, we count the number of instructions generated in the vector code compared to the scalar code. (Section~\ref{sec:compilation-stuff})
     \item {\bf How much speedup does compiling with \system get us?} To address this, we compile several realistic benchmarks and measure the speedup of the vectorized code over scalar execution. (Section~\ref{sec:speedups})
-    \item {\bf How well does \system scale up to larger kernel sizes?} To measure this, we compile a much larger circuit by vectorizing and composing its components. (Section~\ref{sec:scalability}) %\raghav{does this sound okay}
+    \item {\bf \hl{How well does {\system} scale up to larger kernel sizes?}} \hl{To measure this, we compile a much larger circuit by vectorizing and composing its components. (Section~{\ref{sec:scalability}})} %\raghav{does this sound okay}
     \item {\bf How well do \system's schedules compare to hand-optimized code?} We compare the run times of various hand-optimized benchmarks to the run time of the vector code that \system generates for them. (Section~\ref{sec:expert-comparison})
     \item {\bf To what extent does the data layout chosen by the programmer affect \system's ability to vectorize?} We conduct a case study exploring various data layout schemes for a $3\times 3$ matrix multiply, and measure the vectorization speedup for each layout. (Section~\ref{sec:effects-of-data-layout})
-   \item {\bf How effective is the layout/schedule co-optimization strategy?} We track the progress of the schedule-search procedure over time for various levels of data layout optimization. (Section~\ref{sec:search-and-cooptimization})
-   \item {\bf How much optimality do we sacrifice by setting synthesis timeouts?} We turn off the synthesis timeouts to guarantee optimal schedule alignments and compare the results. (Section~\ref{sec:ilp-ablation})
+   \item {\bf \hl{How effective is the layout/schedule co-optimization strategy?}} \hl{We track the progress of the schedule-search procedure over time for various levels of data layout optimization. (Section~{\ref{sec:search-and-cooptimization}})}
+   \item {\bf \hl{How much optimality do we sacrifice by setting synthesis timeouts?}} \hl{We turn off the synthesis timeouts to guarantee optimal schedule alignments and compare the results. (Section~{\ref{sec:ilp-ablation}})}
 \end{enumerate}
 
 \subsection{Computational Kernels}
@@ -35,7 +35,7 @@ The benchmarks are as follows:
     \item 1D convolution. We do this with a vector of size 4 and a kernel of size 2, and with a vector of size 5 and a kernel of size 3. Both of these are regular and have little data reuse.
     \item Point cloud distances (Given a set of points, compute the square of every pairwise Euclidean distance). We do this for 3, 4, and 5 points. These are all regular but have some substantial data reuse, especially in the 5-point case.
     \item Sorting a list of size 3. This benchmark implements the sort as a ``decision tree'', taking as input three ciphertexts representing pairwise comparison results and six ciphertext ``labels'' representing possible arrangements of the sorted list. In particular, each of the three comparison results gets used in multiple branches of the tree. ``grouped'' here means the data layout groups the three comparisons into one vector and the six labels into another. This is irregular, and the grouped versions have data reuse.
-    \item Finding the maximum element in a list of size 5. This benchmark takes as input five ciphertexts representing the elements of the list, and ten ciphertexts representing pairwise comparison results. Similar to the sorting benchmark, this is irregular, and the grouped versions have data reuse.
+    \item \hl{Finding the maximum element in a list of size 5. This benchmark takes as input five ciphertexts representing the elements of the list, and ten ciphertexts representing pairwise comparison results. Similar to the sorting benchmark, this is irregular, and the grouped versions have data reuse.}
 \end{enumerate}
 
 %\raghav{redundant?}
@@ -105,12 +105,12 @@ Note that for dot product, replication makes no difference as each input is used
     sort[3].grouped.fully & 231 & 10 & 10 & 8 & 4 & 4 & 3 & 3.24\\
     sort[3] & 139 & 10 & 10 & 11 & 5 & 1 & 1 & 3.24\\
     \midrule
-    max[5].grouped.un & 880 & 30 & 30 & 15 & 11 & 30 & 18 & 7.33\\
-    max[5].grouped.partially & 905 & 30 & 30 & 12 & 9 & 27 & 15 & 7.33\\
-    max[5].grouped.fully & 902 & 30 & 30 & 19 & 9 & 24 & 23 & 7.33\\
-    max[5] & 537 & 30 & 30 & 17 & 6 & 15 & 13 & 7.33\\
+    \hl{max[5].grouped.un} & \hl{880} & \hl{30} & \hl{30} & \hl{15} & \hl{11} & \hl{30} & \hl{18} & \hl{7.33}\\
+    \hl{max[5].grouped.partially} & \hl{905} & \hl{30} & \hl{30} & \hl{12} & \hl{9} & \hl{27} & \hl{15} & \hl{7.33}\\
+    \hl{max[5].grouped.fully} & \hl{902} & \hl{30} & \hl{30} & \hl{19} & \hl{9} & \hl{24} & \hl{23} & \hl{7.33}\\
+    \hl{max[5]} & \hl{537} & \hl{30} & \hl{30} & \hl{17} & \hl{6} & \hl{15} & \hl{13} & \hl{7.33}\\
     \midrule
-    mm.16.blocked & 7139 & 3840 & 4096 & 414 & 128 & 4446 & 872 & 3200\\
+    \hl{mm.16.blocked} & \hl{7139} & \hl{3840} & \hl{4096} & \hl{414} & \hl{128} & \hl{4446} & \hl{872} & \hl{3200}\\
     \bottomrule
     \end{tabular}
 \end{table*}
@@ -149,15 +149,15 @@ While it may appear that \system's actual speedups are sometimes well off from t
 
 %\milind{This would be a good place to discuss the comparison of our speedups with rotation vs. modeled ideal speedups without rotation costs...}
 \subsection{Scalability}\label{sec:scalability}
-Many of the benchmarks we evaluate on have relatively small input sizes, since it is often intractable to directly apply the search procedure \system uses for lane placement.
-However, it is possible to scale \system up to larger input sizes by ``blocking'', or vectorizing smaller kernels separately and then composing the vector programs.
-To investigate how well this scaling works, we used \system to compile a $16\times 16$ matrix multiply as follows.
-We vectorized the multiplication of a single $4\times 4$ ``block'', and recorded the input/output layouts \system chose.
+\hl{Many of the benchmarks we evaluate on have relatively small input sizes, since it is often intractable to directly apply the search procedure {\system} uses for lane placement.
+However, it is possible to scale {\system} up to larger input sizes by ``blocking'', or vectorizing smaller kernels separately and then composing the vector programs.
+To investigate how well this scaling works, we used {\system} to compile a $16\times 16$ matrix multiply as follows.
+We vectorized the multiplication of a single $4\times 4$ ``block'', and recorded the input/output layouts {\system} chose.
 
-The output layout of each $4\times 4$ block was used to fix the input layout to another kernel (see Section~\ref{sec:using-coyote}), which took 64 of these blocks and performed the necessary reductions to arrange them into the final result of the $16\times 16$ matrix multiplication.
-The metadata for this benchmark is shown under {\tt mm.16} in Table~\ref{tab:big-ass} (the compilation time includes the time to compile the $4\times 4$ block as well as the reduction circuit).
+The output layout of each $4\times 4$ block was used to fix the input layout to another kernel (see Section~{\ref{sec:using-coyote}}), which took 64 of these blocks and performed the necessary reductions to arrange them into the final result of the $16\times 16$ matrix multiplication.
+The metadata for this benchmark is shown under {{\tt mm.16}} in Table~{\ref{tab:big-ass}} (the compilation time includes the time to compile the $4\times 4$ block as well as the reduction circuit).
 After vectorizing, the blocked $16\times 16$ matrix multiply takes 3433 seconds, compared to 4541 seconds before vectorizing, for a total 32\% speedup.
-This shows that by composing smaller kernels, \system is able to scale up to vectorizing much larger circuits and still see relatively significant speedups over unvectorized code. Note that this understates Coyote's potential speedup as it does not currently attempt to vectorize separate, identical kernels together (which, note, is a regular process so could use standard vectorization techniques).
+This shows that by composing smaller kernels, {\system} is able to scale up to vectorizing much larger circuits and still see relatively significant speedups over unvectorized code. Note that this understates Coyote's potential speedup as it does not currently attempt to vectorize separate, identical kernels together (which, note, is a regular process so could use standard vectorization techniques).}
 
 \subsection{Randomly Generated Irregular Kernels}
 \begin{figure}[t]
@@ -261,21 +261,21 @@ By contrast, when each entry is on a separate vector, every rotation must necess
 \subsection{Effects of Search and Co-Optimization}\label{sec:search-and-cooptimization}
 % % \milind{bad section title :-) Call it something like ``Effects of Search and Co-optimization.'' There should be a research question in the intro that directly pertains to the results of this study}
 % % \milind{Don't just launch into the figure description. Remind people why we're here :-)}\raghav{Is this better?}
-We would like to know how effective \system's schedule search strategy is, and in particular, how good of a job it does at optimizing data layout and schedule {\em together}.
-To test this, we compile the 5-point distances benchmark with three different levels of data layout by varying the number of iterations of simulated annealing, and record the cost of the generated schedule during each round of the search.
+\hl{We would like to know how effective {\system}'s schedule search strategy is, and in particular, how good of a job it does at optimizing data layout and schedule} {\em \hl{together}}.
+\hl{To test this, we compile the 5-point distances benchmark with three different levels of data layout by varying the number of iterations of simulated annealing, and record the cost of the generated schedule during each round of the search.}
 
-Figure~\ref{fig:schedule-cost} shows the cost of the vector schedule over time for various levels of data layout.
+\hl{Figure~{\ref{fig:schedule-cost}} shows the cost of the vector schedule over time for various levels of data layout.
 The blue line depicts the schedule cost when we use 10k iterations of simulated annealing to find an optimal data layout at each step; the orange line is 15k iterations and the green line is 20k iterations.
 As expected, doing more iterations of simulated annealing has a large effect on the efficiency of the final schedule, since we rely heavily on the fact that the data layout being used to guide each round of the search is close to optimal.
-In compiling all our benchmarks, we use 20k iterations of annealing (the green line).
+In compiling all our benchmarks, we use 20k iterations of annealing (the green line).}
 
 \subsection{Optimality Tradeoffs from Timeouts}\label{sec:ilp-ablation}
-The synthesis procedure we use for generating the final (aligned) schedule from a pre-schedule uses iterative calls to an ILP solver that reduce the schedule height constraint until hitting a timeout.
+\hl{The synthesis procedure we use for generating the final (aligned) schedule from a pre-schedule uses iterative calls to an ILP solver that reduce the schedule height constraint until hitting a timeout.
 This is to prevent the synthesis time from blowing up, but it does come at the cost of sacrificing some optimality, since the solver might time out before finding the smallest possible schedule. 
-In this section, we investigate the extent to which this choice matters by instead using a version of the scheduler that directly finds the minimal-height schedule with no timeout. This approach guarantees that the synthesized schedules have minimal height.\footnote{Note that because the alignment algorithm cannot account for blend costs---they arise after alignment---the minimal {\em height} schedule may not be the minimal {\em cost} schedule.} Table~\ref{tab:ilp-ablation} summarizes the results. We see that compilation time increases with the optimal ILP, but speedups are comparable (sometimes faster, and even sometimes slower, due to different blends).
+In this section, we investigate the extent to which this choice matters by instead using a version of the scheduler that directly finds the minimal-height schedule with no timeout. This approach guarantees that the synthesized schedules have minimal height.\footnote{Note that because the alignment algorithm cannot account for blend costs---they arise after alignment---the minimal {\em height} schedule may not be the minimal {\em cost} schedule.} Table~{\ref{tab:ilp-ablation}} summarizes the results. We see that compilation time increases with the optimal ILP, but speedups are comparable (sometimes faster, and even sometimes slower, due to different blends).}
 
 \begin{table}
-    \caption{Comparison of compilation time (seconds) and vectorization speedup with vs. without synthesis timeouts.}\label{tab:ilp-ablation}
+    \caption{\hl{Comparison of compilation time (seconds) and vectorization speedup with vs. without synthesis timeouts.}}\label{tab:ilp-ablation}
     \small
     \centering
     \begin{tabular}{lcccc}
