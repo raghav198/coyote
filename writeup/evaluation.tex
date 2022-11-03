@@ -250,10 +250,12 @@ By contrast, when each entry is on a separate vector, every rotation must necess
     \includegraphics[width=0.9\linewidth]{figures/graphs/case_study.png}
     \caption{Speedups for the five data layout case studies (higher is better). Note that the second bar (``Separate'') corresponds to the leftmost bar of {\sf mm.3} in Figure~\ref{fig:vector-speedups}.}
     \Description{Bar graph showing speedup from vectorization for five data layout case studies}\label{fig:data-layout-case-study}
-    
-        \includegraphics[width=0.9\linewidth]{figures/graphs/schedules.png}
-        \vspace{-1em}
-    \caption{Schedule cost over time (lower is better) for different numbers of simulated annealing iterations for data layout per step of scheduling.}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{figures/graphs/schedules.png}
+    \vspace{-1em}
+    \caption{\hl{Schedule cost over time (lower is better) for different numbers of simulated annealing iterations for data layout per step of scheduling.}}
     \Description{Multiple line graphs showing the schedule cost over time for different optimization parameters}\label{fig:schedule-cost}
 \end{figure}
 
