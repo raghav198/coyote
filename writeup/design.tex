@@ -186,7 +186,7 @@ Finally, to speed up the search for a solution, we place a bound on the total le
 \hl{The circuit obtained after vectorization necessarily operates on inputs that have been ``packed'' into vectors.
 Choosing a good layout within these vectors is crucial, since a poor choice of layout could incur many additional rotations to line operands up with where they are used.
 {\system} can automatically select a good layout as part of the vectorization process.
-An input that is only used once is placed on the lane within its vector corresponding to the unique lane where it is used, and any two inputs that are placed on the same lane by this rule are packed into separate input vectors.
+An input that is only used once is placed on the lane within its vector corresponding to the unique lane where it is used, and any two inputs that are placed on the same lane by this rule are packed into separate input vectors to avoid collisions.
 
 For inputs that are used multiple times (or inputs that are required to be packed into the same vector, e.g. elements of the same matrix), {\system} places a no-op ``load'' gate in the scalar circuit (so that the input is only used once, by the load gate).
 Two load gates are placed in the same epoch in the circuit if and only if their corresponding inputs are required to be packed together (thus ensuring that they are given different lanes).
