@@ -115,6 +115,7 @@ def compile_vector(lines):
         elif 'blend' in args:
             compute.append('')
             compute.append(f'// {line}')
+            compute.append('{')
             blendees = args[6:-1].split(', ')
             need_to_mask = list(filter(lambda b: not b.startswith('__t'), blendees))
             direct_blends = list(filter(lambda b: b.startswith('__t'), blendees))
@@ -133,6 +134,7 @@ def compile_vector(lines):
                 compute.append(f'info.eval->add({sum_arg}, {convert(dest)});')
             else:
                 compute.append(f'info.eval->add_many({{{sum_arg}}}, {convert(dest)});')
+            compute.append('}')
             compute.append('')
 
         elif '>>' in args:
