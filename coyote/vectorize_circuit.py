@@ -610,11 +610,11 @@ def get_lanes(graph: nx.DiGraph, warp_size: int) -> List[int]:
     return lanes
         
 
-def vectorize(comp: CompilerV2, lanes_out=[]):
+def vectorize(comp: CompilerV2, lanes_out=[], extra_force_lanes: dict[int, int]={}):
     # compute the schedule
     
     loaded_groups = [set().union(*(comp.loaded_regs[g] for g in group)) for group in comp.input_groups]
-    loaded_lanes = {next(iter(comp.loaded_regs[g])): comp.force_lanes[g] for g in comp.force_lanes}
+    loaded_lanes = {next(iter(comp.loaded_regs[g])): comp.force_lanes[g] for g in comp.force_lanes} | extra_force_lanes
     
     graph = instr_sequence_to_nx_graph(comp.code)
     actual_instrs = list(filter(lambda n: all(isinstance(m, int) for m in n), graph.nodes))
