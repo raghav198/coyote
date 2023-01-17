@@ -24,7 +24,9 @@ def instr_sequence_to_nx_graph(instrs: List[Instr]) -> nx.DiGraph:
     graph.graph['ops'] = {}
     for instr in instrs:
         graph.graph['ops'][instr.dest.val] = instr.op
-        if instr.op == '~':
+        # if instr.op == '~':
+        #     continue
+        if instr.op == '~' and not (instr.lhs.reg and instr.rhs.reg):
             continue
         graph.add_edge((instr.lhs.val,), (instr.dest.val,))
         graph.add_edge((instr.rhs.val,), (instr.dest.val,))
@@ -72,7 +74,7 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
 
     num_epochs = max(epochs.keys()) + 1
 
-    print('epochs:', epochs)
+    # print('epochs:', epochs)
     
 
     # bipartite pieces, indexed by (source, target) epoch
@@ -116,7 +118,7 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
     for node in force_lanes:
         preloaded[force_lanes[node]].add((node,))
     for group in preloaded.values():
-        print(f'Grouping {group} into a column')
+        # print(f'Grouping {group} into a column')
         columns.new_class(*group)
 
     for i, j in sorted(pieces.keys()):
@@ -155,7 +157,7 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
         rotation_graph = nx.graphviews.subgraph_view(graph, filter_edge=lambda u, v: (u, v) not in matching and (v, u) not in matching)
 
         total_degree += max(rotation_graph.degree(), key=lambda n: n[1])[1]
-    list(map(print, map(sorted, columns.all_classes())))
+    # list(map(print, map(sorted, columns.all_classes())))
     # quit()
     
     for i, col in enumerate(columns.all_classes()):
@@ -277,7 +279,7 @@ def iterate_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], force_lane
         # sort annotations by which ones appear the least frequently (corresponds to good candidates to contract)
         # then iterate through the edges in that order, stopping at max_edges
         edges_to_try: List = sum((list(ann[a]) for a in sorted(ann.keys(), key=lambda a:len(ann[a]))), [])[:max_edges]
-        print(f'Trying contracting {len(edges_to_try)} different edges...')
+        # print(f'Trying contracting {len(edges_to_try)} different edges...')
         options = [(base_cost, graph)]
 
         for edge in edges_to_try:
@@ -288,10 +290,10 @@ def iterate_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], force_lane
             if contracted_cost <= base_cost:
                 options.append((contracted_cost, contracted))
 
-        print(f'{len(options) - 1} option(s) better than (or equal to) the baseline!')
+        # print(f'{len(options) - 1} option(s) better than (or equal to) the baseline!')
 
         if len(options) == 1:
-            print('Ending...')
+            # print('Ending...')
             # none of the contraction options were better than the baseline, so exit out now
             break
 
@@ -492,11 +494,11 @@ def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], force_lanes: Di
 
     grade_nx_graph(graph, groups)
     nx_columnize(graph, force_lanes)
-    print(force_lanes)
-    print(graph.nodes(data=True))
-    print(f'Original rotation cost: {rotation_cost(graph)}')
+    # print(force_lanes)
+    # print(graph.nodes(data=True))
+    # print(f'Original rotation cost: {rotation_cost(graph)}')
     for reg, lane in force_lanes.items():
-        print(f'Setting {graph.nodes[reg,]["column"]} to {lane}')
+        # print(f'Setting {graph.nodes[reg,]["column"]} to {lane}')
         graph.nodes[reg,]['column'] = lane
 
     cost_history = []
@@ -506,7 +508,7 @@ def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], force_lanes: Di
     current_cost += schedule_height(graph)
     
     for reg, lane in force_lanes.items():
-        print(f'Setting {graph.nodes[reg,]["column"]} to {lane}')
+        # print(f'Setting {graph.nodes[reg,]["column"]} to {lane}')
         graph.nodes[reg,]['column'] = lane
 
     best = schedule(cost=current_cost, graph=nx.DiGraph(graph), edges=None)
@@ -515,15 +517,15 @@ def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], force_lanes: Di
     heappush(pqueue, schedule(cost=best.cost, graph=best.graph, edges=None))
     for r in range(rounds):
         if not len(pqueue):
-            print('No more graphs to try!')
+            # print('No more graphs to try!')
             break
 
         cur = heappop(pqueue)
 
         best_history.append(best.cost)
         cost_history.append(cur.cost)
-        if len(pqueue):
-            print(f'Round {r}/200: exploring {cur.cost}{" (new best!)" if cur < best else ""}')
+        # if len(pqueue):
+        #     print(f'Round {r}/200: exploring {cur.cost}{" (new best!)" if cur < best else ""}')
         if cur < best:
             best = schedule(cost=cur.cost, graph=nx.DiGraph(cur.graph), edges=None)
 
@@ -587,7 +589,7 @@ def get_stages(graph: nx.DiGraph) -> Generator[Tuple[int], None, None]:
     for node in graph.nodes:
         epoch_grouping[graph.nodes[node]['epoch']].add(node)
         
-    print(f'Epoch grouping: {epoch_grouping}')
+    # print(f'Epoch grouping: {epoch_grouping}')
     
     while True:
         stage = ()
@@ -610,10 +612,11 @@ def get_lanes(graph: nx.DiGraph, warp_size: int) -> List[int]:
     return lanes
         
 
-def vectorize(comp: CompilerV2, lanes_out=[], extra_force_lanes: dict[int, int]={}):
+def vectorize(comp: CompilerV2, lanes_out=[], sched_out=[], extra_force_lanes: dict[int, int]={}):
     # compute the schedule
     
     loaded_groups = [set().union(*(comp.loaded_regs[g] for g in group)) for group in comp.input_groups]
+
     loaded_lanes = {next(iter(comp.loaded_regs[g])): comp.force_lanes[g] for g in comp.force_lanes} | extra_force_lanes
     
     graph = instr_sequence_to_nx_graph(comp.code)
@@ -624,9 +627,9 @@ def vectorize(comp: CompilerV2, lanes_out=[], extra_force_lanes: dict[int, int]=
 
     # relaxed_schedule, _ = anneal_relax_schedule(graph, loaded_groups, t=20, beta=0.001, rounds=200)
 
-    print('Column mapping:')
-    for node in relaxed_schedule.nodes:
-        print(node, relaxed_schedule.nodes[node]['column'])
+    # print('Column mapping:')
+    # for node in relaxed_schedule.nodes:
+        # print(node, relaxed_schedule.nodes[node]['column'])
 
     # shift to start at column 1 :)
     min_column = min(relaxed_schedule.nodes[node]['column'] for node in relaxed_schedule)
@@ -657,9 +660,10 @@ def vectorize(comp: CompilerV2, lanes_out=[], extra_force_lanes: dict[int, int]=
         assert isinstance(instr.dest.val, int)
         inv_schedule[schedule[instr.dest.val]][lanes[instr.dest.val]] = instr.dest.val
 
-    print(relaxed_schedule.nodes)
+    # print(relaxed_schedule.nodes)
     
     lanes_out[:] = lanes
+    sched_out[:] = schedule
 
     return codegen(vector_program, relaxed_schedule, lanes, schedule, warp_size)
 

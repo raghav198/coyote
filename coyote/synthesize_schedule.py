@@ -97,7 +97,7 @@ class ScheduleSynthesizer:
                 
                 if i != j and disallow_same_vec_same_dep and len(set(dep_graph[i]).intersection(set(dep_graph[j]))) > 0:
                     # instructions i and j share a dependency
-                    print(f'Disallowing {i} and {j}')
+                    # print(f'Disallowing {i} and {j}')
                     self.opt.add(self._schedule[i] != self._schedule[j])
 
             self.opt.add(self._lanes[i] == lanes[program[i].dest.val])
@@ -107,7 +107,7 @@ class ScheduleSynthesizer:
                 
 
     def add_bound(self, bound):
-        print(f'Bounding by {bound}')
+        # print(f'Bounding by {bound}')
         for i in range(self.num_instr):
             self.opt.add(self._schedule[i] < bound)
 
@@ -119,7 +119,7 @@ class ScheduleSynthesizer:
         model = self.opt.model()
         schedule = [model[s].as_long() for s in self._schedule]
 
-        print(f'Current solution: {schedule}')
+        # print(f'Current solution: {schedule}')
 
         return schedule
 
@@ -156,12 +156,12 @@ def synthesize_schedule_bounded_consider_blends(program: List[Instr], max_len: i
                 continue
             opt.add(_schedule[i] > _schedule[dep])
 
-    print(f'Trying to synthesize {max_len} instructions...', file=log, end='')
+    # print(f'Trying to synthesize {max_len} instructions...', file=log, end='')
     log.flush()
     start = time()
     res = opt.check()
     end = time()
-    print(f'({int(1000 * (end - start))} ms)', file=log)
+    # print(f'({int(1000 * (end - start))} ms)', file=log)
     if res != z3.sat:
         return z3.unsat
 
@@ -220,7 +220,7 @@ def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int, l
         elif i in mults:
             opt.add(_types[_schedule[i]] == itype.times)
 
-    print(f'Trying to synthesize {max_len} instructions...', file=log, end='')
+    # print(f'Trying to synthesize {max_len} instructions...', file=log, end='')
     log.flush()
     start = time()
     res = opt.check()
@@ -334,7 +334,7 @@ def synthesize_schedule(program: List[Instr], warp: int, lanes: List[int], log=s
                 raise Exception("No model was ever found!")
             return best_so_far
         best_so_far = answer
-        print(f'Found schedule of length {max(answer)}, trying to improve', file=log)
+        # print(f'Found schedule of length {max(answer)}, trying to improve', file=log)
         synthesizer.add_bound(max(answer))
 
     # for max_len in range(max_height, len(program) + 1):

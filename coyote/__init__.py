@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from inspect import signature
+from sys import stderr
+from warnings import warn
 from .coyote_ast import CompilerV2, Var
 from .vectorize_circuit import vectorize
 
@@ -127,7 +129,7 @@ class coyote_compiler:
                 if p not in params:
                     raise TypeError(f"In function '{name}': no such parameter '{p}'")
                 if not any(isinstance(types[p], t) for t in allowed_types):
-                    print(f"In function '{name}': '{types[p]}' is not an allowed type")
+                    raise TypeError(f"In function '{name}': '{types[p]}' is not an allowed type")
 
 
 
@@ -140,7 +142,7 @@ class coyote_compiler:
             for p in params:
                 if p not in types:
                     types[p] = scalar()
-                    print(f"In function '{name}': No type provided for {p}, assuming scalar")
+                    warn(f"In function '{name}': No type provided for {p}, assuming scalar")
 
             self.func_signatures[func] = types
             return func

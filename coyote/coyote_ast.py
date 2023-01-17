@@ -177,7 +177,7 @@ class Compiler:
 
             # if not self.allow_duplicates and (e.name in self.loaded_regs):
             if not self.replicate_all and e.name not in self.allow_duplicates and e.name in self.loaded_regs:
-                print(f'Reusing {self.loaded_regs[e.name]} instead of reloading {e.name}')
+                # print(f'Reusing {self.loaded_regs[e.name]} instead of reloading {e.name}')
                 e.tag = self.loaded_regs[e.name]
                 return Atom(self.loaded_regs[e.name])
 

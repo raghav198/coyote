@@ -8,8 +8,8 @@ import networkx as nx # type: ignore
 def build_vector_program(program: List[Instr],
                          lanes: List[int],
                          schedule: List[int], log=stderr) -> List[VecInstr]:
-    print('Building stage:', file=log)
-    print('\n'.join(map(str, program)), file=log)
+    # print('Building stage:', file=log)
+    # print('\n'.join(map(str, program)), file=log)
     # print(lanes, schedule)
     vectorized_code = []
     warp = max(lanes) + 1
@@ -44,7 +44,7 @@ def remove_repeated_ops(generated_code: List[str]) -> List[str]:
     computation: Dict[str, str] = {} # expression -> variable storing that expression (backwards of assignment)
     remap: Dict[str, str] = {} # variable -> variable to use instead of it
     for i, line in enumerate(generated_code):
-        print(f'{i}: {line}')
+        # print(f'{i}: {line}')
         lhs, rhs = line.split(' = ')
 
         for v in remap:
@@ -63,9 +63,9 @@ def remove_repeated_ops(generated_code: List[str]) -> List[str]:
 
 def codegen(vector_program: List[VecInstr], graph: nx.DiGraph, lanes: List[int], schedule: List[int], warp_size: int):
     shift_amounts_needed: Dict[int, Dict[int, int]] = defaultdict(lambda: defaultdict(lambda: 0))
-    print('Raw program: ')
-    print('\n'.join(map(str, vector_program)))
-    print(f'Warp size: {warp_size}')
+    # print('Raw program: ')
+    # print('\n'.join(map(str, vector_program)))
+    # print(f'Warp size: {warp_size}')
 
     for instr in vector_program:
         for c, p in zip(instr.dest * 2, instr.left + instr.right):
@@ -76,7 +76,7 @@ def codegen(vector_program: List[VecInstr], graph: nx.DiGraph, lanes: List[int],
                 continue
             shift_amounts_needed[p.val][c.val] = shift_amount
 
-    print(shift_amounts_needed)
+    # print(shift_amounts_needed)
 
 
     shifted_vectors: Dict[Tuple[int, int], str] = {} # (register, shift amount) -> name of shifted vector
