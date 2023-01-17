@@ -1,5 +1,6 @@
 from collections import defaultdict
-from typing import Tuple
+from dataclasses import dataclass
+from typing import Tuple, cast
 
 from .coyote_ast import *
 import z3 # type: ignore
@@ -9,9 +10,9 @@ from time import time
 # z3.set_option('parallel.enable', True)
 
 
-class VecInstr:
-    def __init__(self, dest: List[int], left: List[Atom], right: List[Atom], op: T_op):
-        self.dest = [Atom(d) for d in dest]
+class VecSchedule:
+    def __init__(self, dest: List[int] | List[Atom], left: List[Atom], right: List[Atom], op: T_op):
+        self.dest = [Atom(d) if isinstance(d, int) else d for d in dest]
         self.left = left
         self.right = right
         self.op = op
@@ -20,7 +21,7 @@ class VecInstr:
         return f'{self.dest} = {self.left} {self.op} {self.right}'
 
     def copy(self):
-        return VecInstr(self.dest[:], self.left[:], self.right[:], self.op)
+        return VecSchedule(self.dest[:], self.left[:], self.right[:], self.op)
 
 
 def dependency_graph(program: List[Instr]) -> List[List[int]]:
@@ -100,7 +101,7 @@ class ScheduleSynthesizer:
                     # print(f'Disallowing {i} and {j}')
                     self.opt.add(self._schedule[i] != self._schedule[j])
 
-            self.opt.add(self._lanes[i] == lanes[program[i].dest.val])
+            self.opt.add(self._lanes[i] == lanes[cast(int, program[i].dest.val)])
             for dep in dep_graph[i]:
                 self.opt.add(self._schedule[i] > self._schedule[dep])
                 self.opt.add(self._lanes[i] == self._lanes[dep])
@@ -111,13 +112,13 @@ class ScheduleSynthesizer:
         for i in range(self.num_instr):
             self.opt.add(self._schedule[i] < bound)
 
-    def solve(self):
+    def solve(self) :
         result = self.opt.check()
         if result != z3.sat:
             return z3.unsat
 
         model = self.opt.model()
-        schedule = [model[s].as_long() for s in self._schedule]
+        schedule: list[int] = [model[s].as_long() for s in self._schedule] # type: ignore
 
         # print(f'Current solution: {schedule}')
 
@@ -167,9 +168,9 @@ def synthesize_schedule_bounded_consider_blends(program: List[Instr], max_len: i
 
     model = opt.model()
 
-    schedule = [model[s].as_long() for s in _schedule]
+    schedule = [model[s].as_long() for s in _schedule] # type: ignore
 
-    return schedule, model.eval(blend_penalty).as_long()
+    return schedule, model.eval(blend_penalty).as_long() # type: ignore
 
 
 def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int, log=stderr):
@@ -231,7 +232,7 @@ def synthesize_schedule_bounded(program: List[Instr], warp: int, max_len: int, l
 
     model = opt.model()
 
-    schedule = [model[s].as_long() for s in _schedule]
+    schedule = [model[s].as_long() for s in _schedule] # type: ignore
     # lanes = [model[lane].as_long() for lane in _lanes]
     # types: List[T_op] = [('+' if model[_types][t] == itype.plus else '*') for t in range(num_instr)]
 
@@ -270,13 +271,14 @@ def synthesize_schedule_iterative_refine(program: List[Instr], timeout=10, log=s
     print('Synthesizing a program', file=log)
 
     while True:
+        schedule = []
         result = opt.check()
         if result == z3.sat:
             model = opt.model()
-            schedule = [model[s].as_long() for s in _schedule]
+            schedule = [model[s].as_long() for s in _schedule] # type: ignore
             # print(type(schedule), schedule)
             # print(type(blend_penalty), blend_penalty)
-            total_cost = max(schedule) + model.eval(blend_penalty)
+            total_cost = max(schedule) + cast(int, model.eval(blend_penalty))
             print(total_cost, type(total_cost))
             print(f'Current cost: {total_cost}, attempting to refine...', file=log)
 
@@ -288,36 +290,15 @@ def synthesize_schedule_iterative_refine(program: List[Instr], timeout=10, log=s
             return schedule
 
 
-def synthesize_schedule_iterative_refine_saved_state(program: List[Instr], warp: int, log=stderr) -> List[int]:
-
-    synthesizer = ScheduleSynthesizer(program, warp, log, timeout=60)
-    best_sched = None
-    while True:
-        result = synthesizer.solve()
-        if result == z3.unsat:
-            if best_sched is None:
-                raise Exception('No schedule was ever found!')
-            return best_sched
-        best_sched, blend_penalty = result
-        synthesizer.add_bound(max(best_sched) + blend_penalty)
-
-    best_sched, blend_penalty = synthesize_schedule_bounded(program, -1, log=log)
-    while True:
-        result = synthesize_schedule_bounded(program, max(best_sched) + blend_penalty, log=log)
-        print(result)
-        if result == z3.unsat:
-            return best_sched
-        best_sched, blend_penalty = result
-
 
 def synthesize_schedule(program: List[Instr], warp: int, lanes: List[int], log=stderr) -> List[int]:
     # print(f'Calculating height...', file=log, end='')
     log.flush()
     heights: Dict[int, int] = defaultdict(lambda: 0)
     for instr in program:
-        left_height = heights[instr.lhs.val]
-        right_height = heights[instr.rhs.val]
-        heights[instr.dest.val] = max(left_height, right_height) + 1
+        left_height = heights[cast(int, instr.lhs.val)]
+        right_height = heights[cast(int, instr.rhs.val)]
+        heights[cast(int, instr.dest.val)] = max(left_height, right_height) + 1
 
     max_height = max(heights.values())
     # print(f'({max_height})', file=log)
@@ -333,70 +314,6 @@ def synthesize_schedule(program: List[Instr], warp: int, lanes: List[int], log=s
             if best_so_far is None:
                 raise Exception("No model was ever found!")
             return best_so_far
+        assert isinstance(answer, list)
         best_so_far = answer
-        # print(f'Found schedule of length {max(answer)}, trying to improve', file=log)
         synthesizer.add_bound(max(answer))
-
-    # for max_len in range(max_height, len(program) + 1):
-    #     result = synthesize_schedule_bounded(program, warp, max_len, log=log)
-    #     if result == z3.unsat:
-    #         continue
-    #     end = time()
-    #     print(f'Synthesis took {int(1000 * (end - start))}ms', file=log)
-
-    #     return result
-
-
-def synthesize_schedule_backwards(program: List[Instr], warp: int, log=stderr) -> List[int]:
-    print(f'Calculating height...', file=log, end='')
-    log.flush()
-    heights: Dict[int, int] = defaultdict(lambda: -1)
-    for instr in program:
-        left_height = heights[instr.lhs.val]
-        right_height = heights[instr.rhs.val]
-        heights[instr.dest.val] = max(left_height, right_height) + 1
-        print(f'setting height of {instr.dest.val} to {left_height, right_height} -> {heights[instr.dest.val]}')
-
-    max_height = max(heights.values(), 1)
-    print(f'({max_height})', file=log)
-    best_so_far = None
-    for max_len in range(len(program) + 1, max_height, -1):
-        result = synthesize_schedule_bounded(program, warp, max_len, log=log)
-        if result == z3.unsat:
-            break
-        best_so_far = result
-    return best_so_far
-
-
-def build_vector_program_automatic(program: List[Instr], warp: int, log=stderr) -> List[VecInstr]:
-
-    def __sweep_length():
-        for max_len in range(len(program) + 1):
-            print(f'Trying length {max_len} program...', file=log)
-            result = synthesize_schedule_bounded(program, warp, max_len, log=log)
-            if result == z3.unsat:
-                continue
-            print('Successful!', file=log)
-            return result
-
-    vectorized_code = []
-
-    schedule, lanes, types = __sweep_length()
-
-    # schedule  :: inst -> slot, inv_schedule :: slot -> [inst]
-    inv_schedule = [[i for i in range(len(schedule)) if schedule[i] == slot]
-                    for slot in set(schedule)]
-
-    for instrs in inv_schedule:
-        dest = [-1 for _ in range(warp)]
-        lhs = [Atom(BLANK_SYMBOL) for _ in range(warp)]
-        rhs = [Atom(BLANK_SYMBOL) for _ in range(warp)]
-
-        for i in instrs:
-            dest[lanes[i]] = program[i].dest.val
-            lhs[lanes[i]] = program[i].lhs
-            rhs[lanes[i]] = program[i].rhs
-
-        vectorized_code.append(VecInstr(dest, lhs, rhs, types[i]))
-
-    return vectorized_code

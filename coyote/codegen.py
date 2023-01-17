@@ -1,13 +1,63 @@
+from dataclasses import dataclass
 from sys import stderr
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, cast
 from .coyote_ast import *
-from .synthesize_schedule import VecInstr
+from .synthesize_schedule import VecSchedule
 import networkx as nx # type: ignore
 
+@dataclass
+class VecRotInstr:
+    dest: str
+    operand: str
+    shift: int
+    
+    def __repr__(self):
+        return f'{self.dest} = {self.operand} >> {self.shift}'
+
+
+@dataclass
+class VecOpInstr:
+    dest: str
+    op: str
+    lhs: str
+    rhs: str
+    
+    def __repr__(self):
+        return f'{self.dest} = {self.lhs} {self.op} {self.rhs}'
+
+@dataclass 
+class VecLoadInstr:
+    dest: str
+    src: str
+    
+    def __repr__(self):
+        return f'{self.dest} = load({self.src})'
+    
+@dataclass
+class VecConstInstr:
+    dest: str
+    vals: list[str]
+    
+    def __repr__(self):
+        return f'{self.dest} = [{", ".join(self.vals)}]'
+    
+    
+@dataclass
+class VecBlendInstr:
+    dest: str
+    vals: list[str]
+    masks: list[list[int]]
+    
+    def __repr__(self):
+        bitmask = lambda mask: ''.join(map(str, mask))
+        return f'{self.dest} = blend({", ".join([f"{val}@{bitmask(mask)}" for val, mask in zip(self.vals, self.masks)])})'
+    
+
+VecInstr = VecRotInstr | VecOpInstr | VecLoadInstr | VecConstInstr | VecBlendInstr
 
 def build_vector_program(program: List[Instr],
                          lanes: List[int],
-                         schedule: List[int], log=stderr) -> List[VecInstr]:
+                         schedule: List[int], log=stderr) -> List[VecSchedule]:
     # print('Building stage:', file=log)
     # print('\n'.join(map(str, program)), file=log)
     # print(lanes, schedule)
@@ -32,7 +82,7 @@ def build_vector_program(program: List[Instr],
             lhs[lane_num] = program[i].lhs
             rhs[lane_num] = program[i].rhs
 
-        vectorized_code.append(VecInstr(dest, lhs, rhs, program[instrs[0]].op))
+        vectorized_code.append(VecSchedule(dest, lhs, rhs, program[instrs[0]].op))
 
     # print('Stage:')
     # print('\n'.join(map(str, vectorized_code)))
@@ -61,7 +111,7 @@ def remove_repeated_ops(generated_code: List[str]) -> List[str]:
     return list(filter(None, '\n'.join(generated_code).split('\n')))
 
 
-def codegen(vector_program: List[VecInstr], graph: nx.DiGraph, lanes: List[int], schedule: List[int], warp_size: int):
+def codegen(vector_program: List[VecSchedule], graph: nx.DiGraph, lanes: List[int], schedule: List[int], warp_size: int):
     shift_amounts_needed: Dict[int, Dict[int, int]] = defaultdict(lambda: defaultdict(lambda: 0))
     # print('Raw program: ')
     # print('\n'.join(map(str, vector_program)))
@@ -83,12 +133,16 @@ def codegen(vector_program: List[VecInstr], graph: nx.DiGraph, lanes: List[int],
     amount_shifted: Dict[str, int] = {} # name of vector -> amount it has been rotated
     shift_temp = 0 # for creating new shifted vectors
     cur_temp = 0 # for creating temporaries
-    generated_code: List[str] = []
+    generated_code: List[VecInstr] = []
     for i, instr in enumerate(vector_program):
         shifted_names: Dict[int, str] = {} # shift amount -> name of shifted vector [this is just specific to the current vector instruction]
         shifts_performed: List[int] = [] # what shifts are already queued up for this vector instruction?
 
+        vec_left: str = ''
+        vec_right: str = ''
+
         for dest in instr.dest: # for each register produced by this instruction
+            assert isinstance(dest.val, int)
             if dest.val not in shift_amounts_needed:
                 continue
             all_shifts = set(shift_amounts_needed[dest.val].values()) # all the amounts dest.val needs to be shifted by
@@ -118,7 +172,7 @@ def codegen(vector_program: List[VecInstr], graph: nx.DiGraph, lanes: List[int],
                     # find which source vec to get lane j of the left operand from
                     if symbol.val in shift_amounts_needed:
                         # its an output from a previous stage if its in the dictionary
-                        shift_amount = shift_amounts_needed[symbol.val][dests[j].val]
+                        shift_amount = shift_amounts_needed[symbol.val][cast(int, dests[j].val)]
                     else:
                         # its a temporary from this stage, no need to shift anyway
                         shift_amount = 0
@@ -140,40 +194,46 @@ def codegen(vector_program: List[VecInstr], graph: nx.DiGraph, lanes: List[int],
         right_blend, right_constants = get_blends_and_constants(instr.right, instr.dest)
 
         if any(x != 0 for x in left_constants):
-            generated_code.append(f'__t{cur_temp} = [{", ".join(map(str, left_constants))}]')
+            # generated_code.append(f'__t{cur_temp} = [{", ".join(map(str, left_constants))}]')
+            generated_code.append(VecConstInstr(f'__t{cur_temp}', list(map(str, left_constants))))
             left_blend[f'__t{cur_temp}'] = [int(x != 0) for x in left_constants]
             cur_temp += 1
 
-        if any(x != 0 for x in right_constants):
-            generated_code.append(f'__t{cur_temp} = [{", ".join(map(str, right_constants))}]')
+        if any(x != 0 for x in right_constants) and instr.op != '~':
+            # generated_code.append(f'__t{cur_temp} = [{", ".join(map(str, right_constants))}]')
+            generated_code.append(VecConstInstr(f'__t{cur_temp}', list(map(str, right_constants))))
             right_blend[f'__t{cur_temp}'] = [int(x != 0) for x in right_constants]
             cur_temp += 1
 
         if len(left_blend.keys()) > 1:
             # we need to emit a blend
-            blend_line = ', '.join([f'{v}@{"".join(map(str, m))}' for v, m in left_blend.items()])
-            generated_code.append(f'__t{cur_temp} = blend({blend_line})')
-            instr.left = f'__t{cur_temp}'
+            # blend_line = ', '.join([f'{v}@{"".join(map(str, m))}' for v, m in left_blend.items()])
+            # generated_code.append(f'__t{cur_temp} = blend({blend_line})')
+            generated_code.append(VecBlendInstr(f'__t{cur_temp}', list(left_blend.keys()), list(left_blend.values())))
+            vec_left = f'__t{cur_temp}' 
             cur_temp += 1
         elif len(left_blend.keys()) == 1:
             # no blend necessary, just grab it directly
-            instr.left = f'{list(left_blend.keys())[0]}'
+            vec_left = f'{list(left_blend.keys())[0]}' #
 
         if len(right_blend.keys()) > 1:
             # we need to emit a blend
-            blend_line = ', '.join([f'{v}@{"".join(map(str, m))}' for v, m in right_blend.items()])
-            generated_code.append(f'__t{cur_temp} = blend({blend_line})')
-            instr.right = f'__t{cur_temp}'
+            # blend_line = ', '.join([f'{v}@{"".join(map(str, m))}' for v, m in right_blend.items()])
+            generated_code.append(VecBlendInstr(f'__t{cur_temp}', list(right_blend.keys()), list(right_blend.values())))
+            vec_right = f'__t{cur_temp}'
             cur_temp += 1
         elif len(right_blend.keys()) == 1:
             # no blend necessary, just grab it directly
-            instr.right = f'{list(right_blend.keys())[0]}'
+            vec_right = f'{list(right_blend.keys())[0]}'
 
-        instr.dest = f'__v{i}'
-        generated_code.append(f'{instr}')
+        if instr.op == '~':
+            generated_code.append(VecLoadInstr(f'__v{i}', vec_left))
+        else:
+            generated_code.append(VecOpInstr(f'__v{i}', instr.op, vec_left, vec_right))
 
         for shift_amt, shifted_name in shifted_names.items():
-            generated_code.append(f'{shifted_name} = {instr.dest} >> {shift_amt}')
+            # generated_code.append(f'{shifted_name} = {instr.dest} >> {shift_amt}')
+            generated_code.append(VecRotInstr(shifted_name, f'__v{i}', shift_amt))
 
-    # return generated_code
-    return remove_repeated_ops(generated_code)
+    return generated_code
+    # return remove_repeated_ops(generated_code)

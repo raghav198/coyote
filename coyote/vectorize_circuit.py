@@ -4,13 +4,13 @@ from functools import reduce
 from heapq import heappop, heappush
 from math import exp
 from random import randint, random, seed, choice
-from typing import Any, Counter, List, Optional, Set, Dict, Tuple, Generator
+from typing import Any, Counter, List, Optional, Set, Dict, Tuple, Generator, cast
 import networkx as nx # type: ignore
 
 from .codegen import build_vector_program, codegen
 from .disjoint_set import DisjointSet
 from .coyote_ast import CompilerV2, Instr
-from .synthesize_schedule import VecInstr, synthesize_schedule
+from .synthesize_schedule import VecSchedule, synthesize_schedule
 
 seed(1)
 
@@ -47,7 +47,7 @@ def grade_nx_graph(graph: nx.DiGraph, groups: List[Set[int]]):
     def visit(node: int):
         if 'epoch' in graph.nodes[node]:
             return
-        children = {c for c, _ in graph.in_edges(node)}
+        children = {c for c, _ in graph.in_edges(node)} # type: ignore
         heights = set()
         for child in children:
             if 'epoch' not in graph.nodes[child]:
@@ -60,13 +60,13 @@ def grade_nx_graph(graph: nx.DiGraph, groups: List[Set[int]]):
 
 
 def producers(graph: nx.DiGraph, nbunch) -> Set[int]:
-    return {p for p, _ in graph.in_edges(nbunch)}
+    return {p for p, _ in graph.in_edges(nbunch)} # type: ignore
 
 
 def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
     # graph = nx.quotient_graph(_graph.to_undirected(), lambda u, v: u in force_lanes and v in force_lanes and force_lanes[u] == force_lanes[v])
     # graph = _graph
-    graph = _graph.to_undirected()
+    graph: nx.Graph = cast(nx.Graph, _graph.to_undirected())
 
     epochs: Dict[int, List[int]] = defaultdict(list)
     for node in graph:
@@ -124,11 +124,11 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
     for i, j in sorted(pieces.keys()):
         bp_piece = pieces[i, j]
         # print(f'Full bp piece {i, j}: {bp_piece.edges}')
-        part = set(n for n, d in bp_piece.nodes(data=True) if d['bipartite'])
+        part = set(n for n, d in bp_piece.nodes(data=True) if d['bipartite']) # type: ignore
 
         # TODO: this is not the right condition for marking an edge 'unmatchable'
         ## also check if the edge connects an unmatched vertex to one already matched with something in the same epoch
-        matchable_graph = nx.graphviews.subgraph_view(bp_piece, filter_edge=lambda u, v: not (columns.contains(u) and columns.contains(v)))
+        matchable_graph = nx.graphviews.subgraph_view(bp_piece, filter_edge=lambda u, v: not (columns.contains(u) and columns.contains(v))) # type: ignore
         # matchable_graph = nx.graphviews.subgraph_view(matchable_graph, filter_edge=lambda u, v: not (u in force_lanes and v in force_lanes and force_lanes[u] != force_lanes[v]))
         
         # print(f'Marking edges {[(u, v) for u, v in bp_piece.edges if columns.contains(u) and columns.contains(v)]} as unmatchable')
@@ -154,7 +154,7 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
 
         columns.add(*filter(lambda p: not columns.contains(p), part))
 
-        rotation_graph = nx.graphviews.subgraph_view(graph, filter_edge=lambda u, v: (u, v) not in matching and (v, u) not in matching)
+        rotation_graph = nx.graphviews.subgraph_view(graph, filter_edge=lambda u, v: (u, v) not in matching and (v, u) not in matching) # type: ignore
 
         total_degree += max(rotation_graph.degree(), key=lambda n: n[1])[1]
     # list(map(print, map(sorted, columns.all_classes())))
@@ -202,8 +202,8 @@ def permute(graph, num_cols, num_epochs):
 
 def lane_placement(graph: nx.DiGraph, force_lanes: dict[int, int], t=10, beta=0.05, rounds=10000):
     current, _ = rotation_cost(graph)
-    num_cols = 1 + max(d for _, d in graph.nodes(data='column'))
-    num_epochs = 1 + max(d for _, d in graph.nodes(data='epoch'))
+    num_cols = 1 + max(d for _, d in graph.nodes(data='column')) # type: ignore
+    num_epochs = 1 + max(d for _, d in graph.nodes(data='epoch')) # type: ignore
 
     if num_cols == 1:
         return current
@@ -439,7 +439,7 @@ def anneal_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], force_lanes
         edge_to_contract = choice(all_candidate_edges)
         
         raw_contracted = contract_edge(cur, edge_to_contract)
-        contracted = nx.condensation(raw_contracted) # candidate solution, condense any newly created SCCs to keep acyclic
+        contracted = cast(nx.DiGraph, nx.condensation(raw_contracted)) # candidate solution, condense any newly created SCCs to keep acyclic
 
         for node in contracted:
             contracted.nodes[node]['column'] = raw_contracted.nodes[next(iter(contracted.nodes[node]['members']))]['column']
@@ -488,7 +488,7 @@ def anneal_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], force_lanes
 def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], force_lanes: Dict[int, int], rounds=200):
     @dataclass(order=True)
     class schedule:
-        cost: int
+        cost: int | float
         graph: nx.DiGraph=field(compare=False)
         edges: Optional[List[Tuple]]=field(compare=False)
 
@@ -551,7 +551,7 @@ def pq_relax_schedule(graph: nx.DiGraph, groups: List[Set[int]], force_lanes: Di
         # for edge_to_contract in cross_edges:
             # print(f'\tedge {edge_to_contract}...')
         raw_contracted = contract_edge(cur.graph, edge_to_contract)
-        contracted = nx.condensation(raw_contracted)
+        contracted = cast(nx.DiGraph, nx.condensation(raw_contracted))
 
         for node in contracted:
             contracted.nodes[node]['column'] = raw_contracted.nodes[next(iter(contracted.nodes[node]['members']))]['column']
@@ -640,7 +640,7 @@ def vectorize(comp: CompilerV2, lanes_out=[], sched_out=[], extra_force_lanes: d
     warp_size = max(relaxed_schedule.nodes[node]['column'] for node in relaxed_schedule) + 1
     lanes = get_lanes(relaxed_schedule, warp_size)
 
-    vector_program: List[VecInstr] = []
+    vector_program: List[VecSchedule] = []
     schedule = [0] * len(comp.code)
     for stage in get_stages(relaxed_schedule):
         stage_instrs = [comp.code[i] for i in stage]
