@@ -17,6 +17,76 @@ This includes:
 ### Hardware
 No specialized hardware is required to use Coyote, beyond whatever may be necessary to efficiently run z3 and SEAL.
 
+## Using the Artifact
+The provided Dockerfile automatically builds and installs all dependencies of Coyote.
+To build and run the Docker image, run the following commands from the directory containing the Dockerfile:
+```
+docker build -t coyote .
+docker run -it coyote bash
+```
+In addition to the compiler and the runtime, the image also conists of various scripts to automatically run the benchmarks from the paper and generate the associated figures.
+These are:
+* `compile_benchmarks.py`: Automatically invokes the build script on a set of circuits defined in `benchmarks.py`. There are several presets available, `small`, `medium`, and `large`, representing the size of the circuits (and correspondingly the expected compile time).
+* `polynomial_benchmarks.py`: Generates and compiles the random tree benchmarks used in Section 6.5 of the paper. 
+* `build_and_run_all.py`: Builds binaries from all generated C++ code, invokes them one at a time, and organizes the resulting CSV files.
+* `figures.py`: Reads the CSV files and generates the figures from the paper.
+
+Note that there are two experiments omitted from the artifact, as they require some manual effort to set up and run. 
+These are `mm.16.blocked` from Section 6.4 of the paper, and the Schedule Cost over Time graph from Section 6.8 of the paper.
+
+### Demo
+Lets start by building all the `small` benchmarks (all replication sorts for `conv.4.2`, `mm.2`, `dot.3`, `dot.6`, and `dot.10`, as well as the ungrouped `sort[3]`):
+```
+python3 compile_benchmarks.py --preset small
+```
+(This took about 10 minutes on my machine)
+
+Lets also build some of the polynomial trees; in particular, we'll build three of the depth 5 trees in each of the three regimes:
+```
+python3 polynomial_benchmarks.py -d 5 -r "100-100" "100-50" "50-50" -i 2
+```
+(This took about 10 minutes on my machine).
+
+We can see, for example, some of the Coyote vector IR:
+```
+cat sort_3/vec
+```
+and the corresponding generated vector C++ code:
+```
+cat bfv_backend/coyote_out/sort_3/vector.cpp
+```
+
+We can also build the data layout case study from Section 6.7 of the paper, although note that these circuits are considerably larger, so compiling them will take some time:
+
+```
+python3 compile_benchmarks.py --preset layout
+```
+
+Now, we need to compile all the C++ code and collect data.
+Although we used 50 runs and 50 iterations in the paper, lets only use 10 of each to make this go faster:
+```
+python3 build_and_run_all.py --runs 10 --iters 10
+```
+You should see some CMake output followed by the encryption and run times for both scalar and vector versions of each circuit.
+Note that this script will not re-run benchmarks that already have corresponding CSV files in `bfv_backend/csvs/`.
+
+Once this is finished running, we can look at one of the generated CSV files:
+```
+cat bfv_backend/csvs/sort/sort_3.csv
+```
+
+Now that we've collected all the data for these benchmarks, we can generate the graphs:
+```
+python3 figures.py
+```
+
+This will generate three plots:
+`graphs/vector_speedups.png`, `case_study.png`, and `trees.png`.
+To view these, either attach to the running Docker container (e.g. using VS Code), or copy the files to your host machine:
+```
+docker cp $(docker ps -q):/home/artifact/graphs/ .
+```
+
 ## Usage
 ### Writing a Coyote program
 Coyote is a DSL embedded in Python, so Coyote programs are just Python functions.
@@ -65,65 +135,3 @@ An example invocation that uses 10 runs with 10 iterations each is as follows:
 cd bfv_backend && mkdir build && cd build && cmake .. -DRUNS=10 -DITERATIONS=10 && make
 ```
 
-## Using the Artifact
-The provided Dockerfile automatically builds and installs all dependencies of Coyote.
-To build and run the Docker image, run the following commands from the directory containing the Dockerfile:
-```
-docker build -t coyote .
-docker run -it coyote bash
-```
-In addition to the compiler and the runtime, the image also conists of various scripts to automatically run the benchmarks from the paper and generate the associated figures.
-These are:
-* `compile_benchmarks.py`: Automatically invokes the build script on a set of circuits defined in `benchmarks.py`. There are several presets available, `small`, `medium`, and `large`, representing the size of the circuits (and correspondingly the expected compile time).
-* `polynomial_benchmarks.py`: Generates and compiles the random tree benchmarks used in Section 6.5 of the paper. 
-* `build_and_run_all.py`: Builds binaries from all generated C++ code, invokes them one at a time, and organizes the resulting CSV files.
-* `figures.py`: Reads the CSV files and generates the figures from the paper.
-
-### Demo
-Lets start by building all the `small` benchmarks (all replication sorts for `conv.4.2`, `mm.2`, `dot.3`, `dot.6`, and `dot.10`, as well as the ungrouped `sort[3]`):
-```
-python3 compile_benchmarks.py --preset small
-```
-(This took about 10 minutes on my machine)
-
-Lets also build some of the polynomial trees; in particular, we'll build three of the depth 5 trees in each of the three regimes:
-```
-python3 polynomial_benchmarks.py -d 5 -r "100-100" "100-50" "50-50" -i 2
-```
-(This took about 10 minutes on my machine).
-
-We can see, for example, some of the generated vector C++ code:
-```
-cat bfv_backend/coyote_out/sort_3/vector.cpp
-```
-
-We can also build the data layout case study from Section 6.7 of the paper, although note that these circuits are considerably larger, so compiling them will take some time:
-
-```
-python3 compile_benchmarks.py --preset layout
-```
-
-Now, we need to compile all the C++ code and collect data.
-Although we used 50 runs and 50 iterations in the paper, lets only use 10 of each to make this go faster:
-```
-python3 build_and_run_all.py --runs 10 --iters 10
-```
-You should see some CMake output followed by the encryption and run times for both scalar and vector versions of each circuit.
-Note that this script will not re-run benchmarks that already have corresponding CSV files in `bfv_backend/csvs/`.
-
-Once this is finished running, we can look at one of the generated CSV files:
-```
-cat bfv_backend/csvs/sort/sort_3.csv
-```
-
-Now that we've collected all the data for these benchmarks, we can generate the graphs:
-```
-python3 figures.py
-```
-
-This will generate three plots:
-`graphs/vector_speedups.png`, `case_study.png`, and `trees.png`.
-To view these, either attach to the running Docker container (e.g. using VS Code), or copy the files to your host machine:
-```
-docker cp $(docker ps -q):/home/artifact/graphs/ .
-```
