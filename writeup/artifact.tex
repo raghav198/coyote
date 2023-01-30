@@ -1,0 +1,170 @@
+\section{Artifact Appendix}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Abstract}
+
+The artifact contains everything necessary to replicate the results of this paper, including:
+\begin{itemize}
+    \item An implementation of the compiler described in the paper
+    \item A backend test harness for profiling the vectorized code Coyote generates
+    \item Implementations of all the benchmarks used in the evaluation
+    \item Various scripts necessary to automate the process of compiling, running, and collecting data from the benchmarks.
+\end{itemize}
+
+Note that there are two experiments omitted from the artifact, as they require nontrivial manual effort to set up and run. These are the {\tt mm.16.blocked} benchmark described in Section~\ref{sec:scalability}, and Figure~\ref{fig:schedule-cost}
+
+\subsection{Artifact check-list (meta-information)}
+
+{\small
+\begin{itemize}
+  \item {\bf Compilation: } Translates a python program into an arithmetic circuit, vectorizes it
+  \item {\bf Transformations: } Loop unrolling, function inlining, circuit vectorization
+  \item {\bf Experiments: } Compiling real-world benchmarks, compiling randomly generated polynomial programs, experimenting with data layouts
+  \item {\bf How much disk space required (approximately)?: } 200MB
+  \item {\bf How much time is needed to complete experiments (approximately)?: }
+  \item {\bf Publicly available?: } Yes
+  \item {\bf Code licenses (if publicly available)?: } MIT
+  \item {\bf Archived (provide DOI)?: }
+\end{itemize}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Description}
+
+\subsubsection{How to access}
+
+{\em Obligatory}
+
+\subsubsection{Hardware dependencies}
+No specialized hardware is required to use Coyote, beyond whatever may be necessary to efficiently run z3 and SEAL.
+
+\subsubsection{Software dependencies}
+\begin{itemize}
+    \item The {\tt coyote} compiler is implemented in Python 3.10 and uses the networkx and z3 modules for its analysis
+    \item The test harness backend is written in C++ and uses version 3.7 of the Microsoft SEAL library for its FHE implementation
+    \item The test harness uses cmake for its build system
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Installation}
+
+The Dockerfile provided with the artifact automatically builds and installs all dependencies of Coyote. To build and run the Docker image, run the following commands from the directory containing the Dockerfile:
+
+\begin{minted}{Bash}
+    $ docker build -t coyote .
+    $ docker run -it coyote bash
+\end{minted}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Experiment workflow}
+Lets start by building all the {\tt small} benchmarks (all replication sorts for conv.4.2, mm.2, dot.3, dot.6, and dot.10, as well as the ungrouped sort[3]):
+\begin{minted}{Bash}
+    $ python3 compile_benchmarks.py --preset small    
+\end{minted}
+Lets also build some of the polynomial trees; in particular, we'll build two of the depth 5 trees and two of the depth 10 trees in each of the three regimes:
+\begin{minted}{Bash}
+    $ python3 polynomial_benchmarks.py -d 5 10 -r \
+    "100-100" "100-50" "50-50" -i 2    
+\end{minted}
+We can see, for example, some of the Coyote vector IR:
+\begin{minted}{Bash}
+    $ cat sort_3/vec    
+\end{minted}
+and the corresponding generated vector C++ code:
+\begin{minted}{Bash}
+    $ cat bfv_backend/coyote_out/sort_3/vector.cpp    
+\end{minted}
+We can also build the data layout case study from Section 6.7 of the paper, although note that these circuits are considerably larger, so compiling them will take some time:
+\begin{minted}{Bash}
+    $ python3 compile_benchmarks.py --preset layout    
+\end{minted}
+Now, we need to compile all the C++ code and collect data. Although we used 50 runs and 50 iterations in the paper, lets only use 10 of each to make this go faster:
+\begin{minted}{Bash}
+    $ python3 build_and_run_all.py --runs 10 --iters 10    
+\end{minted}
+You should see some CMake output followed by the encryption and run times for both scalar and vector versions of each circuit. Note that this script will not re-run benchmarks that already have corresponding CSV files in {\tt bfv\_backend/csvs/}.
+Once this is finished running, we can look at one of the generated CSV files:
+\begin{minted}{Bash}
+    $ cat bfv_backend/csvs/sort/sort_3.csv    
+\end{minted}
+Now that we've collected all the data for these benchmarks, we can generate the graphs:
+\begin{minted}{Bash}
+    $ python3 figures.py
+\end{minted}
+This will generate three plots: vector\_speedups.png, case\_study.png, and trees.png. To view these, either attach to the running Docker container (e.g. using VS Code), or copy the files to your host machine:
+\begin{minted}{Bash}
+    $ docker cp $(docker ps -q):/home/artifact/graphs/ .    
+\end{minted}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Evaluation and expected results}
+
+After running through the workflow described above, you should have generated three plots, each of which replicates part of the experiments in this paper:
+\begin{itemize}
+    \item {\tt vector\_speedups.png} corresponds to Figure~\ref{fig:vector-speedups}
+    \item {\tt trees.png} corresponds to Figure~\ref{fig:polynomial-speedups}
+    \item {\tt case\_study.png} corresponds to Figure~\ref{fig:data-layout-case-study}
+\end{itemize}
+Note that the generated graphs do not contain all the experiments found in the paper (for example, not all the benchmarks in Figure~\ref{fig:vector-speedups} are built in the above workflow).
+However, the speedups should resemble those in the corresponding figures.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Experiment customization}
+\subsubsection{Writing a Coyote program}
+Coyote is a DSL embedded in Python, so Coyote programs are just Python functions. To tag a function as a circuit for Coyote to compile, first get an instance of the Coyote compiler:
+\begin{minted}{Python}
+    from coyote import *
+    coyote = coyote_compiler()
+\end{minted}
+Next, use the compiler to annotate your function with input types:
+\begin{minted}{Python}
+@coyote.define_circuit(A=matrix(3, 3), B=matrix(3, 3))
+def matrix_multiply(A, B):
+    ...
+\end{minted}
+For a full discussion of the available types and their compile-time semantics, see Section~\ref{sec:surface-language}
+Finally, use the build script {\tt coyote\_compile.py} to invoke the Coyote compiler on the Python file in which this code is saved:
+\begin{minted}{Bash}
+    python3 coyote_compile.py circuits.py -c \
+        matrix_multiply
+\end{minted}
+\subsubsection{Invoking the Compiler}
+The Coyote compiler can be invoked from the command line via {\tt coyote\_compile.py}. The example invocation above does the following:
+\begin{enumerate}
+    \item It parses {\tt circuits.py} and loads a list of all circuits defined in that file
+    \item It uses Coyote to compile/vectorize the specified {\tt matrix\_multiply} circuit
+    \item It creates a directory called {\tt matrix\_multiply} and saves intermediate scalar and vector code into that directory
+    \item It lowers the intermediate code into C++ and saves it in {\tt bfv\_backend}
+\end{enumerate}
+The script expects the name of a Python file that defines one or more circuits (as described above), and then takes a number of command-line parameters:
+\begin{itemize}
+    \item {\tt -l}, {\tt --list}: Lists all the circuits defined in the file and exit, does not actually compile anything
+    \item {\tt -c}, {\tt --circuits}: Load the specified circuits from the file and compile them into C++
+    \item {\tt -o}, {\tt -output-dir}: Specify the directory into which to place the generated intermediate code (defaults to the directory from which coyote\_compile.py is invoked)
+    \item {\tt --backend-dir}: Specify the directory containing the test harness backend (defaults to bfv\_backend/)
+    \item {\tt --no-cpp}: Stops after generated the intermediate code and doesn't generate C++
+    \item {\tt --just-cpp}: Uses pregenerated intermediate code to generate C++ instead of recompiling the circuit; this fails if it can't find the intermediate code under [output-dir]/[circuit-name]/
+\end{itemize}
+\subsubsection{Running the test harness}
+The backend test harness comes with a CMake file that automatically builds binaries for everything under {\tt coyote\_out/}. The generated binaries perform a number of runs, where each run consists of executing the scalar and vectorized circuits on random encrypted inputs for a number of iterations and then outputting the total time each version (scalar and vector) took to encrypt, as well as run. All these outputs are then saved into a csv file with the same name as the circuit (e.g. running the binary generated from the example above would create a file called {\tt matrix\_multiply.csv}).
+
+The number of runs and iterations default to 50 each (as these are the values used in this paper), but are configurable via cmake. An example invocation that uses 10 runs with 10 iterations each is as follows:
+
+\begin{minted}{Bash}
+    $ mkdir bfv_backend/build
+    $ cd bfv_backend/build
+    $ cmake .. -DRUNS=10 -DITERATIONS=10
+    $ make -j16
+\end{minted}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Methodology}
+
+Submission, reviewing and badging methodology:
+
+\begin{itemize}
+  \item \url{https://www.acm.org/publications/policies/artifact-review-badging}
+  \item \url{http://cTuning.org/ae/submission-20201122.html}
+  \item \url{http://cTuning.org/ae/reviewing-20201122.html}
+\end{itemize}
