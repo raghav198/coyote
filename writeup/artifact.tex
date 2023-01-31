@@ -17,14 +17,14 @@ Note that there are two experiments omitted from the artifact, as they require n
 
 {\small
 \begin{itemize}
-  \item {\bf Compilation: } Translates a python program into an arithmetic circuit, vectorizes it
+  \item {\bf Compilation: } Translates a python program into an arithmetic circuit, vectorizes it, and generates C++ FHE code
   \item {\bf Transformations: } Loop unrolling, function inlining, circuit vectorization
   \item {\bf Experiments: } Compiling real-world benchmarks, compiling randomly generated polynomial programs, experimenting with data layouts
   \item {\bf How much disk space required (approximately)?: } 200MB
-  \item {\bf How much time is needed to complete experiments (approximately)?: } 45 minutes - 1 hour
+  \item {\bf How much time is needed to complete experiments (approximately)?: } 45 minutes - 1 hour for the small version, up to several hours for running all the benchmarks
   \item {\bf Publicly available?: } Yes
   \item {\bf Code licenses (if publicly available)?: } MIT
-  \item {\bf Archived (provide DOI)?: } 10.5281/zenodo.7591603 or at https://www.github.com/raghav198/coyote
+  \item {\bf Archived (provide DOI)?: } 10.5281/zenodo.7591603
   
 \end{itemize}
 }
@@ -65,12 +65,18 @@ Lets start by building all the {\tt small} benchmarks (all replication sorts for
 \begin{minted}{Bash}
     $ python3 compile_benchmarks.py --preset small    
 \end{minted}
+We can also build the data layout case study from Section~\ref{sec:data-layout} of the paper, although note that these circuits are considerably larger, so compiling them will take some time:
+% 15 minutes
+\begin{minted}{Bash}
+    $ python3 compile_benchmarks.py --preset layout    
+\end{minted}
 Lets also build some of the polynomial trees; in particular, we'll build two of the depth 5 trees in each of the three regimes.
 % 5 minutes
 \begin{minted}{Bash}
     $ python3 polynomial_benchmarks.py -d 5 -r \
     "100-100" "100-50" "50-50" -i 2    
 \end{minted}
+
 We can see, for example, some of the Coyote vector IR:
 \begin{minted}{Bash}
     $ cat sort_3/vec    
@@ -79,11 +85,15 @@ and the corresponding generated vector C++ code:
 \begin{minted}{Bash}
     $ cat bfv_backend/coyote_out/sort_3/vector.cpp    
 \end{minted}
-We can also build the data layout case study from Section~\ref{sec:data-layout} of the paper, although note that these circuits are considerably larger, so compiling them will take some time:
-% 15 minutes
+
+To build {\em all} the benchmarks from the paper (small, medium, and large, as well as the layouts and the random polynomials), run the following instead of following the above steps:
 \begin{minted}{Bash}
-    $ python3 compile_benchmarks.py --preset layout    
+    $ python3 coyote_compile.py benchmarks.py -c "*"
+    $ python3 polynomial_benchmarks.py -d 5 10 -r \
+        "100-100" "100-50" "50-50" -i 5    
 \end{minted}
+However, this is not recommended and will take several hours to complete, as several of the circuits being compiled are quite large.
+
 Now, we need to compile all the C++ code and collect data. Although we used 50 runs and 50 iterations in the paper, lets only use 10 of each to make this go faster:
 % compile: % compile+run: 13 minutes
 \begin{minted}{Bash}
@@ -103,7 +113,8 @@ This will generate three plots: vector\_speedups.png, case\_study.png, and trees
     $ docker cp $(docker ps -q):/home/artifact/graphs/ .    
 \end{minted}
 
-Note that compiling all the small benchmarks takes about 13 minutes, generating and compiling the random polynomial benchmarks takes about 5 minutes, compiling the data layout case study takes about 15 minutes, and building and running all the benchmarks takes about 15 minutes.
+Compiling all the small benchmarks takes about 13 minutes, generating and compiling the random polynomial benchmarks takes about 5 minutes, compiling the data layout case study takes about 15 minutes, and building and running all the benchmarks takes about 15 minutes.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Evaluation and expected results}
@@ -114,7 +125,7 @@ After running through the workflow described above, you should have generated th
     \item {\tt trees.png} corresponds to Figure~\ref{fig:polynomial-speedups}
     \item {\tt case\_study.png} corresponds to Figure~\ref{fig:data-layout-case-study}
 \end{itemize}
-Note that the generated graphs do not contain all the experiments found in the paper (for example, not all the benchmarks in Figure~\ref{fig:vector-speedups} are built in the above workflow, and neither are the depth 10 trees in Figure~\ref{fig:polynomial-speedups}, as these take a long time to compile).
+Note that the generated graphs may not contain all the experiments found in the paper (for example, not all the benchmarks in Figure~\ref{fig:vector-speedups} are built in the above workflow, and neither are the depth 10 trees in Figure~\ref{fig:polynomial-speedups}, as these take a long time to compile).
 However, the speedups should resemble those in the corresponding figures.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
