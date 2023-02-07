@@ -45,7 +45,7 @@ SLP iterates over a sequence of scalar instructions and computes ``vector packs,
 Because SLP does not rely on the presence of data-parallel structures like loops to aid in vectorization, it works well even for irregular programs.
 When computing vector packs, SLP does not account for how expensive rotations are in FHE, leading to schedules with very high data shuffling costs. 
 
-VeGen \cite{VeGen} is a recent variant of SLP introduces {\em lane level parallelism} that reasons about which lanes are performing which computations, allowing it to reason about rotation costs when building vector packs.
+VeGen \cite{VeGen} is a recent variant of SLP, introducing a notion of {\em lane level parallelism} that reasons about which lanes are performing which computations, allowing it to reason about rotation costs when building vector packs.
 For example, VeGen can reason about the rotation costs to pack together operands for an instruction into a temporary vector, and can use this to decide whether or not packing those instructions is worth it.
 However, this reasoning only happens locally, and VeGen does not incorporate information about how instruction packing might affect rotations much later in the program.
 
@@ -63,10 +63,22 @@ By contrast, \system's cooperative scheduling strategy ensures that this does no
 % While goSLP does reason globally about lane placement, it has two drawbacks in an FHE context. First, it packs instructions into vectors before considering shuffling costs, so may over-aggressively vectorize, while \system may forego some vectorization opportunities in the name of getting packing larger expressions without rotation. Second, its lane placement algorithm considers arbitrary permutations, which are impractically expensive in FHE.
 % \raghav{goSLP frames vectorization overhead in terms of the number of {\em pack} and {\em unpack} operations incurred. For example, permuting the slots of a single vector incurs one unpack, whereas blending the contents of N vectors (without any permutation) incurs N unpacks. In other words, goSLP bakes in the assumption that wide blends are much more expensive than arbitrary permutations. This is fundamentally incompatible with FHE, since blends are almost free, whereas bad permutations can require several expensive rotations to realize. Essentially, in the FHE world, its often better to produce a schedule that {\em looks much worse} than to produce the traditionally optimal one.}
 
-Swizzle Inventor \cite{SwizzleInventor} is a system which automatically synthesizes efficient data movement kernels for vectorized GPU code.
-There are two primary obstacles \system faces in directly applying this approach to our setting.
-First, SwizzleInventor tackles the data movement problem {\em after the kernel has been vectorized}. As we discussed earlier, in the world of FHE, packing and data movement are problems that must be reasoned about together.
-Second, the sketches SwizzleInventor uses to guide its synthesis rely on efficiently accessing arbitrary slots of a packed vector. However, this is not possible with FHE vectors without incurring significant rotation overheads.
+% \raghav{Can you check how this is worded?}
+There is a class of work that deals specifically with optimizing permutations in vectorized code~\cite{SIMDPermutations,SIMDAlignment,SwizzleInventor}. 
+Ren, et. al~\cite{SIMDPermutations} present an algebra for reasoning about and reducing the permutation workload in SIMD programs.
+Eichenberger, et. al~\cite{SIMDAlignment} develop a technique to efficiently realign memory accesses produced as a result of vectorizing a loop.
+Finally, Swizzle Inventor~\cite{SwizzleInventor} is a system which automatically synthesizes efficient data movement kernels for vectorized GPU code.
+The primary obstacle \system faces in directly applying these approaches is that they tackle the data movement problem {\em after the kernel has been vectorized}.
+As we discussed earler, in the world of FHE, packing and data movemnt are problems that must be reasoned about together.
+There are two additional drawbacks: Eichenberger, et. al focus on aligning memory accesses in regular, data-dense loops, but this is not the setting in which Coyote operates.
+In the case of Swizzle Inventor, the sketches it uses to guide synthesis rely on efficiently accessing arbitrary slots of a packed vector, which is not possible in FHE without incurring significant rotation overheads.
+
+
+% There is a class of work that deals specifically with optimizing permutations in vectorized code~\cite{SIMDAlignment,SIMDPermutations,SwizzleInventor}, the most recent of which is Swizzle Inventor~\cite{SwizzleInventor}, a system which automatically synthesizes efficient data movement kernels for vectorized GPU code.
+% % Swizzle Inventor \cite{SwizzleInventor} is a system which automatically synthesizes efficient data movement kernels for vectorized GPU code.
+% There are two primary obstacles \system faces in directly applying this sort of approach to our setting.
+% First, these works tackle the data movement problem {\em after the kernel has been vectorized}. As we discussed earlier, in the world of FHE, packing and data movement are problems that must be reasoned about together.
+% Second, in the case of Swizzle Inventor, the sketches it uses to guide its synthesis rely on efficiently accessing arbitrary slots of a packed vector. However, this is not possible with FHE vectors without incurring significant rotation overheads.
 
 Diospyros~\cite{Diospyros} is an equality saturation--based vectorization strategy that constructs an e-graph~\cite{EqualitySaturation, egg} of programs that are semantically equivalent to a given specification, and then uses a custom cost model to extract an efficient vector program, together with necessary shuffles.
 The simplicity of the cost model it associates to various shuffles makes it unsuitable to deal with the peculiarities and inflexibility of FHE rotations.

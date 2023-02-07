@@ -52,46 +52,23 @@ In general, without carefully accounting for, and controlling, rotation, traditi
 
 \begin{figure}
 \small
-    \begin{subfigure}{0.4\columnwidth}
-%         \begin{verbatim}
-% %0 = a + b
-% %1 = c + d
-% %2 = %0 * %1
-% %3 = e + f
-% %4 = g + h
-% %5 = %3 * %4
-% %6 = %2 + %5
-%         \end{verbatim}
-\includegraphics[width=0.6\linewidth]{figures/possible_schedules/no_vectorization.drawio.pdf}
-        % \vspace{-1em}
+    \begin{subfigure}{0.35\columnwidth}
+        \includegraphics[width=0.6\linewidth]{figures/possible_schedules/no_vectorization.drawio.pdf}
+        \vspace{-1em}
         \caption{No vectorization}\label{fig:no-vectorization}
     \end{subfigure}
     \begin{subfigure}{0.6\columnwidth}
-%         \begin{verbatim}
-% [%0, %1, %3, %4] = [a, c, e, g] + 
-%                     [b, d, f, h]
-% [%2, _, %5, _] = [%0, _, %3, _] * 
-%                     [%1, _, %4, _]
-% [%6, _, _, _] = [%2, _, _, _] + 
-%                     [%5, _, _, _]
-%         \end{verbatim}
-\includegraphics[width=0.9\linewidth]{figures/possible_schedules/aggressive_vectorization.drawio.pdf}
+        \includegraphics[width=0.9\linewidth]{figures/possible_schedules/aggressive_vectorization.drawio.pdf}
         \vspace{-1em}        
         \caption{Aggressive vectorization, incurs two rotates}\label{fig:aggressive-vectorization}
     \end{subfigure}
     \begin{subfigure}{0.8\columnwidth}
         \centering
         \includegraphics[width=0.7\linewidth]{figures/possible_schedules/optimal_schedule.drawio.pdf}
-%         \begin{verbatim}
-% [%1, %3] = [c, e] + [d, f]
-% [%0, %4] = [a, g] + [b, h]
-% [%2, %5] = [%0, %3] * [%1, %4]
-% [%6, _] = [%2, _] + [%5, _]
-%         \end{verbatim}
         \vspace{-1em}        
         \caption{Optimal schedule, incurs one rotate}\label{fig:optimal-schedule}
     \end{subfigure}
-    % \vspace{-1em}
+    \vspace{-1em}
     \caption{Possible schedules for Figure~\ref{fig:example-circuit}}
     \Description{Three possible schedules for an arithmetic circuit; one is scalar, one is aggressively vectorized, and one trades off between the two extremes.}
 \end{figure}
@@ -101,7 +78,7 @@ In general, without carefully accounting for, and controlling, rotation, traditi
 Consider the arithmetic circuit in Figure~\ref{fig:example-circuit} implementing $((a + b) * (c + d)) + ((e + f) * (g + h))$.\footnote{We adopt the FHE-standard representation of arithmetic circuits as the intermediate representation for our programs~\cite{Gentry,CircuitRewriting,Ramparts,Porcupine}.}
 A na\"ive vectorization would pack together the four additions at the first level, and the two multiplies at the second level (as in the schedule in Figure~\ref{fig:aggressive-vectorization}).
 The resulting schedule has a vector add, followed by a vector multiply, followed by an add. Rotations are needed between each operation to align the outputs of each operation with the next.
-Using an approximate model\footnote{\citet{AlgosHElib} assigns a ``high latency'' to both multiplies and rotates and a ``low latency'' to adds. For both simplicity and concreteness, we assume a 10:1 ratio between ``high latency'' and ``low latency.''} of the relative latencies of each instruction in which multiplies and rotates have a latency of 1 and addition has a latency of 0.1, the total cost of this schedule is 3.2.
+Using an approximate model\footnote{Algorithms in HElib~\cite{AlgosHElib} assigns a ``high latency'' to both multiplies and rotates and a ``low latency'' to adds. For both simplicity and concreteness, we assume a 10:1 ratio between ``high latency'' and ``low latency.''} of the relative latencies of each instruction in which multiplies and rotates have a latency of 1 and addition has a latency of 0.1, the total cost of this schedule is 3.2.
 However, by doing no vectorization and executing the circuit entirely with scalar operations (Figure~\ref{fig:no-vectorization}), we have five adds and two multiplies, with an overall cost of 2.5.
 In this case, vectorization actually makes the performance {\em worse}!
 Figure~\ref{fig:optimal-schedule} shows how we can do better:
@@ -144,7 +121,7 @@ The specific contributions we make are:
 \end{enumerate}
 
 %% Results
-We tested \system by using it to compile five computational kernels (matrix multiply, point cloud distances, 1D convolution, dot product, and decision tree traversal), and compared the performance of the vectorized code to to the original unvectorized code.
+We tested \system by using it to compile six computational kernels (matrix multiply, point cloud distances, 1D convolution, dot product, sorting a list, and finding the maximum element of a list), and compared the performance of the vectorized code to to the original unvectorized code.
 We also randomly generated several irregular polynomial-evaluation programs to measure the effect of things like operation density on \system's ability to vectorize. 
 We find that \system very effectively vectorizes programs, yielding efficient vector schedules with optimized rotations.
 

@@ -29,57 +29,57 @@ Aggressively vectorizing SLP-style can be recovered by assigning a trivial subci
 On the other end of the spectrum, we could instead quotient the circuit into the discrete graph of its connected components and assign each discrete vertex an arbitrary lane; since this graph has no edges it requires no rotations, but also precludes any vectorization within connected components.
 
 Finding a good pre-schedule then requires us to first compute a ``good'' quotient that trades off between these extremes, together with a lane assignment that somehow maximizes our ability to vectorize without incurring too many rotations.
-\hl{This is expressed in the search procedure {\system} uses when finding a vector schedule: an outer loop performs a best-first search over possible quotient graphs, and an inner loop uses simulated annealing on each quotient to find a good lane placement.
+This is expressed in the search procedure {\system} uses when finding a vector schedule: an outer loop performs a best-first search over possible quotient graphs, and an inner loop uses simulated annealing on each quotient to find a good lane placement.
 The result of the search procedure is a quotient of the circuit and a lane placement for the quotient, which together minimize\footnote{relative to the other quotients and lane placements visited in the search} the cost of the resulting vector schedule. %\raghav{how is this (including the footnote)?}
-The next section discusses this search procedure in more detail.}
+The next section discusses this search procedure in more detail.
 % The next section discusses what makes one graph quotient ``better'' than another, and exactly how these tradeoffs are quantified.
 
 \subsection{Schedule Search}\label{sec:schedule-search}
 Given a cost model, we use a two-layer optimization strategy to produce a schedule that has good packing properties without incurring too much data movement overhead.
 \subsubsection*{Determining lane placement}
-% \begin{algorithm}[t]
-%     \SetKwFunction{placelanes}{PlaceLanes}
-%     \SetKwFunction{naive}{InitialPlacement}
-%     \SetKwFunction{permute}{GenerateCandidate}
-%     \SetKwFunction{cost}{Cost}
-%     \SetKwFunction{accept}{Accept}
+\begin{algorithm}[t]
+    \SetKwFunction{placelanes}{PlaceLanes}
+    \SetKwFunction{naive}{InitialPlacement}
+    \SetKwFunction{permute}{GenerateCandidate}
+    \SetKwFunction{cost}{Cost}
+    \SetKwFunction{accept}{Accept}
     
-%     \SetKwProg{algo}{Algorithm}{}{}
-%     \SetKwProg{proc}{Procedure}{}{}
+    \SetKwProg{algo}{Algorithm}{}{}
+    \SetKwProg{proc}{Procedure}{}{}
 
-%     \algo{\placelanes{graph}}{
-%         $lanes \gets \naive{graph}$\;
-%         $T \gets T_0$\;
-%         $cost \gets \cost{lanes, graph}$\;
-%         \For{$i = 1 : N$}{
-%             $T \gets T / (1 + \beta T)$\;
-%             $candidate \gets \permute{lanes, graph}$\;
-%             $cost' \gets \cost{candidate, graph}$\;
-%             \If{$\accept{cost, cost', T}$}{
-%                 $lanes\gets candidate$\;
-%                 $cost \gets cost'$\;
-%             }
-%         }
-%         \Return{lanes, cost}
-%     }
-%     \proc{\cost{lanes, graph}}{
-%         $rotations[*] \gets \emptyset$\;
-%         \ForEach{$(u\to v) \in graph$}{
-%             \If{$lanes[u]\neq lanes[v]$}{
-%                 $rotations[u.epoch] \gets rotations[u.epoch]\cup \{lanes[v] - lanes[u]\}$\;
-%             }
-%         }
-%         $instrs[*]\gets 0$\;
-%         \ForEach{$epoch \in graph$}{
-%             \ForEach{$opcode$}{
-%                 $instr[opcode] \gets instr[opcode] + \max\limits_{col}count(epoch, col, opcode)$\;
-%             }
-%         }
-%         \Return{$w_R\times\sum\limits_{ep} rotations[ep] + \sum\limits_{op} w_{op}\times instrs[op]$}
-%     }
-%     \caption{Lane placement}\label{alg:lane-placement}
+    \algo{\placelanes{graph}}{
+        $lanes \gets \naive{graph}$\;
+        $T \gets T_0$\;
+        $cost \gets \cost{lanes, graph}$\;
+        \For{$i = 1 : N$}{
+            $T \gets T / (1 + \beta T)$\;
+            $candidate \gets \permute{lanes, graph}$\;
+            $cost' \gets \cost{candidate, graph}$\;
+            \If{$\accept{cost, cost', T}$}{
+                $lanes\gets candidate$\;
+                $cost \gets cost'$\;
+            }
+        }
+        \Return{lanes, cost}
+    }
+    \proc{\cost{lanes, graph}}{
+        $rotations[*] \gets \emptyset$\;
+        \ForEach{$(u\to v) \in graph$}{
+            \If{$lanes[u]\neq lanes[v]$}{
+                $rotations[u.epoch] \gets rotations[u.epoch]\cup \{lanes[v] - lanes[u]\}$\;
+            }
+        }
+        $instrs[*]\gets 0$\;
+        \ForEach{$epoch \in graph$}{
+            \ForEach{$opcode$}{
+                $instr[opcode] \gets instr[opcode] + \max\limits_{col}count(epoch, col, opcode)$\;
+            }
+        }
+        \Return{$w_R\times\sum\limits_{ep} rotations[ep] + \sum\limits_{op} w_{op}\times instrs[op]$}
+    }
+    \caption{Lane placement}\label{alg:lane-placement}
     
-% \end{algorithm}
+\end{algorithm}
 The inner layer uses simulated annealing to find an optimal lane assignment for a given quotient graph.
 The initial assignment is the naive one given by simply enumerating the vertices at each epoch.
 At each step of the algorithm, we generate a candidate solution by randomly choosing two columns and a subset of the epochs in them to swap, maintaining the uniqueness condition of the schedule.
@@ -90,44 +90,44 @@ If the candidate solution cost is {\em higher} than the original cost, it is acc
 After a fixed number of rounds have elapsed (see footnote), this algorithm returns the best solution found so far.
 
 \subsubsection*{Computing optimal circuit quotient}
-% \begin{algorithm}[t]
-%     \SetKwFunction{quotient}{ComputeQuotient}
-%     \SetKwFunction{placelanes}{PlaceLanes}
-%     \SetKwFunction{accept}{Accept}
-%     \SetKwFunction{contract}{ContractEdge}
-%     \SetKwFunction{condensation}{Condensation}
-%     \SetKwFunction{cross}{CrossArcs}
-%     \SetKwFunction{enq}{Enqueue}
-%     \SetKwFunction{deq}{Dequeue}
+\begin{algorithm}[t]
+    \SetKwFunction{quotient}{ComputeQuotient}
+    \SetKwFunction{placelanes}{PlaceLanes}
+    \SetKwFunction{accept}{Accept}
+    \SetKwFunction{contract}{ContractEdge}
+    \SetKwFunction{condensation}{Condensation}
+    \SetKwFunction{cross}{CrossArcs}
+    \SetKwFunction{enq}{Enqueue}
+    \SetKwFunction{deq}{Dequeue}
 
-%     \SetKwProg{algo}{Algorithm}{}{}
+    \SetKwProg{algo}{Algorithm}{}{}
 
-%     \algo{\quotient{graph}}{
-%         $lanes, cost \gets \placelanes{graph}$\;
-%         $best \gets lanes, graph$\;
-%         $bestcost \gets cost$\;
-%         $pqueue\gets []$\;
-%         $\enq{pqueue, (graph, lanes), cost}$\;
-%         \For{$i = 1 : N$}{
-%             $graph, lanes \gets \deq(pqueue)$\;
-%             \If{$arc \samplefrom \cross{graph}$}{
-%                 $candidate \gets \condensation{\contract{graph, arc}}$\;
-%                 $lanes', cost' \gets \placelanes{candidate}$\;
-%                 $\enq{pqueue, (candidate, lanes'), cost'}$\;
-%                 \If{$cost' < bestcost$}{
-%                     $best \gets lanes', candidate$\;
-%                 }
-%                 $\enq{pqueue, (graph, lanes), cost}$\;
-%             }
-%         }
-%         \Return{best}
-%     }
-%     \caption{Computing a good circuit quotient}\label{alg:circuit-quotient}
-% \end{algorithm}
+    \algo{\quotient{graph}}{
+        $lanes, cost \gets \placelanes{graph}$\;
+        $best \gets lanes, graph$\;
+        $bestcost \gets cost$\;
+        $pqueue\gets []$\;
+        $\enq{pqueue, (graph, lanes), cost}$\;
+        \For{$i = 1 : N$}{
+            $graph, lanes \gets \deq(pqueue)$\;
+            \If{$arc \samplefrom \cross{graph}$}{
+                $candidate \gets \condensation{\contract{graph, arc}}$\;
+                $lanes', cost' \gets \placelanes{candidate}$\;
+                $\enq{pqueue, (candidate, lanes'), cost'}$\;
+                \If{$cost' < bestcost$}{
+                    $best \gets lanes', candidate$\;
+                }
+                $\enq{pqueue, (graph, lanes), cost}$\;
+            }
+        }
+        \Return{best}
+    }
+    \caption{Computing a good circuit quotient}\label{alg:circuit-quotient}
+\end{algorithm}
 The outer layer searches the space of quotients for a graph that admits a good lane placement without giving up too much vectorizability.
 Here, we use a priority queue to implement a simple best-first search.
 Each graph in the queue is assumed to already be equipped with an optimal lane placement, via the algorithm described above.
-At each step, a graph is dequeued, and a new candidate solution is generated by looking at its set of cross-lane arcs and choosing one to contract \hl{(removing the edge and identifying its endpoints into a single vertex)}.
+At each step, a graph is dequeued, and a new candidate solution is generated by looking at its set of cross-lane arcs and choosing one to contract (removing the edge and identifying its endpoints into a single vertex).
 The contracted graph may not be acyclic, so we continue contracting cycles until it is (in effect computing the condensation). %\raghav{better?} %first mod out by all cycles before running the lane placement algorithm again.\milind{It's not clear what ``mod out by all cycles'' means -- add more meat here...}
 The candidate solution is then enqueued with a priority based on its cost from the annealed lane placement.
 If there are more available arcs to contract, the original graph is enqueued again.
@@ -183,7 +183,7 @@ We add constraints to require that each instruction be scheduled after all of it
 Finally, to speed up the search for a solution, we place a bound on the total length of the schedule which is iteratively tightened until the solver returns ``unsatisfiable'', meaning no shorter schedule could be found. % (so the most recent one was the shortest).
 
 \subsection{Data Layout}\label{sec:data-layout}
-\hl{The circuit obtained after vectorization necessarily operates on inputs that have been ``packed'' into vectors.
+The circuit obtained after vectorization necessarily operates on inputs that have been ``packed'' into vectors.
 Choosing a good layout within these vectors is crucial, since a poor choice of layout could incur many additional rotations to line operands up with where they are used.
 {\system} can automatically select a good layout as part of the vectorization process.
 An input that is only used once is placed on the lane within its vector corresponding to the unique lane where it is used, and any two inputs that are placed on the same lane by this rule are packed into separate input vectors to avoid collisions.
@@ -191,5 +191,5 @@ An input that is only used once is placed on the lane within its vector correspo
 For inputs that are used multiple times (or inputs that are required to be packed into the same vector, e.g. elements of the same matrix), {\system} places a no-op ``load'' gate in the scalar circuit (so that the input is only used once, by the load gate).
 Two load gates are placed in the same epoch in the circuit if and only if their corresponding inputs are required to be packed together (thus ensuring that they are given different lanes).
 The layout for these inputs is then determined by the lanes chosen for their corresponding load gates.
-This determines the data layout, as each input is placed on the same lane as its corresponding load gate (Section~{\ref{sec:using-coyote}}).} %\milind{forward reference to 5.1 for how this can be overriden}
+This determines the data layout, as each input is placed on the same lane as its corresponding load gate (Section~{\ref{sec:using-coyote}}). %\milind{forward reference to 5.1 for how this can be overriden}
 % The layout for these inputs is then determined by the lanes chosen for their corresponding load gates. \raghav{I could explain this better, but I'm not sure how.}
