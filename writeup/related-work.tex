@@ -42,7 +42,7 @@ Unlike \system, these circuit optimizations do not include automatic vectorizati
 \subsection{General Purpose Vectorization in non-FHE Settings}
 Superword-Level Parallelism is a technique for automatically vectorizing programs~\cite{SLP}.
 SLP iterates over a sequence of scalar instructions and computes ``vector packs,'' or sets of isomorphic instructions that can be packed together into vectors.
-Because SLP does not rely on the presence of data-parallel structures like loops to aid in vectorization, it works well even for irregular programs.
+Because SLP does not rely on the presence of data-parallel structures like loops, it works well even for irregular programs.
 When computing vector packs, SLP does not account for how expensive rotations are in FHE, leading to schedules with very high data shuffling costs. 
 
 VeGen \cite{VeGen} is a recent variant of SLP, introducing a notion of {\em lane level parallelism} that encodes which lanes are performing which computations, allowing it to reason about rotation costs when building vector packs.

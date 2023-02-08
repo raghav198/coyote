@@ -49,7 +49,7 @@ At each step, it picks such a set and packs its instructions together into a vec
 
 \subsubsection*{Vectorization in FHE}
 % The polynomial rings into which ciphertexts are encoded in BFV are isomorphic to the direct sum of several copies of their underlying coefficient rings.
-The polynomial rings that BFV ciphertexts are encoded in allow abstractly representing large vectors of values as being encrypted into a single ciphertext.
+The way BFV encodes ciphertexts allows abstractly representing large vectors of values as being encrypted into a single ciphertext.
 In particular, homomorphic operations on such ciphertexts correspond to element-wise operations on the underlying packed vectors \cite{BrakerskiPacking}.
 These polynomial rings also have specific {\em automorphisms} that cyclically permute the ``slots'' into which elements are packed (hereafter called vector lanes). 
 In other words, ciphertext packing allows us to turn FHE into an abstract SIMD architecture with instructions for (ciphertext) vector addition and multiplication, as well as vector rotation.

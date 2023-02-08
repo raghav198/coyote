@@ -123,7 +123,7 @@ Another point to notice is the number of rotates. Most benchmarks required fewer
 Furthermore, the unreplicated versions of each benchmark almost always incurred more rotates than the partially or fully replicated versions, validating our hypothesis that input replication helps alleviate the rotation burden. % when vectorizing.
 %\raghav{anything else interesting to mention?}
 
-Table~\ref{tab:big-ass} also shows the ideal speedup for each benchmark, using our cost model of multiplies being 10$\times$ as expensive as adds and subtracts. Note that this modeled speedup is based on a classic work/span analysis, and hence assumes that permuting and shuffling data between vectors is free. This modeled speedup thus represents a substantial overestimate of the actual speedup that could be achieved in the program. For example, a \textsf{3x3} matrix multiply has nine 3-element dot products. The necessary 27 multiplies can all be performed in one vector operation, but the results of three multiplies need to be added to perform each dot product (which requires two adds each). Thus in reality two of the multiplies are performed in the ``wrong'' lane and need to be shuffled to the correct lane to complete the computation.
+Table~\ref{tab:big-ass} also shows the ideal speedup for each benchmark, using our cost model of multiplies being 10$\times$ as expensive as adds and subtracts. Note that this modeled speedup is based on a classic work/span analysis, and hence assumes that permuting and shuffling data between vectors is free. This modeled speedup thus represents a substantial overestimate of the actual speedup that could be achieved in the program. For example, a \textsf{3x3} matrix multiply has nine 3-element dot products. The necessary 27 multiplies can all be performed in one vector operation, but the results of three multiplies need to be added to perform each dot product. Thus in reality two of the multiplies are performed in the ``wrong'' lane and need to be shuffled to the correct lane to complete the computation.
 % \milind{There should be a paragraph or subsubsection here that discusses the benchmark table: how big each benchmark is, what the effects of vectorizing it are in terms of operations saved, etc. This is a precursor to discussing anything runtime related.}
 
 \subsection{Speedups}\label{sec:speedups}
@@ -131,6 +131,7 @@ Table~\ref{tab:big-ass} also shows the ideal speedup for each benchmark, using o
 \begin{figure}[t]
 	\centering
     \includegraphics[width=0.9\linewidth]{figures/graphs/vector_speedups.png}
+    \vspace{-3em}
     \caption{Speedup of vectorized code over scalar (higher is better). Left-to-right, the first three bars for each benchmark represent unreplicated, partially replicated, and fully replicated inputs, respectively. The fourth bar for the {\tt sort[3]} and {\tt max[5]} benchmarks represent ungrouped inputs.}\label{fig:vector-speedups}
     \Description{Bar graph showing speedup from vectorization for each benchmark}
 \end{figure}
@@ -140,23 +141,23 @@ While instruction counts indicate that \system is able to effectively find vecto
 %The average speedup is computed as the total scalar execution time divided by the total vector execution time.
 We find very little variance in execution time across individual runs for any benchmark.
 Each benchmark has three bars representing, in order from left to right, the unreplicated, partially replicated, and fully replicated runs. 
-The decision tree benchmark has an extra green bar representing the ungrouped run (without grouping, all inputs are fully replicated no matter what).
-We see speedups ranging from anywhere between $1.5\times$ on the data-dense point cloud distances benchmarks to over $3.5\times$ on the highly vectorizable matrix multiply.
+The \textsf{sort[3]} and \textsf{max[5]} benchmarks have an extra green bar representing the ungrouped run (without grouping, all inputs are fully replicated no matter what).
+We see speedups ranging from $1.5\times$ on the data-dense point cloud distances benchmarks to over $3.5\times$ on the highly vectorizable matrix multiply.
 We also generally notice more speedup as the replication level increases, suggesting that \system is able to take advantage of replicated inputs to eliminate rotations from the schedule.
 
 While it may appear that \system's actual speedups are sometimes well off from the idealized speedups, this is due to the rotations and blends required outside an idealized world where vector permutation is free. For example, in the \textsf{3x3}, fully-replicated matrix multiply case, \system generates 9 rotations to move results into place. We see, though, that in benchmarks where \system can generate schedules with few rotates, it does well despite the data movement costs. For example, in \textsf{conv.4.2}, \system achieves a 2.5$\times$ speedup versus an ideal speedup of 5$\times$; and in \textsf{dot.3}, \system achieves a 1.6$\times$ speedup versus an ideal speedup of 2.7$\times$.
 
 %\milind{This would be a good place to discuss the comparison of our speedups with rotation vs. modeled ideal speedups without rotation costs...}
 \subsection{Scalability}\label{sec:scalability}
-Many of the benchmarks we evaluate on have relatively small input sizes, since it is often intractable to directly apply the search procedure \system uses for lane placement.
+Many of the benchmarks we evaluate on have relatively small input sizes, since it is often intractable to directly apply the lane placement search procedure.
 However, it is possible to scale \system up to larger input sizes by ``blocking'', or vectorizing smaller kernels separately and then composing the vector programs.
-To investigate how well this scaling works, we used \system to compile a $16\times 16$ matrix multiply as follows.
-We vectorized the multiplication of a single $4\times 4$ ``block'', and recorded the input/output layouts \system chose.
+To investigate how well this works, we use \system to compile a $16\times 16$ matrix multiply as follows.
+We vectorize the multiplication of a single $4\times 4$ ``block'', and record the input/output layouts \system chooses.
 
-The output layout of each $4\times 4$ block was used to fix the input layout to another kernel (see Section~{\ref{sec:using-coyote}}), which took 64 of these blocks and performed the necessary reductions to arrange them into the final result of the $16\times 16$ matrix multiplication.
+The output layout of each $4\times 4$ block is used to fix the input layout to another kernel (see Section~{\ref{sec:using-coyote}}), which takes 64 of these blocks and performs the necessary reductions to arrange them into the final $16\times 16$ matrix multiplication.
 The metadata for this benchmark is shown under {{\tt mm.16}} in Table~{\ref{tab:big-ass}} (the compilation time includes the time to compile the $4\times 4$ block as well as the reduction circuit).
 After vectorizing, the blocked $16\times 16$ matrix multiply takes 3433 seconds, compared to 4541 seconds before vectorizing, for a total 32\% speedup.
-This shows that by composing smaller kernels, {\system} is able to scale up to vectorizing much larger circuits and still see relatively significant speedups over unvectorized code. Note that this understates Coyote's potential speedup as it does not currently attempt to vectorize separate, identical kernels together (which, note, is a regular process so could use standard vectorization techniques).
+This shows that by composing smaller kernels, {\system} is able to scale up to vectorizing much larger circuits and still see relatively significant speedups over unvectorized code. Note that this understates Coyote's potential speedup as it does not currently attempt to vectorize separate, identical kernels together (which is a regular process so could use standard vectorization techniques).
 
 \subsection{Randomly Generated Irregular Kernels}
 \begin{figure}[t]
