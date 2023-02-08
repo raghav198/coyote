@@ -2,7 +2,7 @@
 \subsection{Fully Homomorphic Encryption}
 Fully Homomorphic Encryption (FHE) refers to any encryption scheme with the property that encrypting inputs, computing over them, then decrypting the result is equivalent to computing over the un-encrypted inputs. \cite{Gentry}
 FHE is hence useful for computing on encrypted data, improving privacy in situations such as computation offloading.
-Since addition and multiplication are complete, FHE can theoretically be used to realize arbitrary functions on encrypted data.
+Since addition and multiplication are complete, FHE can be used to realize arbitrary functions on encrypted data.
 
 The Brakerski/Fan-Vercauteren (BFV) \cite{BFV} cryptosystem, which is the particular FHE scheme that we use in this paper, is based on the Ring Learning With Errors (RLWE) problem.
 Ciphertexts in BFV are represented as high degree polynomials with an ``error term'', which is a small amount of noise added to the polynomial to make the scheme ``CPA-secure'' (in other words, the same plaintext will not encrypt to the same ciphertext each time).
@@ -11,7 +11,7 @@ Ciphertexts in BFV are represented as high degree polynomials with an ``error te
 While FHE is an attractive approach to performing privacy-preserving computation, it presents a few challenges.
 First, the polynomial encoding of ciphertexts incurs a huge overhead for any secure computation.
 To achieve a reasonable degree of security, the polynomials need to be quite large, so a single primitive ciphertext operation like an add or a multiply gets translated into very expensive polynomial math.
-This means that all but the smallest FHE applications are often too slow to be run in a practical amount of time.
+This means that all but the smallest FHE applications are often too slow to be practically run. %in a practical amount of time.
 
 % multiplicative depth
 A second challenge for FHE computation is related to the noise added to ciphertexts.

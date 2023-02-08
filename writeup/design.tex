@@ -26,7 +26,7 @@ The pre-schedule is naturally bi-graded into {\em epochs}, or groups of (indepen
 
 It turns out that both of our extremes from earlier can be realized in this model.
 Aggressively vectorizing SLP-style can be recovered by assigning a trivial subcircuit to each vertex of the quotient, and simply enumerating lanes across epochs.
-On the other end of the spectrum, we could instead quotient the circuit into the discrete graph of its connected components and assign each discrete vertex an arbitrary lane; since this graph has no edges it requires no rotations, but also precludes any vectorization within connected components.
+On the other end of the spectrum, we could instead quotient the circuit into the discrete graph of its connected components and assign each vertex an arbitrary lane; this graph has no edges and requires no rotations, but also precludes any vectorization within connected components.
 
 Finding a good pre-schedule then requires us to first compute a ``good'' quotient that trades off between these extremes, together with a lane assignment that somehow maximizes our ability to vectorize without incurring too many rotations.
 This is expressed in the search procedure {\system} uses when finding a vector schedule: an outer loop performs a best-first search over possible quotient graphs, and an inner loop uses simulated annealing on each quotient to find a good lane placement.
@@ -159,12 +159,12 @@ Unfortunately, directly computing the opportunity cost is very messy: the amount
 Instead, we use an estimated {\em schedule height} as a proxy, with the justification being that giving up a lot of vectorization generally results in taller, less efficient final schedules. 
 %\milind{this is good.}\raghav{Is it enough to say this? Or do I need to justify it further? Or should I remove these paragraphs entirely and just directly describe the schedule height computation?}
 
-The schedule height computation once again proceeds epoch-by-epoch.
-For each epoch, we estimate the minimum number of vector instructions required after packing by taking the maximum number of each type of operation across all the subcircuits associated to the vertices in that epoch.
+The schedule height computation also proceeds epoch-by-epoch.
+For each epoch, we estimate the minimum number of vector instructions after packing by taking the maximum number of each type of operation across all the subcircuits associated to the vertices in that epoch.
 For example, the estimated height of an epoch containing one vertex with 3 adds and 2 multiplies and another vertex with 2 adds and 4 multiplies would be 3 adds and 4 multiplies.
 
 \subsubsection*{Overall Cost}
-The analysis presented above computes an estimate for the number of each type of instruction in the generated vector program.
+The analysis presented above estimates the number of each type of instruction in the generated vector program.
 The final cost used a linear combination of all of these, with weights determined empirically by how expensive each instruction type is relative to the rest.
 In our implementation, we scale rotates and multiplies by $1$, and addition and subtraction by $0.1$. 
 %\raghav{Should this last sentence go here, or in implementation? Or both?}\milind{Both is good.}
@@ -184,7 +184,7 @@ Finally, to speed up the search for a solution, we place a bound on the total le
 
 \subsection{Data Layout}\label{sec:data-layout}
 The circuit obtained after vectorization necessarily operates on inputs that have been ``packed'' into vectors.
-Choosing a good layout within these vectors is crucial, since a poor choice of layout could incur many additional rotations to line operands up with where they are used.
+Choosing a good layout within these vectors is crucial, since a poor choice could incur many additional rotations to line operands up with where they are used.
 {\system} can automatically select a good layout as part of the vectorization process.
 An input that is only used once is placed on the lane within its vector corresponding to the unique lane where it is used, and any two inputs that are placed on the same lane by this rule are packed into separate input vectors to avoid collisions.
 
