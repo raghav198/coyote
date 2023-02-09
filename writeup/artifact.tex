@@ -152,7 +152,7 @@ Finally, use the build script {\tt coyote\_compile.py} to invoke the Coyote comp
 The Coyote compiler can be invoked from the command line via {\tt coyote\_compile.py}. The example invocation above does the following:
 \begin{enumerate}
     \item It parses {\tt circuits.py} and loads a list of all circuits defined in that file
-    \item It uses Coyote to compile/vectorize the specified {\tt matrix\_multiply} circuit
+    \item It uses Coyote to compile the specified {\tt matrix\_multiply} circuit
     \item It creates a directory called {\tt matrix\_multiply} and saves intermediate scalar and vector code into that directory
     \item It lowers the intermediate code into C++ and saves it in {\tt bfv\_backend}
 \end{enumerate}
