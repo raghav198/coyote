@@ -57,7 +57,7 @@ This section discusses how programmers write \system programs, and how the code 
 %     \Description{Example of a program written in \system that composes two smaller kernels}
 % \end{figure}
 
-\subsection{An eDSL and compiler for FHE programs}\label{sec:surface-language}
+\subsection{An eDSL and Compiler for FHE Programs}\label{sec:surface-language}
 \system consists of an embedded DSL (eDSL) in Python that can be used to write FHE programs, shown in Figure~\ref{fig:coyote-program}.
 The DSL allows for arbitrary arithmetic computation over encrypted variables, and supports conditionals and loops over plaintext values. 
 All conditionals and loops are fully evaluated and unrolled, and all function calls are fully inlined before generating the arithmetic circuit.
@@ -65,7 +65,7 @@ The generated circuit is then passed to \system's back end, which vectorizes the
 
 % The decorator registers the function as defining a \system circuit, and allows the programmer to specify the function signature (i.e. the size and shape of each of its inputs).
 \system currently supports datatypes for encrypted inputs: {\sf scalar()}, {\sf vector(size)}, and {\sf matrix(rows, cols)}.
-Inputs annotated with {\sf scalar()} are free to be placed anywhere in the vector schedule; by contrast, {\sf matrix} and {\sf vector} inputs are always grouped together into vectors. %\raghav{Should I include these sentences here, or just move them down to Section~\ref{sec:duplicating-inputs}?}
+Inputs annotated with {\sf scalar()} are free to be placed anywhere in the vector schedule; by contrast, {\sf matrix} and {\sf vector} inputs are always grouped together into vectors. %\footnote{Both {\sf matrix} and {\sf vector} pack their inputs into a single vector; the only difference between the two is the indexing scheme.} %\raghav{Should I include these sentences here, or just move them down to Section~\ref{sec:duplicating-inputs}?}
 % and by default unreplicated, although the latter option can be overridden by, for example, annotating the type of an input as {\sf vector(size, replicate=True)}.
 % For a full discussion of these packing and replication options, see Section~\ref{sec:duplicating-inputs}.
 The arithmetic circuits \system takes are directed acyclic graphs (DAGs) that fail to be trees exactly when values are used as inputs to multiple computations (e.g. the value $a$ in $ab + ac$).

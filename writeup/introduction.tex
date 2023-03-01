@@ -38,7 +38,7 @@ However, VeGen does its reasoning {\em locally}; that is, it cannot reason about
 While goSLP does reason globally, the cost model it uses to avoid over-packing is incompatible with the semantics of FHE vectorization.
 We discuss this further in Section~\ref{sec:related-work}.
 
-\subsection*{The vectorization/rotation tradeoff}
+\subsection{The Vectorization/Rotation Tradeoff}
 
 Without carefully accounting for, and controlling, rotation, traditional vectorization strategies can lead to {\em slowdowns}, rather than speedup, in an FHE setting. It is often beneficial to give up vectorization opportunities to avoid incurring expensive rotations.
 
@@ -89,7 +89,7 @@ By saving one rotation at the cost of an extra vector addition, we get a schedul
 
 We need a new arbitrary vectorization strategy that is {\em FHE-aware}; i.e., it packs instructions without relying on regularity in the original computation, and can still account for the high cost of data movement throughout the program.
 
-\subsection*{Co-optimization of vector packing and data layout}
+\subsection{Co-optimization of Vector Packing and Data Layout}
 %\milind{check}\raghav{I like it}
 Our key insight is that because rotations are so expensive, data layout and vector packing are fundamentally intertwined. Rather than treat these as separate problems, we must optimize them {\em together} when finding a schedule.
 The main obstacle to optimality when using the classical approach is simple: vectorizing across instructions by aggressively packing them into vectors can require substantial and complex data movement to align operands for downstream vector instructions (e.g., SwizzleInventor \cite{SwizzleInventor}, which resorts to sketch-based synthesis to generate the appropriate permutations). If permuting operands between lanes can only be done with expensive rotations, an aggressively packed schedule can incur so much overhead that no amount of vectorization makes it worth it.
@@ -99,18 +99,15 @@ Instead, we develop an approach that works at the level of {\em subcircuits}, sp
 This approach yields a natural question: how do we decide which computations to merge into a subcircuit? This seems circular: subcircuit merging is intended to yield fewer rotations, which are determined by data layout, and data layout is driven by which operations are vectorized together, which in turn is constrained by subcircuit identification. 
 
 
-\subsection*{Contributions}
+\subsection{Contributions}
 
-This paper presents \system, the first vectorizing, FHE-aware compiler for programs that do not have regular structure. \system breaks the circular dependence between vector packing and data layout by alternating between making packing decisions and determining data layout. \system uses simulated annealing to find optimal data layouts, and uses these to guide a best-first search towards optimal vector packs. Crucially, \system uses layouts from previous iterations of scheduling to identify profitable subcircuits to merge, and then re-schedules based on the new subcircuits.
+This paper presents \system, the first vectorizing, FHE-aware compiler for programs that do not have regular structure. \system breaks the circular dependence between vector packing and data layout by using an iterative process that alternates between making packing decisions and determining data layout. \system uses simulated annealing to find optimal data layouts, and uses these to guide a best-first search towards optimal vector packs. Crucially, \system uses layouts from previous iterations of scheduling to identify subcircuits that would be profitable to merge, and then re-schedules based on the new subcircuits.
 
 
-Rather than incurring many expensive data shuffles by aggressively vectorizing the whole program, \system's subcircuit-based scheduling and FHE-specific cost model co-optimize the data layout and vector packing, producing a schedule that enjoys the benefits of vectorization while still being able to efficiently realize the necessary rotations. For example, \system is able to correctly generate the better schedule in Figure~\ref{fig:optimal-schedule}.
+Rather than incurring many expensive data shuffling operations by aggressively vectorizing the whole program, \system uses a subcircuit-based approach to scheduling and employs an FHE-specific cost model co-optimize the data layout and vector packing, producing a schedule that enjoys the benefits of vectorization while still being able to efficiently realize the necessary rotations. For example, \system's vectorization algorithm is able to correctly identify the schedule in Figure~\ref{fig:optimal-schedule} as being optimal.
 
 %\milind{High level idea of find subcircuits -> vectorize subcircuits -> do layout -> tweak subcircuits}\raghav{Is this the right level of generality?}
-
 % \raghav{feels weird explicitly saying irregular here, should I say `arbitrary' instead?}\milind{How's that?}\raghav{Good, I think. I just don't want to seem like we're claiming that Coyote is {\em specifically for irregular things} and then be left with a disconnect between that claim and the fact that many of our benchmarks are, ostensibly, pretty regular.}
-
-
 %\milind{two sentences or so about simulated annealing...}\raghav{Is this accurate? Does it make sense? Right level of generality?}
 
 The specific contributions we make are:

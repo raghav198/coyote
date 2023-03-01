@@ -47,7 +47,7 @@ When computing vector packs, SLP does not account for how expensive rotations ar
 
 VeGen \cite{VeGen} is a recent variant of SLP, introducing a notion of {\em lane level parallelism} that encodes which lanes are performing which computations, allowing it to reason about rotation costs when building vector packs.
 For example, VeGen can reason about the rotation costs to pack together operands for an instruction into a temporary vector, and can use this to decide whether or not packing those instructions is worth it.
-However, this reasoning only happens locally, and VeGen does not incorporate information about how instruction packing might affect rotations much later in the program.
+However, this reasoning only happens locally, and VeGen does not incorporate information about how instruction packing might affect later rotations.
 
 %\raghav{Spotcheck again?}
 goSLP \cite{goSLP} reasons about globally optimal packing, and finds lane placements that minimize data shuffling costs. 
@@ -65,9 +65,9 @@ By contrast, \system's cooperative scheduling strategy precludes this.%ensures t
 
 % \raghav{Can you check how this is worded?}
 There is a class of work that deals specifically with optimizing permutations in vectorized code~\cite{SIMDPermutations,SIMDAlignment,SwizzleInventor}. 
-Ren, et. al~\cite{SIMDPermutations} present an algebra for reasoning about and reducing the permutation workload in SIMD programs.
+Ren, et. al~\cite{SIMDPermutations} present an algebra for reasoning about the permutation workload in SIMD programs.
 Eichenberger, et. al~\cite{SIMDAlignment} develop a technique to efficiently realign memory accesses produced as a result of vectorizing a loop.
-Finally, Swizzle Inventor~\cite{SwizzleInventor} is a system which automatically synthesizes efficient data movement kernels for vectorized GPU code.
+Finally, Swizzle Inventor~\cite{SwizzleInventor} automatically synthesizes efficient data movement kernels for vectorized GPU code.
 The primary obstacle \system faces in directly applying these approaches is that they tackle the data movement problem {\em after the kernel has been vectorized}.
 As we discussed earler, in the world of FHE, packing and data movemnt are problems that must be reasoned about together.
 There are two additional drawbacks: Eichenberger, et. al focus on aligning memory accesses in regular, data-dense loops, but this is not the setting in which Coyote operates.

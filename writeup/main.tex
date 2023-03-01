@@ -1,7 +1,4 @@
-%  \documentclass[acmsmall,10pt,review,anonymous]{acmart}
-\documentclass[sigconf,screen]{acmart}
-% \settopmatter{printfolios=true,printccs=false,printacmref=false}
-% \documentclass[acmsmall,anonymous,10pt]{acmart}
+\documentclass[sigconf,screen,balance=false]{acmart}
 
 \newcommand{\asplossubmissionnumber}{399}
 
@@ -100,14 +97,17 @@
 \input{conclusion}
 \section*{Acknowledgements}
 The authors appreciate the feedback from anonymous reviewers from PLDI 2022, OOPSLA 2022 and ASPLOS 2023 that have improved the paper.
-This work was partially supported by NSF grants CCF-1908504 and CCF-1919197, as well as Cisco.
-\pagebreak
+This work was  partially supported by NSF grants CCF-1908504 and CCF-1919197, as well as Cisco.
+% \pagebreak
 \appendix
 \input{artifact}
 % \pagebreak
 % \clearpage
-% \bibliographystyle{ACM-Reference-Format}
-\bibliographystyle{plain}
+% \onecolumn
+% \begin{multicols}{2}
+    % \balance
+\bibliographystyle{ACM-Reference-Format}
+\input{manual_bib}
 
-\bibliography{papers.bib}
+% \end{multicols}
 \end{document}

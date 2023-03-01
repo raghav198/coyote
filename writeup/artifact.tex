@@ -13,7 +13,7 @@ The artifact contains everything necessary to replicate the results of this pape
 
 Note that there are two experiments omitted from the artifact, as they require nontrivial manual effort to set up and run. These are the {\tt mm.16.blocked} benchmark described in Section~\ref{sec:scalability}, and Figure~\ref{fig:schedule-cost}
 
-\subsection{Artifact check-list (meta-information)}
+\subsection{Artifact Check-List (Meta-Information)}
 
 {\small
 \begin{itemize}
@@ -36,10 +36,10 @@ Note that there are two experiments omitted from the artifact, as they require n
 
 The \system compiler can be accessed at https://github.com/raghav198/coyote
 
-\subsubsection{Hardware dependencies}
+\subsubsection{Hardware Dependencies}
 No specialized hardware is required to use Coyote, beyond whatever may be necessary to efficiently run z3 and SEAL.
 
-\subsubsection{Software dependencies}
+\subsubsection{Software Dependencies}
 \begin{itemize}
     \item The {\tt coyote} compiler is implemented in Python 3.10 and uses the networkx and z3 modules for its analysis
     \item The test harness backend is written in C++ and uses version 3.7 of the Microsoft SEAL library for its FHE implementation
@@ -57,7 +57,7 @@ The Dockerfile provided with the artifact automatically builds and installs all 
 \end{minted}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Experiment workflow}
+\subsection{Experiment Workflow}
 This section describes a workflow to reproduce a subset of the results in the paper.
 We've recorded the approximate time it takes to complete each step inside the Docker image on a 2020 M1 MacBook Air.
 Lets start by building all the {\tt small} benchmarks (all replication sorts for {\tt conv.4.2}, {\tt mm.2}, {\tt dot.3}, {\tt dot.6}, and {\tt dot.10}, as well as the ungrouped {\tt sort[3]}). 
@@ -97,7 +97,8 @@ However, this is not recommended and will take several hours to complete, as sev
 Now, we need to compile all the C++ code and collect data. Although we used 50 runs and 50 iterations in the paper, lets only use 10 of each to make this go faster:
 % compile: % compile+run: 13 minutes
 \begin{minted}{Bash}
-    $ python3 build_and_run_all.py --runs 10 --iters 10    
+    $ python3 build_and_run_all.py \
+            --runs 10 --iters 10    
 \end{minted}
 You should see some CMake output followed by the encryption and run times for both scalar and vector versions of each circuit. Note that this script will not re-run benchmarks that already have corresponding CSV files in {\tt bfv\_backend/csvs/}.
 Once this is finished running, we can look at one of the generated CSV files:
@@ -117,7 +118,7 @@ Compiling all the small benchmarks takes about 13 minutes, generating and compil
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Evaluation and expected results}
+\subsection{Evaluation and Expected Results}
 
 After running through the workflow described above, you should have generated three plots, each of which replicates part of the experiments in this paper:
 \begin{itemize}
@@ -129,7 +130,7 @@ Note that the generated graphs may not contain all the experiments found in the 
 However, the speedups should resemble those in the corresponding figures.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Experiment customization}
+\subsection{Experiment Customization}
 \subsubsection{Writing a Coyote program}
 Coyote is a DSL embedded in Python, so Coyote programs are just Python functions. To tag a function as a circuit for Coyote to compile, first get an instance of the Coyote compiler:
 \begin{minted}{Python}
@@ -165,7 +166,7 @@ The script expects the name of a Python file that defines one or more circuits (
     \item {\tt --no-cpp}: Stops after generated the intermediate code and doesn't generate C++
     \item {\tt --just-cpp}: Uses pregenerated intermediate code to generate C++ instead of recompiling the circuit; this fails if it can't find the intermediate code under [output-dir]/[circuit-name]/
 \end{itemize}
-\subsubsection{Running the test harness}
+\subsubsection{Running the Test Harness}
 The backend test harness comes with a CMake file that automatically builds binaries for everything under {\tt coyote\_out/}. The generated binaries perform a number of runs, where each run consists of executing the scalar and vectorized circuits on random encrypted inputs for a number of iterations and then outputting the total time each version (scalar and vector) took to encrypt, as well as run. All these outputs are then saved into a csv file with the same name as the circuit (e.g. running the binary generated from the example above would create a file called {\tt matrix\_multiply.csv}).
 
 The number of runs and iterations default to 50 each (as these are the values used in this paper), but are configurable via cmake. An example invocation that uses 10 runs with 10 iterations each is as follows:
@@ -177,12 +178,12 @@ The number of runs and iterations default to 50 each (as these are the values us
     $ make -j16
 \end{minted}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Methodology}
+% \subsection{Methodology}
 
-Submission, reviewing and badging methodology:
+% Submission, reviewing and badging methodology:
 
-\begin{itemize}
-  \item \url{https://www.acm.org/publications/policies/artifact-review-badging}
-  \item \url{http://cTuning.org/ae/submission-20201122.html}
-  \item \url{http://cTuning.org/ae/reviewing-20201122.html}
-\end{itemize}
+% \begin{itemize}
+%   \item \url{https://www.acm.org/publications/policies/artifact-review-badging}
+%   \item \url{http://cTuning.org/ae/submission-20201122.html}
+%   \item \url{http://cTuning.org/ae/reviewing-20201122.html}
+% \end{itemize}
