@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from sys import stderr
-from typing import Dict, List, Tuple, cast
+from typing import Dict, Generator, List, Tuple, cast
+
 from .coyote_ast import *
 from .synthesize_schedule import VecSchedule
-import networkx as nx # type: ignore
+
 
 @dataclass
 class VecRotInstr:
@@ -55,38 +56,40 @@ class VecBlendInstr:
 
 VecInstr = VecRotInstr | VecOpInstr | VecLoadInstr | VecConstInstr | VecBlendInstr
 
-def build_vector_program(program: List[Instr],
-                         lanes: List[int],
-                         schedule: List[int], log=stderr) -> List[VecSchedule]:
-    # print('Building stage:', file=log)
-    # print('\n'.join(map(str, program)), file=log)
-    # print(lanes, schedule)
-    vectorized_code = []
-    warp = max(lanes) + 1
+@dataclass
+class Schedule:
+    lanes: list[int]
+    alignment: list[int]
+    
+    instructions: list[Instr]
+    
+    def __post_init__(self):
+        # self.alignment  :: inst -> slot, self.steps :: slot -> [inst]
+        self.steps = [[i for i in range(len(self.alignment)) if self.alignment[i] == slot]
+                    for slot in set(self.alignment)]
+        self.warp = max(self.lanes) + 1
+        
+    def __iter__(self) -> Generator[VecSchedule, None, None]:
+        for instrs in self.steps:
+            dest = [-1 for _ in range(self.warp)]
+            lhs = [Atom(BLANK_SYMBOL) for _ in range(self.warp)]
+            rhs = [Atom(BLANK_SYMBOL) for _ in range(self.warp)]
 
-    # schedule  :: inst -> slot, inv_schedule :: slot -> [inst]
-    inv_schedule = [[i for i in range(len(schedule)) if schedule[i] == slot]
-                    for slot in set(schedule)]
-
-    # print(inv_schedule)
-    for instrs in inv_schedule:
-        dest = [-1 for _ in range(warp)]
-        lhs = [Atom(BLANK_SYMBOL) for _ in range(warp)]
-        rhs = [Atom(BLANK_SYMBOL) for _ in range(warp)]
-
-        for i in instrs:
-            reg = program[i].dest.val
-            assert isinstance(reg, int)
-            lane_num: int = lanes[reg]
-            dest[lane_num] = reg
-            lhs[lane_num] = program[i].lhs
-            rhs[lane_num] = program[i].rhs
-
-        vectorized_code.append(VecSchedule(dest, lhs, rhs, program[instrs[0]].op))
-
-    # print('Stage:')
-    # print('\n'.join(map(str, vectorized_code)))
-    return vectorized_code
+            for i in instrs:
+                reg = self.instructions[i].dest.val
+                assert isinstance(reg, int)
+                lane_num: int = self.lanes[reg]
+                dest[lane_num] = reg
+                lhs[lane_num] = self.instructions[i].lhs
+                rhs[lane_num] = self.instructions[i].rhs
+                
+            yield VecSchedule(dest, lhs, rhs, self.instructions[instrs[0]].op)
+            
+    def at_step(self, n: int) -> set[int]:
+        return {i for i, align in enumerate(self.alignment) if align == n}
+    
+    def at_lane(self, n: int) -> set[int]:
+        return {i for i, lane in enumerate(self.lanes) if lane == n}
 
 
 def remove_repeated_ops(generated_code: List[str]) -> List[str]:
@@ -111,17 +114,18 @@ def remove_repeated_ops(generated_code: List[str]) -> List[str]:
     return list(filter(None, '\n'.join(generated_code).split('\n')))
 
 
-def codegen(vector_program: List[VecSchedule], graph: nx.DiGraph, lanes: List[int], schedule: List[int], warp_size: int):
+# def codegen(vector_program: List[VecSchedule], lanes: List[int], schedule: List[int], warp_size: int):
+def codegen(schedule: Schedule):
     shift_amounts_needed: Dict[int, Dict[int, int]] = defaultdict(lambda: defaultdict(lambda: 0))
     # print('Raw program: ')
     # print('\n'.join(map(str, vector_program)))
     # print(f'Warp size: {warp_size}')
 
-    for instr in vector_program:
+    for instr in schedule:
         for c, p in zip(instr.dest * 2, instr.left + instr.right):
             if not (isinstance(p.val, int) and isinstance(c.val, int)):
                 continue
-            shift_amount = (lanes[c.val] - lanes[p.val]) % warp_size
+            shift_amount = (schedule.lanes[c.val] - schedule.lanes[p.val]) % schedule.warp
             if shift_amount == 0:
                 continue
             shift_amounts_needed[p.val][c.val] = shift_amount
@@ -134,7 +138,7 @@ def codegen(vector_program: List[VecSchedule], graph: nx.DiGraph, lanes: List[in
     shift_temp = 0 # for creating new shifted vectors
     cur_temp = 0 # for creating temporaries
     generated_code: List[VecInstr] = []
-    for i, instr in enumerate(vector_program):
+    for i, instr in enumerate(schedule):
         shifted_names: Dict[int, str] = {} # shift amount -> name of shifted vector [this is just specific to the current vector instruction]
         shifts_performed: List[int] = [] # what shifts are already queued up for this vector instruction?
 
@@ -163,7 +167,7 @@ def codegen(vector_program: List[VecSchedule], graph: nx.DiGraph, lanes: List[in
         # which lanes to blend in constants
         def get_blends_and_constants(operands: List[Atom], dests: List[Atom]):
             # print(f'There are {len(operands)} operands and the warp size is {warp_size}')
-            blend_masks: Dict[str, List[int]] = defaultdict(lambda: [0] * warp_size) # vector name -> bitvector mask needed for blends
+            blend_masks: Dict[str, List[int]] = defaultdict(lambda: [0] * schedule.warp) # vector name -> bitvector mask needed for blends
             constants: List[str | int] = [0] * len(operands)
 
             for j, symbol in enumerate(operands):
@@ -179,7 +183,7 @@ def codegen(vector_program: List[VecSchedule], graph: nx.DiGraph, lanes: List[in
 
                     if shift_amount == 0:
                         # no shift necessary, use the vector directly
-                        src_vec = f'__v{schedule[symbol.val]}'
+                        src_vec = f'__v{schedule.alignment[symbol.val]}'
                     else:
                         # its been shifted, get the name of the shifted vector
                         src_vec = shifted_vectors[symbol.val, shift_amount]
