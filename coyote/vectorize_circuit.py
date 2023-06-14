@@ -42,8 +42,8 @@ def get_lanes(graph: nx.DiGraph) -> List[int]:
 
     return lanes
 
-def vectorize(comp: CompilerV2, lanes_out=[], align_out=[], extra_force_lanes: dict[int, int]={}):
-    loaded_groups = [set().union(*(comp.loaded_regs[g] for g in group)) for group in comp.input_groups]
+def vectorize(comp: CompilerV2, lanes_out=[], align_out=[], extra_force_lanes: dict[int, int]={}, output_groups: list[set[int]]=[]):
+    input_groups = [set().union(*(comp.loaded_regs[g] for g in group)) for group in comp.input_groups]
 
     loaded_lanes = {next(iter(comp.loaded_regs[g])): comp.force_lanes[g] for g in comp.force_lanes} | extra_force_lanes
     
@@ -51,7 +51,7 @@ def vectorize(comp: CompilerV2, lanes_out=[], align_out=[], extra_force_lanes: d
     actual_instrs = list(filter(lambda n: all(isinstance(m, int) for m in n), graph.nodes))
     graph = nx.DiGraph(nx.subgraph(graph, actual_instrs))
 
-    protoschedule = pq_relax_schedule(graph, loaded_groups, loaded_lanes, rounds=200).graph
+    protoschedule = pq_relax_schedule(graph, input_groups, output_groups, loaded_lanes, rounds=200).graph
 
     # shift to start at column 1 :)
     min_column = min(protoschedule.nodes[node]['column'] for node in protoschedule)
@@ -79,13 +79,26 @@ def vectorize(comp: CompilerV2, lanes_out=[], align_out=[], extra_force_lanes: d
         active_lanes[alignment[instr.dest.val]].append(lanes[instr.dest.val])
         
     schedule = Schedule(lanes, alignment, comp.code)
+    print('before relaxing blends:')
+    for line in schedule:
+        print(line)
+    
     blend_relaxed_schedule = relax_blends(schedule)
+    # blend_relaxed_schedule = schedule
+    print('after relaxing blends:')
+    for line in blend_relaxed_schedule:
+        print(line)
 
     lanes_out[:] = blend_relaxed_schedule.lanes
     align_out[:] = blend_relaxed_schedule.alignment
     
-    for line in blend_relaxed_schedule:
-        print(line)
+    # print('\n'.join(map(str, codegen(schedule))))
+    # print('---')
+    # print('\n'.join(map(str, codegen(blend_relaxed_schedule))))
+    # print('===')
+    
+    # for line in blend_relaxed_schedule:
+    #     print(line)
 
     return codegen(blend_relaxed_schedule)
 

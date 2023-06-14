@@ -63,11 +63,14 @@ class Schedule:
     
     instructions: list[Instr]
     
-    def __post_init__(self):
-        # self.alignment  :: inst -> slot, self.steps :: slot -> [inst]
-        self.steps = [[i for i in range(len(self.alignment)) if self.alignment[i] == slot]
+    @property
+    def steps(self):
+        return [[i for i in range(len(self.alignment)) if self.alignment[i] == slot]
                     for slot in set(self.alignment)]
-        self.warp = max(self.lanes) + 1
+        
+    @property
+    def warp(self):
+        return max(self.lanes) + 1
         
     def __iter__(self) -> Generator[VecSchedule, None, None]:
         for instrs in self.steps:

@@ -33,7 +33,7 @@ def relax_blends(schedule: Schedule, rounds=1000, beta=0.05, t=10) -> Schedule:
     def independent(ops: list[int]):
         return not any(i in deps[j] for i in ops for j in ops if i != j)
     
-    current = count_blends(schedule, debug=False)
+    current = count_blends(schedule, debug=True)
     print(f'Starting with {current} blends...')
     
     for _ in range(rounds):
@@ -44,21 +44,27 @@ def relax_blends(schedule: Schedule, rounds=1000, beta=0.05, t=10) -> Schedule:
         candidate = cast(Schedule, deepcopy(schedule))
         step = randint(0, max(schedule.alignment)) # which step to look at
         # all the left/right operands of this vector insruction
-        ops: list[int]
+        operations: list[int]
         if random() < 0.5:
-            ops = [cast(int, schedule.instructions[o].lhs.val) for o in schedule.at_step(step) if schedule.instructions[o].lhs.reg]
+            operations = [cast(int, schedule.instructions[o].lhs.val) for o in schedule.at_step(step) if schedule.instructions[o].lhs.reg]
         else:
-            ops = [cast(int, schedule.instructions[o].rhs.val) for o in schedule.at_step(step) if schedule.instructions[o].rhs.reg]
+            operations = [cast(int, schedule.instructions[o].rhs.val) for o in schedule.at_step(step) if schedule.instructions[o].rhs.reg]
         
         # if they don't depend on each other...
-        if len(ops) and independent(ops):
-            #...try to move them to all be computed in the same step
-            new_step: int = choice([schedule.alignment[o] for o in ops])
-            for o in ops:
-                incumbents = candidate.at_step(new_step).intersection(candidate.at_lane(candidate.lanes[o]))
-                for incumbent in incumbents: # should be either 0 or 1
-                    candidate.alignment[incumbent] = candidate.alignment[o]
-                candidate.alignment[o] = new_step
+        if len(operations) and independent(operations):
+            # ...group by operation...
+            grouped_ops: dict[str, list[int]] = defaultdict(list)
+            for i in operations:
+                grouped_ops[schedule.instructions[i].op].append(i)
+            
+            #...try to move each group to be computed in the same step
+            for _, group in grouped_ops.items():
+                new_step = choice(group)
+                for o in group:
+                    incumbents = candidate.at_step(new_step).intersection(candidate.at_lane(candidate.lanes[o]))
+                    for incumbent in incumbents: # should be either 0 or 1
+                        candidate.alignment[incumbent] = candidate.alignment[o]
+                    candidate.alignment[o] = new_step
         else:
             continue
                 
@@ -69,7 +75,7 @@ def relax_blends(schedule: Schedule, rounds=1000, beta=0.05, t=10) -> Schedule:
             schedule = candidate
             current = new_cost
             
-    print(f'...relaxed to {count_blends(schedule, debug=False)} blends')
+    print(f'...relaxed to {count_blends(schedule, debug=True)} blends')
     return schedule
         
         

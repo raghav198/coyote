@@ -41,14 +41,14 @@ def schedule_height(graph: nx.DiGraph, debug=False):
 
 
 
-def pq_relax_schedule(graph: nx.DiGraph, groups: list[set[int]], force_lanes: dict[int, int], rounds=200):
+def pq_relax_schedule(graph: nx.DiGraph, input_groups: list[set[int]], output_groups: list[set[int]], force_lanes: dict[int, int], rounds=200):
     @dataclass(order=True)
     class schedule:
         cost: int | float
         graph: nx.DiGraph=field(compare=False)
         edges: Optional[list[tuple]]=field(compare=False)
 
-    grade_nx_graph(graph, groups)
+    input_epochs, output_epochs = grade_nx_graph(graph, input_groups, output_groups)
     nx_columnize(graph, force_lanes)
     # print(force_lanes)
     # print('AFTER COLUMNIZING')
@@ -110,10 +110,12 @@ def pq_relax_schedule(graph: nx.DiGraph, groups: list[set[int]], force_lanes: di
             cross_edges = set()
             for u, v in cur.graph.edges:
                 src = cur.graph.nodes[u]['epoch']
+                dst = cur.graph.nodes[v]['epoch']
                 span = cur.graph.nodes[v]['column'] - cur.graph.nodes[u]['column']
 
                 if span == 0: continue
-                if src < len(groups): continue
+                if src in input_epochs: continue
+                if dst in output_epochs: continue
                 cross_edges.add((u, v))
 
             cur.edges = list(cross_edges)
@@ -153,7 +155,7 @@ def pq_relax_schedule(graph: nx.DiGraph, groups: list[set[int]], force_lanes: di
         relabeling = {num : sum(contracted.nodes[num]['members'], ()) for num in contracted}
         contracted = nx.relabel_nodes(contracted, relabeling)
 
-        grade_nx_graph(contracted, groups)
+        input_epochs, output_epochs = grade_nx_graph(contracted, input_groups, output_groups)
         contracted_cost = lane_placement(contracted, force_lanes, t=50, beta=0.001, rounds=20000)
         contracted_cost += schedule_height(contracted)
 

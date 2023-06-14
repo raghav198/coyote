@@ -20,18 +20,24 @@ def instr_sequence_to_nx_graph(instrs: list[Instr]) -> nx.DiGraph:
     return graph
 
 
-def grade_nx_graph(graph: nx.DiGraph, groups: list[set[int]]):
+def grade_nx_graph(graph: nx.DiGraph, input_groups: list[set[int]], output_groups: list[set[int]]):
+    # print(f'grading; outputs = {output_groups}')
+    input_epochs: set[int] = set()
+    output_epochs: set[int] = set()
     for node in graph:
         if 'epoch' in graph.nodes[node]:
             del graph.nodes[node]['epoch']
 
-    for i, group in enumerate(groups):
-        # print(f'Setting {group} to {i}')
+    for i, group in enumerate(input_groups):
+        print(f'setting input {group} to {i}')
         for node in group:
             graph.nodes[(node,)]['epoch'] = i
+            input_epochs.add(i)
 
-    def visit(node: int):
+    def visit(node: tuple[int]):
         if 'epoch' in graph.nodes[node]:
+            return
+        if any(set(node).intersection(group) for group in output_groups):
             return
         children = {c for c, _ in graph.in_edges(node)} # type: ignore
         heights = set()
@@ -39,11 +45,22 @@ def grade_nx_graph(graph: nx.DiGraph, groups: list[set[int]]):
             if 'epoch' not in graph.nodes[child]:
                 visit(child)
             heights.add(graph.nodes[child]['epoch'] + 1)
-        graph.nodes[node]['epoch'] = max(heights | {len(groups)})
+        # print(f'setting intermediate {node} to {max(heights | {len(input_groups)})}')
+        graph.nodes[node]['epoch'] = max(heights | {len(input_groups)})
 
     for node in graph:
         visit(node)
-
+        
+    # print(graph.nodes(data='epoch'))
+    max_epoch = max(dict(graph.nodes(data='epoch', default=-1)).values())
+        
+    for i, group in enumerate(output_groups):
+        print(f'setting output {group} to {i + max_epoch + 1}')
+        for node in group:
+            graph.nodes[(node,)]['epoch'] = i + max_epoch + 1
+            output_epochs.add(i + max_epoch + 1)
+            
+    return input_epochs, output_epochs
 
 def producers(graph: nx.DiGraph, nbunch) -> set[int]:
     return {p for p, _ in graph.in_edges(nbunch)} # type: ignore
