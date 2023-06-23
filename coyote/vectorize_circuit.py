@@ -14,7 +14,6 @@ from .synthesize_schedule import synthesize_alignment
 seed(1)
 
 
-
 def get_stages(graph: nx.DiGraph) -> Generator[Tuple[int], None, None]:
     cur_stage = 0
     
@@ -82,24 +81,20 @@ def vectorize(comp: CompilerV2, lanes_out=[], align_out=[], extra_force_lanes: d
     print('before relaxing blends:')
     for line in schedule:
         print(line)
+        
+    print(f'lanes: {schedule.lanes}')
+    print(f'alignment: {schedule.alignment}')
     
     blend_relaxed_schedule = relax_blends(schedule)
-    # blend_relaxed_schedule = schedule
+
     print('after relaxing blends:')
     for line in blend_relaxed_schedule:
         print(line)
 
     lanes_out[:] = blend_relaxed_schedule.lanes
     align_out[:] = blend_relaxed_schedule.alignment
-    
-    # print('\n'.join(map(str, codegen(schedule))))
-    # print('---')
-    # print('\n'.join(map(str, codegen(blend_relaxed_schedule))))
-    # print('===')
-    
-    # for line in blend_relaxed_schedule:
-    #     print(line)
 
+    print(f'lanes: {blend_relaxed_schedule.lanes}')
+    print(f'alignment: {blend_relaxed_schedule.alignment}')
+    
     return codegen(blend_relaxed_schedule)
-
-    # return codegen(vector_program, lanes, alignment, warp_size)

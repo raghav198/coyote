@@ -29,7 +29,7 @@ def grade_nx_graph(graph: nx.DiGraph, input_groups: list[set[int]], output_group
             del graph.nodes[node]['epoch']
 
     for i, group in enumerate(input_groups):
-        print(f'setting input {group} to {i}')
+        # print(f'setting input {group} to {i}')
         for node in group:
             graph.nodes[(node,)]['epoch'] = i
             input_epochs.add(i)

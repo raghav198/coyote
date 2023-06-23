@@ -59,7 +59,7 @@ def relax_blends(schedule: Schedule, rounds=1000, beta=0.05, t=10) -> Schedule:
             
             #...try to move each group to be computed in the same step
             for _, group in grouped_ops.items():
-                new_step = choice(group)
+                new_step = choice([schedule.alignment[g] for g in group])
                 for o in group:
                     incumbents = candidate.at_step(new_step).intersection(candidate.at_lane(candidate.lanes[o]))
                     for incumbent in incumbents: # should be either 0 or 1
