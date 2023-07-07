@@ -44,6 +44,8 @@ def lane_placement(graph: nx.DiGraph, force_lanes: dict[int, int], t=10, beta=0.
 
     if num_cols == 1:
         return current
+    
+    # print(f'Lane placement with {num_cols} columns')
 
     best_cost = current
     best_graph = nx.DiGraph(graph)

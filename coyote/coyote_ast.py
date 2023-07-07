@@ -1,6 +1,7 @@
 from collections import defaultdict
-from typing import Dict, List, Optional, Set, Tuple, Union, Any
-from random import choice, random, seed
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Set, Union, Any
+from random import choice, random
 from string import ascii_lowercase
 
 Expression = Union['Var', 'Op']
@@ -9,12 +10,11 @@ Expression = Union['Var', 'Op']
 T_op = Any
 BLANK_SYMBOL = '_'
 
-
+@dataclass
 class Var:
-    def __init__(self, name: str):
-        self.name = name
-        self.tag: Any = None
-        self.subtags: List[Union[int, str]] = []
+    name: str
+    tag: int | str | None = None
+    subtags: list[int | str] = field(default_factory=list)
 
     def __add__(self, other):
         return Op('+', self, other)
@@ -38,13 +38,13 @@ class Var:
         return hash(self.name)
 
 
+@dataclass
 class Op:
-    def __init__(self, op: str, lhs: Expression, rhs: Expression):
-        self.op = op
-        self.lhs = lhs
-        self.rhs = rhs
-        self.tag: Optional[int] = None
-        self.subtags: List[Union[int, str]] = []
+    op: str
+    lhs: Expression
+    rhs: Expression
+    tag: int | None = None
+    subtags: list[int | str] = field(default_factory=list)
 
     def __add__(self, other):
         return Op('+', self, other)
@@ -199,7 +199,7 @@ class Compiler:
 
         self.target += 1
         e.tag = self.target
-        e.subtags = e.lhs.subtags + e.rhs.subtags + [e.lhs.tag, e.rhs.tag]
+        e.subtags = e.lhs.subtags + e.rhs.subtags + [e.lhs.tag, e.rhs.tag] # type: ignore
         self.tag_lookup[e.tag] = e
 
         self.code.append(Instr(self.target, lhs, rhs, e.op))
@@ -283,10 +283,10 @@ class CompilerV2:
 
         self.next_temp += 1
         e.tag = self.next_temp
-        self.dependences[e.tag] = self.dependences[e.lhs.tag] | self.dependences[e.rhs.tag] | {e.lhs.tag, e.rhs.tag}
+        self.dependences[e.tag] = self.dependences[e.lhs.tag] | self.dependences[e.rhs.tag] | {e.lhs.tag, e.rhs.tag} # type: ignore
         self.tag_lookup[e.tag] = e
 
-        self.code.append(Instr(self.next_temp, Atom(e.lhs.tag), Atom(e.rhs.tag), e.op))
+        self.code.append(Instr(self.next_temp, Atom(e.lhs.tag), Atom(e.rhs.tag), e.op)) # type: ignore
         return Atom(self.next_temp)
 
 

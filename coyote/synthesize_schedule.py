@@ -1,11 +1,9 @@
 from collections import defaultdict
-from dataclasses import dataclass
 from typing import Tuple, cast
 
+import z3  # type: ignore
+
 from .coyote_ast import *
-import z3 # type: ignore
-from sys import stderr
-from time import time
 
 # z3.set_option('parallel.enable', True)
 
@@ -48,10 +46,11 @@ def dependency_graph(program: List[Instr]) -> List[List[int]]:
     return graph
 
 
-def split_types(program: List[Instr]) -> Tuple[List[int], List[int], List[int]]:
+def split_types(program: List[Instr]) -> Tuple[List[int], List[int], List[int], List[int]]:
     add_instrs = []
     mul_instrs = []
     sub_instrs = []
+    load_instrs = []
 
     for i, line in enumerate(program):
         if line.op == '+':
@@ -61,11 +60,12 @@ def split_types(program: List[Instr]) -> Tuple[List[int], List[int], List[int]]:
         elif line.op == '*':
             mul_instrs.append(i)
         elif line.op == '~':
+            load_instrs.append(i)
             pass # loads get packed together anyway
         else:
             raise Exception(f'Unrecognized operand in instruction {line}: {line.op}')
 
-    return add_instrs, sub_instrs, mul_instrs
+    return add_instrs, sub_instrs, mul_instrs, load_instrs
 
 
 class AlignmentSynthesizer:
@@ -76,7 +76,7 @@ class AlignmentSynthesizer:
 
         dep_graph = dependency_graph(program)
 
-        adds, subs, mults = split_types(program)
+        adds, subs, mults, loads = split_types(program)
         ops = ['+' if i in adds else ('-' if i in subs else '*') for i in range(self.num_instr)]
 
         self.opt = z3.Solver()
@@ -119,6 +119,29 @@ class AlignmentSynthesizer:
         return schedule
 
 
+def fast_align(program: list[Instr], warp: int, lanes: list[int]) -> list[int]:
+    print(f'** fast align (warp {warp}) **')
+    lanes = [lanes[cast(int, instr.dest.val)] for instr in program]
+    # align instructions by scheduling them greedily (note: this may not be optimal)
+    scheduled: set[int] = set()
+    alignment: list[int] = [-1] * len(program)
+    types = split_types(program)
+    columns = [{i for i, l in enumerate(lanes) if l == lane} for lane in range(warp)]
+    print(f'Columns: {columns}')
+    print(f'Types: {types}')
+    dependences = dependency_graph(program)
+    while len(scheduled) < len(program):
+        available = {i for i, _ in enumerate(program) if set(dependences[i]).issubset(scheduled)} - scheduled
+        to_schedule = max([available.intersection(group) for group in types], key=len)
+        print(f'{len(to_schedule)} available to schedule: {to_schedule}')
+        print(f'By column: {[len(to_schedule.intersection(column)) for column in columns]}')
+        to_schedule = {next(iter(to_schedule.intersection(column))) for column in columns if to_schedule.intersection(column)}
+        step = max(alignment) + 1
+        print(f'\tscheduling {len(to_schedule)} instructions in step {step}...({to_schedule})')
+        for instruction in to_schedule:
+            alignment[instruction] = step
+        scheduled.update(to_schedule)
+    return alignment
 
 def synthesize_alignment(program: List[Instr], warp: int, lanes: List[int]) -> List[int]:
     heights: Dict[int, int] = defaultdict(lambda: 0)

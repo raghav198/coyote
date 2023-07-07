@@ -31,7 +31,6 @@ def schedule_height(graph: nx.DiGraph, debug=False):
     for node in graph:
         columns[graph.nodes[node]['column']] += node
 
-
     instr_counts: Counter = sum((reduce(lambda x, y: x | y, (Counter(graph.graph['ops'][instr] for instr in column) for column in epoch.values())) for epoch in cells.values()), Counter())
     cost = sum(COSTS_PER_ROTATE[op] * count for op, count in instr_counts.items())
     if debug:
@@ -100,8 +99,8 @@ def pq_relax_schedule(graph: nx.DiGraph, input_groups: list[set[int]], output_gr
 
         best_history.append(best.cost)
         cost_history.append(cur.cost)
-        # if len(pqueue):
-        #     print(f'Round {r}/200: exploring {cur.cost}{" (new best!)" if cur < best else ""}')
+        if len(pqueue):
+            print(f'Round {r}/200: exploring {cur.cost}{" (new best!)" if cur < best else ""}')
         if cur < best:
             best = schedule(cost=cur.cost, graph=nx.DiGraph(cur.graph), edges=None)
 
@@ -114,8 +113,8 @@ def pq_relax_schedule(graph: nx.DiGraph, input_groups: list[set[int]], output_gr
                 span = cur.graph.nodes[v]['column'] - cur.graph.nodes[u]['column']
 
                 if span == 0: continue
-                if src in input_epochs: continue
-                if dst in output_epochs: continue
+                if any(set(u).intersection(group) for group in input_groups): continue # if src in input_epochs: continue
+                if any(set(v).intersection(group) for group in output_groups): continue
                 cross_edges.add((u, v))
 
             cur.edges = list(cross_edges)

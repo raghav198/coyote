@@ -1,4 +1,5 @@
 from collections import defaultdict
+from math import ceil
 from typing import cast
 import networkx as nx
 
@@ -20,7 +21,39 @@ def instr_sequence_to_nx_graph(instrs: list[Instr]) -> nx.DiGraph:
     return graph
 
 
-def grade_nx_graph(graph: nx.DiGraph, input_groups: list[set[int]], output_groups: list[set[int]]):
+def limit_width(graph: nx.DiGraph, width: int):
+    
+    # sanity check: violations?
+    for u, v in graph.edges:
+        if graph.nodes[u]['epoch'] == graph.nodes[v]['epoch']:
+            print(f'[ERROR] {u}, {v} on same epoch despite edge!')
+            quit()
+        
+    
+    current_epoch: int = 0
+    number_of_epochs = 1 + max(d for _, d in graph.nodes(data='epoch')) # type: ignore
+    update_values: dict[tuple[int], dict[str, int]] = {}
+    for epoch in range(number_of_epochs):
+        nodes_at_epoch = [node for node, data in graph.nodes(data=True) if data['epoch'] == epoch]
+        chunks = [nodes_at_epoch[i * width : (i + 1) * width] for i in range(ceil(len(nodes_at_epoch) / width))]
+        for chunk in chunks:
+            update_values.update({node: {'epoch': current_epoch} for node in chunk})
+            current_epoch += 1
+            
+    nx.set_node_attributes(graph, values=update_values)
+        
+    # sanity check: violations?
+    for u, v in graph.edges:
+        # print(u, v, graph.nodes[u]['epoch'], graph.nodes[v]['epoch'])
+        
+        if graph.nodes[u]['epoch'] == graph.nodes[v]['epoch']:
+            print(f'[ERROR] {u}, {v} on same epoch despite edge!')
+            quit()
+        
+        
+    return graph
+
+def grade_nx_graph(graph: nx.DiGraph, input_groups: list[set[int]], output_groups: list[set[int]], debug=False):
     # print(f'grading; outputs = {output_groups}')
     input_epochs: set[int] = set()
     output_epochs: set[int] = set()
@@ -37,14 +70,22 @@ def grade_nx_graph(graph: nx.DiGraph, input_groups: list[set[int]], output_group
     def visit(node: tuple[int]):
         if 'epoch' in graph.nodes[node]:
             return
+        if debug: print(f'visiting {node}')
         if any(set(node).intersection(group) for group in output_groups):
+            if debug: print('output, skipping')
             return
-        children = {c for c, _ in graph.in_edges(node)} # type: ignore
+        children = {c for c, _ in graph.in_edges(node)}
+        if debug: print(f'children: {children}')
         heights = set()
         for child in children:
             if 'epoch' not in graph.nodes[child]:
                 visit(child)
-            heights.add(graph.nodes[child]['epoch'] + 1)
+            try:
+                heights.add(graph.nodes[child]['epoch'] + 1)
+            except KeyError as ke:
+                if debug:
+                    raise ke from ke
+                grade_nx_graph(graph, input_groups, output_groups, debug=True)
         # print(f'setting intermediate {node} to {max(heights | {len(input_groups)})}')
         graph.nodes[node]['epoch'] = max(heights | {len(input_groups)})
 
@@ -52,13 +93,18 @@ def grade_nx_graph(graph: nx.DiGraph, input_groups: list[set[int]], output_group
         visit(node)
         
     # print(graph.nodes(data='epoch'))
-    max_epoch = max(dict(graph.nodes(data='epoch', default=-1)).values())
+    max_epoch = max(dict(graph.nodes(data='epoch', default=-1)).values()) # type: ignore
         
     for i, group in enumerate(output_groups):
-        print(f'setting output {group} to {i + max_epoch + 1}')
         for node in group:
             graph.nodes[(node,)]['epoch'] = i + max_epoch + 1
             output_epochs.add(i + max_epoch + 1)
+            
+            
+    # print(1 + max(d for _, d in graph.nodes(data='epoch'))) # type: ignore
+    # limit_width(graph, 210)
+    # print(1 + max(d for _, d in graph.nodes(data='epoch'))) # type: ignore
+    # input()
             
     return input_epochs, output_epochs
 
@@ -74,6 +120,10 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
     epochs: dict[int, list[int]] = defaultdict(list)
     for node in graph:
         epochs[_graph.nodes[node]['epoch']].append(node)
+        
+    # for epoch in epochs:
+    #     print(epoch, len(epochs[epoch]))
+    # input()
 
     num_epochs = max(epochs.keys()) + 1
 
@@ -102,7 +152,6 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
             if bp_subgraph.number_of_edges() == 0:
                 # nothing to see here, moving on...
                 continue
-
             for x in part1:
                 for y in part2:
                     weight = bp_subgraph.degree[x] + bp_subgraph.degree[y]
@@ -131,20 +180,22 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
     for i, j in sorted(pieces.keys()):
         bp_piece = pieces[i, j]
         # print(f'Full bp piece {i, j}: {bp_piece.edges}')
-        part = set(n for n, d in bp_piece.nodes(data=True) if d['bipartite']) # type: ignore
+        part = set(n for n, d in bp_piece.nodes(data=True) if d['bipartite'])
 
         # TODO: this is not the right condition for marking an edge 'unmatchable'
         ## also check if the edge connects an unmatched vertex to one already matched with something in the same epoch
-        matchable_graph = nx.graphviews.subgraph_view(bp_piece, filter_edge=lambda u, v: not (columns.contains(u) and columns.contains(v))) # type: ignore
+        matchable_graph = nx.graphviews.subgraph_view(bp_piece, filter_edge=lambda u, v: not (columns.contains(u) and columns.contains(v)))
         # matchable_graph = nx.graphviews.subgraph_view(matchable_graph, filter_edge=lambda u, v: not (u in force_lanes and v in force_lanes and force_lanes[u] != force_lanes[v]))
         
         # print(f'Marking edges {[(u, v) for u, v in bp_piece.edges if columns.contains(u) and columns.contains(v)]} as unmatchable')
         # print(f'{matchable_graph.edges} are all matchable')
         matching = nx.algorithms.max_weight_matching(matchable_graph, maxcardinality=True)
+        # print(len([n for n, d in matchable_graph.nodes(data=True) if d['bipartite'] == 0]))
+        # print(len([n for n, d in matchable_graph.nodes(data=True) if d['bipartite'] == 1]))
 
 
-        # print(f'Querying weights for {matching}')
         weight = sum(bp_piece[u][v]['weight'] for u, v in matching)
+        # print(i, j, len(matching))
         # print(f'Matching for {i, j}: {matching} (weight={weight})')
         
 
@@ -161,11 +212,13 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
 
         columns.add(*filter(lambda p: not columns.contains(p), part))
 
-        rotation_graph = nx.graphviews.subgraph_view(graph, filter_edge=lambda u, v: (u, v) not in matching and (v, u) not in matching) # type: ignore
+        rotation_graph = nx.graphviews.subgraph_view(graph, filter_edge=lambda u, v: (u, v) not in matching and (v, u) not in matching)
 
         total_degree += max(rotation_graph.degree(), key=lambda n: n[1])[1]
     # list(map(print, map(sorted, columns.all_classes())))
     # quit()
+    
+    columns.limit_classes(210)
     
     for i, col in enumerate(columns.all_classes()):
         for node in col:

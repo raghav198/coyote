@@ -39,7 +39,7 @@ k1_outputs = []
 for c in k1_circuits:
     k1_outputs.append(coyote.compiler.compile(c).val)
 
-k1_code = coyote.vectorize(k1_lanes)
+k1_code = coyote.vectorize(k1_lanes).instructions
 k1_output_lanes = [k1_lanes[out] for out in k1_outputs]
 
 k2_groups, _, k2_circuits = coyote.get_outputs(['matvec_mul'])
@@ -51,7 +51,7 @@ k2_outputs = []
 for c in k2_circuits:
     k2_outputs.append(coyote.compiler.compile(c).val)
 
-k2_code = coyote.vectorize(k2_lanes)
+k2_code = coyote.vectorize(k2_lanes).instructions
 k2_output_lanes = [k2_lanes[out] for out in k2_outputs]
 
 broken_code = k1_code + k2_code
@@ -59,14 +59,14 @@ broken_code = k1_code + k2_code
 t1 = time() - start
 
 coyote.instantiate('compose')
-combined_code = coyote.vectorize([])
+combined_code = coyote.vectorize([]).instructions
 
 t2 = time() - t1 + start
 
 print(f'=== SEPARATE KERNELS === ({t1})')
-print('\n'.join(broken_code))
+print('\n'.join(map(str, broken_code)))
 print(f'=== FUSED KERNELS === ({t2})')
-print('\n'.join(combined_code))
+print('\n'.join(map(str, combined_code)))
 print('=== END ===')
 
 

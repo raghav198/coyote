@@ -1,3 +1,4 @@
+from math import ceil
 from typing import Generic, List, Set, Dict, TypeVar, Generator
 
 class ItemAlreadyPresent(Exception):
@@ -9,11 +10,41 @@ class ItemNotPresent(Exception):
 T = TypeVar('T')
 class DisjointSet(Generic[T]):
     def __init__(self):
-        """Creates an empty DisjointSet data structure"""
+        """Create a new empty DisjointSet
+        """
         self.vertices: Set[T] = set()
         self.parent: Dict[T, T] = {}
         self.children: Dict[T, Set[T]] = {}
+    
+    
+    def copy(self):
+        """Return a deep copy of this DisjointSet
+        Returns:
+            DisjointSet[T]: deep copy of `self`
+        """
+        new: DisjointSet[T] = DisjointSet()
+        new.vertices.update(self.vertices)
+        new.parent.update(self.parent)
+        new.children.update(self.children)
+        return new
         
+    def limit_classes(self, limit: int):
+        classes = list(self.all_classes())
+        
+        chunks = []
+        index = 0
+        while len(chunks) < limit:
+            size = ceil((len(classes) - index) / (limit - len(chunks)))
+            chunks.append(classes[index:index + size])
+            index += size
+            
+        for chunk in chunks:
+            if not chunk:
+                continue
+            rep = list(chunk[0])[0]
+            for cls in chunk:
+                self.union(rep, list(cls)[0])
+
         
     def new_class(self, *items: T):
         """
@@ -28,9 +59,13 @@ class DisjointSet(Generic[T]):
             self.union(items[0], item)
 
     def contains(self, item: T) -> bool:
-        """
-        :param item: T
-        :return True if `item` is contained in an equivalence class, False otherwise
+        """Test whether an item is contained in the DisjointSet
+
+        Args:
+            item (T): item to test for membership
+
+        Returns:
+            bool: True if `item` is contained in an equivalence class, False otherwise
         """
         return item in self.vertices
 

@@ -115,6 +115,11 @@ class coyote_compiler:
                 outputs.append(out)
         return input_groups, force_lanes, outputs
 
+    def noinline(self, func):
+        class something:
+            def __init__(*args):
+                func(*args)
+        return something
 
     def define_circuit(self, **types):
         
@@ -149,6 +154,11 @@ class coyote_compiler:
 
         return wrapper
 
+coyote = coyote_compiler()
+
+@coyote.noinline
+def my_function(a, b):
+    return a + b
 
 def recursive_sum(vals):
     if len(vals) == 1:
@@ -164,71 +174,3 @@ def alternating_sum(vals):
     if mid % 2:
         return alternating_sum(vals[:mid]) - alternating_sum(vals[mid:])
     return alternating_sum(vals[:mid]) + alternating_sum(vals[mid:])
-
-if __name__ == '__main__':
-    coyote = coyote_compiler()
-
-    # VEC_SIZE = 8
-    # @coyote.define_circuit(a=vector(VEC_SIZE), b=vector(VEC_SIZE))
-    # def dot_product(a, b):
-    #     return recursive_sum([a[i] * b[i] for i in range(VEC_SIZE)])
-
-    MAT_SIZE = 2
-    @coyote.define_circuit(a=matrix(MAT_SIZE, MAT_SIZE), b=matrix(MAT_SIZE, MAT_SIZE))
-    def matrix_multiply(a, b):
-        output = []
-        for i in range(MAT_SIZE):
-            row = []
-            for j in range(MAT_SIZE):
-                row.append(recursive_sum([a[i][k] * b[k][j] for k in range(MAT_SIZE)]))
-            output += row
-
-        return output
-        # return output[0] * output[3] - output[1] * output[2]
-
-
-    # sz = 3
-    # @coyote.define_circuit(arr1=vector(sz), arr2=vector(sz))
-    # def get_distances(arr1, arr2):
-    #     dists = []
-    #     for i in range(sz):
-    #         for j in range(sz):
-    #             xdiff = arr1[i] - arr2[j]
-    #             # xdiff = plus(f'{arr1}_x{i}', f'{arr2}_x{j}')
-    #             dists.append(xdiff * xdiff)
-    #             # dists.append(times(xdiff, copy(xdiff)))
-    #             # print(dists[-1])
-    #     return dists
-
-    # @coyote.define_circuit(a=scalar(), b=scalar())
-    # def func(a, b):
-    #     x = a * b
-    #     y = x + a
-    #     z = x * x
-    #     return y + z
-
-    # IMG_SIZE = 3
-    # KER_SIZE = 2
-    # @coyote.define_circuit(ker=matrix(KER_SIZE, KER_SIZE), img=matrix(IMG_SIZE, IMG_SIZE))
-    # def convolve(ker, img):
-    #     output = []
-    #     for i in range(IMG_SIZE - KER_SIZE + 1):
-    #         for j in range(IMG_SIZE - KER_SIZE + 1):
-    #             vals = []
-    #             for k1 in range(KER_SIZE):
-    #                 for k2 in range(KER_SIZE):
-    #                     vals.append(img[i + k1][j + k2] * ker[k1][k2])
-    #             output.append(recursive_sum(vals))
-    #     return output
-
-    total_rotates = []
-    for i in range(20):
-        scalar_code = coyote.instantiate()
-        vectorized_code, width = coyote.vectorize()
-        print('\n'.join(scalar_code))
-        print(ans := '\n'.join(vectorized_code))
-        total_rotates.append(ans.count('>>'))
-
-    print(sum(total_rotates) / 20, min(total_rotates), max(total_rotates), total_rotates)
-        
-    

@@ -66,7 +66,7 @@ class Schedule:
     @property
     def steps(self):
         return [[i for i in range(len(self.alignment)) if self.alignment[i] == slot]
-                    for slot in set(self.alignment)]
+                    for slot in range(max(self.alignment) + 1)]
         
     @property
     def warp(self):
@@ -86,7 +86,7 @@ class Schedule:
                 lhs[lane_num] = self.instructions[i].lhs
                 rhs[lane_num] = self.instructions[i].rhs
                 
-            yield VecSchedule(dest, lhs, rhs, self.instructions[instrs[0]].op)
+            yield VecSchedule(dest, lhs, rhs, self.instructions[instrs[0]].op if len(instrs) else None)
             
     def at_step(self, n: int) -> set[int]:
         return {i for i, align in enumerate(self.alignment) if align == n}
@@ -142,6 +142,8 @@ def codegen(schedule: Schedule):
     cur_temp = 0 # for creating temporaries
     generated_code: List[VecInstr] = []
     for i, instr in enumerate(schedule):
+        if all(d.val == -1 for d in instr.dest):
+            continue
         shifted_names: Dict[int, str] = {} # shift amount -> name of shifted vector [this is just specific to the current vector instruction]
         shifts_performed: List[int] = [] # what shifts are already queued up for this vector instruction?
 
