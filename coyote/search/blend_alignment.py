@@ -119,7 +119,7 @@ def relax_blends(schedule: Schedule, rounds=1000, beta=0.05, t=10) -> Schedule:
                 
         # compute the new cost of blending
         new_cost = count_blends(candidate)
-        if random() < exp((current - new_cost) / t):
+        if new_cost < current or random() < exp((current - new_cost) / t):
             # decide whether or not to accept the new solution
             schedule = candidate
             current = new_cost
