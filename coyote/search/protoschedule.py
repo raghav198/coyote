@@ -39,16 +39,28 @@ def schedule_height(graph: nx.DiGraph, debug=False):
     return cost
 
 
-
 def pq_relax_schedule(graph: nx.DiGraph, input_groups: list[set[int]], output_groups: list[set[int]], force_lanes: dict[int, int], rounds=200):
+    def get_lane_of_instruction(graph: nx.DiGraph, instruction: int):
+        for node in graph:
+            if instruction in node:
+                return graph.nodes[node]['column']
+        return -1
+    def assert_outputs_kosher(graph: nx.DiGraph):
+        for group in output_groups:
+            lanes_of_group = [get_lane_of_instruction(graph, node) for node in group]
+            assert len(lanes_of_group) == len(set(lanes_of_group))
+    
     @dataclass(order=True)
     class schedule:
         cost: int | float
+        rotation_cost: int | float
+        height_cost: int | float
         graph: nx.DiGraph=field(compare=False)
         edges: Optional[list[tuple]]=field(compare=False)
 
     input_epochs, output_epochs = grade_nx_graph(graph, input_groups, output_groups)
-    nx_columnize(graph, force_lanes)
+    nx_columnize(graph, force_lanes, output_groups)
+    assert_outputs_kosher(graph)
     # print(force_lanes)
     # print('AFTER COLUMNIZING')
     # print(graph.nodes(data=True))
@@ -69,8 +81,8 @@ def pq_relax_schedule(graph: nx.DiGraph, input_groups: list[set[int]], output_gr
 
     # print(rotation_cost(graph))
     # input()
-    current_cost = lane_placement(graph, force_lanes, t=50, beta=0.001, rounds=50000)
-    current_cost += schedule_height(graph)
+    rotation_cost = lane_placement(graph, force_lanes, t=50, beta=0.001, rounds=50000)
+    height_cost = schedule_height(graph)
     
     # print('ONE ROUND OF SA')
     # print(graph.nodes(data=True))
@@ -86,27 +98,30 @@ def pq_relax_schedule(graph: nx.DiGraph, input_groups: list[set[int]], output_gr
 
     # print('SECOND FIX')
     # print(graph.nodes(data=True))
-    best = schedule(cost=current_cost, graph=nx.DiGraph(graph), edges=None)
+    best = schedule(cost=(rotation_cost + height_cost), rotation_cost=rotation_cost, height_cost=height_cost, graph=nx.DiGraph(graph), edges=None)
     
     pqueue: list[schedule] = []
-    heappush(pqueue, schedule(cost=best.cost, graph=best.graph, edges=None))
+    heappush(pqueue, schedule(cost=best.cost, rotation_cost=best.rotation_cost, height_cost=best.height_cost, graph=best.graph, edges=None))
     for r in range(rounds):
         if not len(pqueue):
             # print('No more graphs to try!')
             break
 
         cur = heappop(pqueue)
+        assert_outputs_kosher(cur.graph)
 
         best_history.append(best.cost)
         cost_history.append(cur.cost)
         if len(pqueue):
-            print(f'Round {r}/200: exploring {cur.cost}{" (new best!)" if cur < best else ""}')
+            print(f'Round {r}/200: exploring {cur.cost} : {cur.rotation_cost}/{cur.height_cost}{" (new best!)" if cur < best else ""}')
         if cur < best:
-            best = schedule(cost=cur.cost, graph=nx.DiGraph(cur.graph), edges=None)
+            best = schedule(cost=cur.cost, rotation_cost=cur.rotation_cost, height_cost=cur.height_cost, graph=nx.DiGraph(cur.graph), edges=None)
 
         if cur.edges is None:
             # generate all candidate solutions
-            cross_edges = set()
+            # contract *all* edges of a particular rotation at the same time
+            cross_edges: dict[tuple[int, int], set] = defaultdict(set)
+            # cross_edges = set()
             for u, v in cur.graph.edges:
                 src = cur.graph.nodes[u]['epoch']
                 dst = cur.graph.nodes[v]['epoch']
@@ -115,31 +130,34 @@ def pq_relax_schedule(graph: nx.DiGraph, input_groups: list[set[int]], output_gr
                 if span == 0: continue
                 if any(set(u).intersection(group) for group in input_groups): continue # if src in input_epochs: continue
                 if any(set(v).intersection(group) for group in output_groups): continue
-                cross_edges.add((u, v))
+                cross_edges[src, span].add((u, v))
+                # cross_edges.add((u, v))
+                # print(f'Rotation along {u, v} is {span}')
 
-            cur.edges = list(cross_edges)
+            cur.edges = list(cross_edges.values())
         
         if not len(cur.edges):
             continue
             
-        edge_to_contract = None
+        edges_to_contract = None
         # grab an edge, remove it from the list, and add its contraction to the queue
         while True:
             if not cur.edges:
                 break
-            edge_to_contract = cur.edges.pop()
-            
-            left_fixed = set(edge_to_contract[0]).intersection(set(force_lanes.keys()))
-            right_fixed = set(edge_to_contract[1]).intersection(set(force_lanes.keys()))
+            edges_to_contract = cur.edges.pop()
+            left_fixed = set().union(*(set(edge_to_contract[0]).intersection(set(force_lanes.keys())) for edge_to_contract in edges_to_contract))
+            right_fixed = set().union(*(set(edge_to_contract[1]).intersection(set(force_lanes.keys())) for edge_to_contract in edges_to_contract))
             if left_fixed and right_fixed and force_lanes[next(iter(left_fixed))] != force_lanes[next(iter(right_fixed))]:
                 continue
             break
-        if edge_to_contract is None: # none of the candidates were free
+        if edges_to_contract is None: # none of the candidates were free
             continue
         
         # for edge_to_contract in cross_edges:
             # print(f'\tedge {edge_to_contract}...')
-        raw_contracted = contract_edge(cur.graph, edge_to_contract)
+        raw_contracted = cur.graph
+        for edge_to_contract in edges_to_contract:
+            raw_contracted = contract_edge(raw_contracted, edge_to_contract)
         contracted = cast(nx.DiGraph, nx.condensation(raw_contracted))
 
         for node in contracted:
@@ -155,12 +173,18 @@ def pq_relax_schedule(graph: nx.DiGraph, input_groups: list[set[int]], output_gr
         contracted = nx.relabel_nodes(contracted, relabeling)
 
         input_epochs, output_epochs = grade_nx_graph(contracted, input_groups, output_groups)
-        contracted_cost = lane_placement(contracted, force_lanes, t=50, beta=0.001, rounds=20000)
-        contracted_cost += schedule_height(contracted)
+        
+        contracted_rotation_cost = lane_placement(contracted, force_lanes, t=50, beta=0.001, rounds=20000)
+        print(f'rotation cost: {contracted_rotation_cost}')
+        contracted_height_cost = schedule_height(contracted)
+        
+        contracted_cost = contracted_rotation_cost + contracted_height_cost
+        
+        print(f'Total cost after contracting {edges_to_contract} = {contracted_cost}')
 
-        heappush(pqueue, schedule(cost=contracted_cost, graph=nx.DiGraph(contracted), edges=None))
+        heappush(pqueue, schedule(cost=contracted_cost, rotation_cost=contracted_rotation_cost, height_cost=contracted_height_cost, graph=nx.DiGraph(contracted), edges=None))
         if len(cur.edges): # if there are still unexplored edges
-            heappush(pqueue, schedule(cost=cur.cost, graph=nx.DiGraph(cur.graph), edges=cur.edges[:])) # put this back into the queue
+            heappush(pqueue, schedule(cost=cur.cost, rotation_cost=cur.rotation_cost, height_cost=cur.height_cost, graph=nx.DiGraph(cur.graph), edges=cur.edges[:])) # put this back into the queue
 
     """from matplotlib import pyplot as plt
     plt.plot(cost_history)

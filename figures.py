@@ -48,6 +48,8 @@ x = np.arange(len(labels))
 
 
 us, ps, fs = zip(*values)
+print(us, ps, fs)
+raise SystemExit()
 # plt.bar(x-2*width, np.ones(len(labels)), width, color='black')
 plt.bar(x-width, us, width, color='#253494')
 plt.bar(x, ps, width, color='#2c7fb8')

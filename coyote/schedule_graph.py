@@ -112,7 +112,7 @@ def producers(graph: nx.DiGraph, nbunch) -> set[int]:
     return {p for p, _ in graph.in_edges(nbunch)} # type: ignore
 
 
-def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
+def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int], output_groups: list[set[int]]):
     # graph = nx.quotient_graph(_graph.to_undirected(), lambda u, v: u in force_lanes and v in force_lanes and force_lanes[u] == force_lanes[v])
     # graph = _graph
     graph: nx.Graph = cast(nx.Graph, _graph.to_undirected())
@@ -184,7 +184,13 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
 
         # TODO: this is not the right condition for marking an edge 'unmatchable'
         ## also check if the edge connects an unmatched vertex to one already matched with something in the same epoch
-        matchable_graph = nx.graphviews.subgraph_view(bp_piece, filter_edge=lambda u, v: not (columns.contains(u) and columns.contains(v)))
+        
+        def is_ok(u: tuple[int], v: tuple[int]):
+            u_class_epochs = [_graph.nodes[node]['epoch'] for node in columns.find(u) if node != u] if columns.contains(u) else []
+            v_class_epochs = [_graph.nodes[node]['epoch'] for node in columns.find(v) if node != v] if columns.contains(v) else []
+            
+            return _graph.nodes[u]['epoch'] not in v_class_epochs and _graph.nodes[v]['epoch'] not in u_class_epochs and not (columns.contains(u) and columns.contains(v))
+        matchable_graph = nx.graphviews.subgraph_view(bp_piece, filter_edge=is_ok)
         # matchable_graph = nx.graphviews.subgraph_view(matchable_graph, filter_edge=lambda u, v: not (u in force_lanes and v in force_lanes and force_lanes[u] != force_lanes[v]))
         
         # print(f'Marking edges {[(u, v) for u, v in bp_piece.edges if columns.contains(u) and columns.contains(v)]} as unmatchable')
@@ -201,7 +207,6 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
 
         for u, v in matching:
             assert not (columns.contains(u) and columns.contains(v)), (u, v)
-
             if columns.contains(u):
                 columns.add_to(v, u)
             elif columns.contains(v):
@@ -209,6 +214,8 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
             else:
                 columns.add(u)
                 columns.add_to(v, u)
+            
+        # print(f'After matching output classes = {[columns.find((out,), ensure_rep=True) for out in output_groups[0] if columns.contains((out,))]}')
 
         columns.add(*filter(lambda p: not columns.contains(p), part))
 
@@ -217,8 +224,8 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
         total_degree += max(rotation_graph.degree(), key=lambda n: n[1])[1]
     # list(map(print, map(sorted, columns.all_classes())))
     # quit()
-    
-    columns.limit_classes(210)
+
+    columns.limit_classes(210, mutually_disjoint=[{(o,) for o in group} for group in output_groups])
     
     for i, col in enumerate(columns.all_classes()):
         for node in col:

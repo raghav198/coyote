@@ -1,5 +1,6 @@
+from copy import deepcopy
 from math import ceil
-from typing import Generic, List, Set, Dict, TypeVar, Generator
+from typing import Generic, Set, Dict, TypeVar, Generator
 
 class ItemAlreadyPresent(Exception):
     pass
@@ -22,21 +23,57 @@ class DisjointSet(Generic[T]):
         Returns:
             DisjointSet[T]: deep copy of `self`
         """
-        new: DisjointSet[T] = DisjointSet()
-        new.vertices.update(self.vertices)
-        new.parent.update(self.parent)
-        new.children.update(self.children)
-        return new
+        return deepcopy(self)
         
-    def limit_classes(self, limit: int):
+    def limit_classes(self, limit: int, mutually_disjoint: list[set[T]]=[]):
+
         classes = list(self.all_classes())
+        if len(classes) <= limit:
+            return
+        class_index = {item: classes.index(self.find(item)) for group in mutually_disjoint for item in group}
+        
+        # decide how to allocate chunks
+        which_chunk: list[int] = []
+        cur_chunk = 0
+        # print('Initial chunk allocation:')
+        while max(which_chunk, default=-1) < limit - 1:
+            # print(f'{max(which_chunk, default=-1)} vs {limit - 1} (current chunk #{cur_chunk})')
+            size = ceil((len(classes) - len(which_chunk)) / (limit - (max(which_chunk, default=-1) + 1)))
+            # print(f'Adding {size} more')
+            which_chunk += ([cur_chunk] * size)
+            cur_chunk += 1
+            
+        # for group in mutually_disjoint:
+        #     print([which_chunk[class_index[item]] for item in group]) 
+            
+        all_chunks = set(which_chunk)
+        for group in mutually_disjoint:
+            group_chunks = []
+            for item in group:
+                # print(f'For item {item} (wants {which_chunk[class_index[item]]}), group_chunks={group_chunks}')
+                if which_chunk[class_index[item]] in group_chunks:
+                    # print(f'Chunk of {item} already allocated, switching...')
+                    which_chunk[class_index[item]] = list(all_chunks - set(group_chunks))[0]
+                group_chunks.append(which_chunk[class_index[item]])
+                
+        # for group in mutually_disjoint:
+        #     print([which_chunk[class_index[item]] for item in group])
         
         chunks = []
-        index = 0
-        while len(chunks) < limit:
-            size = ceil((len(classes) - index) / (limit - len(chunks)))
-            chunks.append(classes[index:index + size])
-            index += size
+        for i in range(limit):
+            chunk_i = []
+            for j, cls in enumerate(classes):
+                if which_chunk[j] == i:
+                    chunk_i.append(cls)
+            chunks.append(chunk_i)
+        # index = 0
+        # while len(chunks) < limit:
+        #     size = ceil((len(classes) - index) / (limit - len(chunks)))
+        #     chunks.append(classes[index:index + size])
+        #     which_chunk += ([len(chunks) - 1] * size)
+        #     index += size
+            
+        
             
         for chunk in chunks:
             if not chunk:
@@ -131,7 +168,7 @@ class DisjointSet(Generic[T]):
         self.add(item)
         self.union(item, rep)
 
-    def find(self, item: T) -> Set[T]:
+    def find(self, item: T, ensure_rep=True) -> Set[T]:
         """
         :param item: T. Representative of an equivalence class.
         :return: Set of all items contained in the equivalence class represented by `item`.
@@ -140,8 +177,11 @@ class DisjointSet(Generic[T]):
         
         if not self.contains(item):
             raise ItemNotPresent(item)
+        
+        if ensure_rep:
+            item = self.rep(item)
 
-        items = set().union(*(self.find(child) for child in self.children[item]))
+        items = set().union(*(self.find(child, ensure_rep=False) for child in self.children[item]))
         items.add(item)
         return items
 

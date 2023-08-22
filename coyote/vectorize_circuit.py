@@ -30,6 +30,8 @@ class CodeObject:
     max_rotation: int = 0
     min_rotation: int = 0
     
+    accumulated_rotations: dict[str, dict[str, int]] = field(default_factory=dict)
+    
 
 def get_stages(graph: nx.DiGraph) -> Generator[Tuple[int], None, None]:
     cur_stage = 0
@@ -113,18 +115,18 @@ def vectorize(comp: CompilerV2, extra_force_lanes: dict[int, int]={}, output_gro
     print(f'alignment: {blend_relaxed_schedule.alignment}')
     
     generated_code = codegen(blend_relaxed_schedule)
-    better_code, max_rotation, min_rotation = better_rotations(generated_code, max(blend_relaxed_schedule.lanes) + 1)
+    better_code, max_rotation, min_rotation, accumulated = better_rotations(generated_code, max(blend_relaxed_schedule.lanes) + 1)
     
     return CodeObject(instructions=better_code, lanes=blend_relaxed_schedule.lanes, 
                       alignment=blend_relaxed_schedule.alignment,
                       vector_width=max(blend_relaxed_schedule.lanes) + 1, 
-                      max_rotation=max_rotation, min_rotation=min_rotation)
+                      max_rotation=max_rotation, min_rotation=min_rotation, accumulated_rotations=accumulated)
     
     
 def vectorize_cached(cached_schedule: Schedule):
     # blend_relaxed_schedule = relax_blends(cached_schedule)
     generated_code = codegen(cached_schedule)
-    better_code, max_rotation, min_rotation = better_rotations(generated_code, max(cached_schedule.lanes) + 1)
+    better_code, max_rotation, min_rotation, accumulated = better_rotations(generated_code, max(cached_schedule.lanes) + 1)
     return CodeObject(instructions=better_code, lanes=cached_schedule.lanes, 
                       alignment=cached_schedule.alignment, vector_width=max(cached_schedule.lanes) + 1,
-                      max_rotation=max_rotation, min_rotation=min_rotation)
+                      max_rotation=max_rotation, min_rotation=min_rotation, accumulated_rotations=accumulated)
