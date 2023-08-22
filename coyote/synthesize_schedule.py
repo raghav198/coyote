@@ -120,24 +120,24 @@ class AlignmentSynthesizer:
 
 
 def fast_align(program: list[Instr], warp: int, lanes: list[int]) -> list[int]:
-    print(f'** fast align (warp {warp}) **')
+    # print(f'** fast align (warp {warp}) **')
     lanes = [lanes[cast(int, instr.dest.val)] for instr in program]
     # align instructions by scheduling them greedily (note: this may not be optimal)
     scheduled: set[int] = set()
     alignment: list[int] = [-1] * len(program)
     types = split_types(program)
     columns = [{i for i, l in enumerate(lanes) if l == lane} for lane in range(warp)]
-    print(f'Columns: {columns}')
-    print(f'Types: {types}')
+    # print(f'Columns: {columns}')
+    # print(f'Types: {types}')
     dependences = dependency_graph(program)
     while len(scheduled) < len(program):
         available = {i for i, _ in enumerate(program) if set(dependences[i]).issubset(scheduled)} - scheduled
         to_schedule = max([available.intersection(group) for group in types], key=len)
-        print(f'{len(to_schedule)} available to schedule: {to_schedule}')
-        print(f'By column: {[len(to_schedule.intersection(column)) for column in columns]}')
+        # print(f'{len(to_schedule)} available to schedule: {to_schedule}')
+        # print(f'By column: {[len(to_schedule.intersection(column)) for column in columns]}')
         to_schedule = {next(iter(to_schedule.intersection(column))) for column in columns if to_schedule.intersection(column)}
         step = max(alignment) + 1
-        print(f'\tscheduling {len(to_schedule)} instructions in step {step}...({to_schedule})')
+        # print(f'\tscheduling {len(to_schedule)} instructions in step {step}...({to_schedule})')
         for instruction in to_schedule:
             alignment[instruction] = step
         scheduled.update(to_schedule)

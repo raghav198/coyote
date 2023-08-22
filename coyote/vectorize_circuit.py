@@ -98,18 +98,18 @@ def vectorize(comp: CompilerV2, extra_force_lanes: dict[int, int]={}, output_gro
         active_lanes[alignment[instr.dest.val]].append(lanes[instr.dest.val])
         
     schedule = Schedule(lanes, alignment, comp.code)
-    print('before relaxing blends:')
-    for line in schedule:
-        print(line)
+    # print('before relaxing blends:')
+    # for line in schedule:
+    #     print(line)
         
-    print(f'lanes: {schedule.lanes}')
-    print(f'alignment: {schedule.alignment}')
+    # print(f'lanes: {schedule.lanes}')
+    # print(f'alignment: {schedule.alignment}')
     
     blend_relaxed_schedule = relax_blends(schedule)
 
-    print('after relaxing blends:')
-    for line in blend_relaxed_schedule:
-        print(line)
+    # print('after relaxing blends:')
+    # for line in blend_relaxed_schedule:
+    #     print(line)
 
     print(f'lanes: {blend_relaxed_schedule.lanes}')
     print(f'alignment: {blend_relaxed_schedule.alignment}')

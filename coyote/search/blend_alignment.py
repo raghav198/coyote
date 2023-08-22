@@ -55,8 +55,8 @@ def relax_blends(schedule: Schedule, rounds=1000, beta=0.05, t=10) -> Schedule:
     def independent(ops: list[int]):
         return not any(i in producers[j] for i in ops for j in ops if i != j)
     
-    current = count_blends(schedule, debug=True)
-    print(f'Starting with {current} blends...')
+    current = count_blends(schedule, debug=False)
+    # print(f'Starting with {current} blends...')
     
     for _ in range(rounds):
         
@@ -124,7 +124,7 @@ def relax_blends(schedule: Schedule, rounds=1000, beta=0.05, t=10) -> Schedule:
             schedule = candidate
             current = new_cost
             
-    print(f'...relaxed to {count_blends(schedule, debug=True)} blends')
+    # print(f'...relaxed to {count_blends(schedule, debug=True)} blends')
     return schedule
         
         
