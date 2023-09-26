@@ -2,7 +2,8 @@ import argparse
 from time import time
 import os
 from coyote import coyote_compiler
-import importlib, pathlib
+import importlib
+import pathlib
 import fnmatch
 from compile_to_bfv import compile_scalar, compile_vector
 
