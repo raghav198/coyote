@@ -56,7 +56,7 @@ class coyote_compiler:
         self.outputs = []
 
     def vectorize(self, lanes_out=[]):
-        return vectorize(self.compiler, lanes_out)
+        return vectorize(self.compiler)
 
 
     def instantiate(self, *funcs, _input_groups=None, _force_lanes=None):
