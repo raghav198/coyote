@@ -50,7 +50,7 @@ def lane_placement(graph: nx.DiGraph, force_lanes: dict[int, int], t=10, beta=0.
     best_cost = current
     best_graph = nx.DiGraph(graph)
 
-    for _ in range(rounds):
+    for i in range(rounds):
         # update temperature
         t /= (1 + t * beta)
 

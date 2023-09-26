@@ -1,0 +1,9 @@
+[tool.ruff]
+line-length = 140
+
+[tool.black]
+line-length = 140
+
+[tool.mypy]
+mypy_path = ~/.local/python-type-stubs/stubs
+allow_redefinition = true

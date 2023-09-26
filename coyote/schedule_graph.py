@@ -1,6 +1,6 @@
 from collections import defaultdict
 from math import ceil
-from typing import cast
+from typing import Generator, cast
 import networkx as nx
 
 from .coyote_ast import Instr
@@ -134,7 +134,7 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int], output_groups:
     
 
     # bipartite pieces, indexed by (source, target) epoch
-    pieces: dict[tuple[int, int], nx.graph.Graph] = {}
+    pieces: dict[tuple[int, int], nx.Graph] = {}
     for i in range(num_epochs): # i = source epoch
         for j in range(i + 1, num_epochs): # j = target epoch
             # part1 = set(epochs[i])
@@ -205,10 +205,12 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int], output_groups:
         # print(f'Marking edges {[(u, v) for u, v in bp_piece.edges if columns.contains(u) and columns.contains(v)]} as unmatchable')
         # print(f'Of the edges {bp_piece.edges} :: {matchable_graph.edges} are matchable')
         # print(f'{matchable_graph.edges} are all matchable')
+        
         matching = nx.algorithms.max_weight_matching(matchable_graph, maxcardinality=True)
+        # reveal_type(matching)
+        matching: set[tuple[tuple[int], tuple[int]]] = nx.algorithms.max_weight_matching(matchable_graph, maxcardinality=True)
         # print(len([n for n, d in matchable_graph.nodes(data=True) if d['bipartite'] == 0]))
         # print(len([n for n, d in matchable_graph.nodes(data=True) if d['bipartite'] == 1]))
-
 
         weight = sum(bp_piece[u][v]['weight'] for u, v in matching)
         # print(i, j, len(matching))

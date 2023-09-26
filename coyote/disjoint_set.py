@@ -10,7 +10,7 @@ class ItemNotPresent(Exception):
 
 T = TypeVar('T')
 class DisjointSet(Generic[T]):
-    def __init__(self):
+    def __init__(self) -> None:
         """Create a new empty DisjointSet
         """
         self.vertices: Set[T] = set()
@@ -26,7 +26,9 @@ class DisjointSet(Generic[T]):
         return deepcopy(self)
         
     def limit_classes(self, limit: int, mutually_disjoint: list[set[T]]=[]):
-
+        print(list(map(len, mutually_disjoint)))
+        print(limit)
+        input()
         classes = list(self.all_classes())
         if len(classes) <= limit:
             return
@@ -47,10 +49,12 @@ class DisjointSet(Generic[T]):
         #     print([which_chunk[class_index[item]] for item in group]) 
             
         all_chunks = set(which_chunk)
+        print(f'All chunks: {all_chunks}')
         for group in mutually_disjoint:
-            group_chunks = []
+            group_chunks: list[int] = []
             for item in group:
                 # print(f'For item {item} (wants {which_chunk[class_index[item]]}), group_chunks={group_chunks}')
+                print(f'Item {item} of group, chunks = {set(group_chunks)}')
                 if which_chunk[class_index[item]] in group_chunks:
                     # print(f'Chunk of {item} already allocated, switching...')
                     which_chunk[class_index[item]] = list(all_chunks - set(group_chunks))[0]

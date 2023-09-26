@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from sys import stderr
 from typing import Dict, Generator, List, Tuple, cast
 
 from .coyote_ast import *

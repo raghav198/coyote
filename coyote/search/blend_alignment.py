@@ -32,17 +32,17 @@ def get_dependences(schedule: Schedule):
             producers[i].add(cast(int, inst.rhs.val))
             producers[i].update(producers[cast(int, inst.rhs.val)])
         
-    for inst in producers:
-        for prod in producers[inst]:
-            consumers[prod].add(inst)
+    for inst_num in producers:
+        for prod in producers[inst_num]:
+            consumers[prod].add(inst_num)
         
     return producers, consumers
 
 
 def violations(schedule: Schedule, deps: dict[int, set[int]] | None = None):
-    if deps == None:
+    if deps is None:
         deps, _ = get_dependences(schedule)
-        
+
     for instruction, dependences in deps.items():
         for dependence in dependences:
             if schedule.alignment[instruction] <= schedule.alignment[dependence]:
