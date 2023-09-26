@@ -102,7 +102,7 @@ def main():
             print(f'Building {args.coyote_file}/{circuit}...')
             start = time()
             scalar = coyote.instantiate(circuit)
-            vector = coyote.vectorize()
+            vector = coyote.vectorize().instructions
             print(f'Finished in {time() - start:.2f}s')
 
             scalars[circuit] = scalar
