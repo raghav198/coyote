@@ -1,5 +1,5 @@
 import os
-from coyote import *
+from coyote import coyote_compiler, vector, scalar, matrix, recursive_sum, Var, alternating_sum
 from sys import argv
 
 coyote = coyote_compiler()
@@ -39,7 +39,8 @@ def weird_stuff(a, b):
 def cond(b, true, false):
     return b * true + (Var('1') + b) * false
     
-@coyote.define_circuit(c12=scalar(), c23=scalar(), c13=scalar(), o123=scalar(), o132=scalar(), o213=scalar(), o231=scalar(), o312=scalar(), o321=scalar())
+@coyote.define_circuit(c12=scalar(), c23=scalar(), c13=scalar(), 
+                       o123=scalar(), o132=scalar(), o213=scalar(), o231=scalar(), o312=scalar(), o321=scalar())
 def sort_3(c12, c23, c13, o123, o132, o213, o231, o312, o321):
     return cond(c12, 
                 (cond(c23, 
@@ -88,7 +89,8 @@ def stuff(x):
 
 @coyote.define_circuit(xs=vector(3), ys=vector(3))
 def distances_real(xs, ys):
-    sq = lambda n: n * n
+    def sq(n):
+        return n * n
     return [sq(xs[i] - xs[j]) + sq(ys[i] - ys[j]) for i in range(len(xs)) for j in range(len(xs)) if i != j]
 
 
@@ -110,8 +112,8 @@ def convolve(sig, ker):
     return output
 
 
-def determinant(x):
-    return x[0] * x[3] - x[1] * x[2]
+# def determinant(x):
+#     return x[0] * x[3] - x[1] * x[2]
 
 @coyote.define_circuit(vals=vector(6))
 def computation(vals):
