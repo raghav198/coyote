@@ -15,3 +15,4 @@
 **/.vscode/*
 **/outputs/*
 **/vector_synth/*
+**/openfhe_backend/build/*
