@@ -115,12 +115,6 @@ class coyote_compiler:
                 outputs.append(out)
         return input_groups, force_lanes, outputs
 
-    def noinline(self, func):
-        class something:
-            def __init__(*args):
-                func(*args)
-        return something
-
     def define_circuit(self, **types):
         
         def wrapper(func):
@@ -155,10 +149,6 @@ class coyote_compiler:
         return wrapper
 
 coyote = coyote_compiler()
-
-@coyote.noinline
-def my_function(a, b):
-    return a + b
 
 def recursive_sum(vals):
     if len(vals) == 1:

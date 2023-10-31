@@ -2,36 +2,49 @@ from copy import deepcopy
 from math import ceil
 from typing import Generic, Set, Dict, TypeVar, Generator
 
+
 class ItemAlreadyPresent(Exception):
-    pass
+    """Raised when inserting duplicate item into DisjointSet"""
+
 
 class ItemNotPresent(Exception):
-    pass
+    """Raised when querying nonexistent item in DisjointSet"""
 
-T = TypeVar('T')
+
+T = TypeVar("T")
+
+
 class DisjointSet(Generic[T]):
+    """Represents a set of equivalence classes of elements of type `T`"""
+
     def __init__(self):
-        """Create a new empty DisjointSet
-        """
+        """Create a new empty DisjointSet"""
         self.vertices: Set[T] = set()
         self.parent: Dict[T, T] = {}
         self.children: Dict[T, Set[T]] = {}
-    
-    
+
     def copy(self):
         """Return a deep copy of this DisjointSet
         Returns:
             DisjointSet[T]: deep copy of `self`
         """
         return deepcopy(self)
-        
-    def limit_classes(self, limit: int, mutually_disjoint: list[set[T]]=[]):
+
+    def limit_classes(self, limit: int, mutually_disjoint: list[set[T]] = None):
+        """Limit number of classes to `limit`, while ensuring that certain elements remain disjoint"""
+        if mutually_disjoint is None:
+            mutually_disjoint = []
 
         classes = list(self.all_classes())
         if len(classes) <= limit:
             return
+
+        assert (
+            max(map(len, mutually_disjoint)) < limit
+        ), f"Mutually disjoint sets are too big ({max(map(len, mutually_disjoint))}) to condense into {limit} classes"
+
         class_index = {item: classes.index(self.find(item)) for group in mutually_disjoint for item in group}
-        
+
         # decide how to allocate chunks
         which_chunk: list[int] = []
         cur_chunk = 0
@@ -40,12 +53,12 @@ class DisjointSet(Generic[T]):
             # print(f'{max(which_chunk, default=-1)} vs {limit - 1} (current chunk #{cur_chunk})')
             size = ceil((len(classes) - len(which_chunk)) / (limit - (max(which_chunk, default=-1) + 1)))
             # print(f'Adding {size} more')
-            which_chunk += ([cur_chunk] * size)
+            which_chunk += [cur_chunk] * size
             cur_chunk += 1
-            
+
         # for group in mutually_disjoint:
-        #     print([which_chunk[class_index[item]] for item in group]) 
-            
+        #     print([which_chunk[class_index[item]] for item in group])
+
         all_chunks = set(which_chunk)
         for group in mutually_disjoint:
             group_chunks = []
@@ -55,10 +68,10 @@ class DisjointSet(Generic[T]):
                     # print(f'Chunk of {item} already allocated, switching...')
                     which_chunk[class_index[item]] = list(all_chunks - set(group_chunks))[0]
                 group_chunks.append(which_chunk[class_index[item]])
-                
+
         # for group in mutually_disjoint:
         #     print([which_chunk[class_index[item]] for item in group])
-        
+
         chunks = []
         for i in range(limit):
             chunk_i = []
@@ -72,9 +85,7 @@ class DisjointSet(Generic[T]):
         #     chunks.append(classes[index:index + size])
         #     which_chunk += ([len(chunks) - 1] * size)
         #     index += size
-            
-        
-            
+
         for chunk in chunks:
             if not chunk:
                 continue
@@ -82,13 +93,12 @@ class DisjointSet(Generic[T]):
             for cls in chunk:
                 self.union(rep, list(cls)[0])
 
-        
     def new_class(self, *items: T):
         """
         :param *items: List[T]. List of items to add to the DisjointSet
         :return None
         :raises ItemAlreadyPresent if any item is already contained in the structure
-        
+
         Adds all items into the same fresh equivalence class
         """
         self.add(*items)
@@ -174,10 +184,10 @@ class DisjointSet(Generic[T]):
         :return: Set of all items contained in the equivalence class represented by `item`.
         :raises ItemNotPresent if `item` is not  contained in the structure.
         """
-        
+
         if not self.contains(item):
             raise ItemNotPresent(item)
-        
+
         if ensure_rep:
             item = self.rep(item)
 
@@ -209,4 +219,3 @@ class DisjointSet(Generic[T]):
         rep1 = self.rep(item1)
         rep2 = self.rep(item2)
         return rep1 == rep2
-    

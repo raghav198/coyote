@@ -1,8 +1,8 @@
 #include <iostream>
 #include "runtime.hpp"
 
-// #define MANUAL_TEST
-#define COYOTE_RUNTIME_TEST
+#define MANUAL_TEST
+// #define COYOTE_RUNTIME_TEST
 
 int main()
 {

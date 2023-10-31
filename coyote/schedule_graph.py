@@ -134,7 +134,7 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int], output_groups:
     
 
     # bipartite pieces, indexed by (source, target) epoch
-    pieces: dict[tuple[int, int], nx.graph.Graph] = {}
+    pieces: dict[tuple[int, int], nx.Graph] = {}
     for i in range(num_epochs): # i = source epoch
         for j in range(i + 1, num_epochs): # j = target epoch
             # part1 = set(epochs[i])
@@ -230,6 +230,7 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int], output_groups:
 
         columns.add(*filter(lambda p: not columns.contains(p), part))
 
+        # pylint: disable-next=cell-var-from-loop
         rotation_graph = nx.graphviews.subgraph_view(graph, filter_edge=lambda u, v: (u, v) not in matching and (v, u) not in matching)
 
         total_degree += max(rotation_graph.degree(), key=lambda n: n[1])[1]
