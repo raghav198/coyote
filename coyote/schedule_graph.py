@@ -218,7 +218,7 @@ def nx_columnize(_graph: nx.DiGraph, force_lanes: dict[int, int]):
     # list(map(print, map(sorted, columns.all_classes())))
     # quit()
     
-    columns.limit_classes(210)
+    # columns.limit_classes(210)
     
     for i, col in enumerate(columns.all_classes()):
         for node in col:
