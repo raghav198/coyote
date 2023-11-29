@@ -69,7 +69,7 @@ def pq_relax_schedule(graph: nx.DiGraph, input_groups: list[set[int]], output_gr
 
     # print(rotation_cost(graph))
     # input()
-    current_cost = lane_placement(graph, force_lanes, t=50, beta=0.001, rounds=50000)
+    current_cost = lane_placement(graph, force_lanes, t=50, beta=0.001, rounds=0)# rounds=50000)
     current_cost += schedule_height(graph)
     
     # print('ONE ROUND OF SA')
