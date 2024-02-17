@@ -1,0 +1,17 @@
+__t0 = [0, conv_5x3_partially(sig):0, 0, conv_5x3_partially(sig):1, conv_5x3_partially(sig):4, 0, conv_5x3_partially(sig):3, 0, conv_5x3_partially(sig):2]
+__t1 = [0, conv_5x3_partially(sig):0, 0, conv_5x3_partially(sig):1, conv_5x3_partially(sig):4, 0, conv_5x3_partially(sig):3, 0, conv_5x3_partially(sig):2]
+__v0 = __t0 ~ __t1
+__s0 = __v0 >> 8
+__s1 = __v0 >> 7
+__t2 = [conv_5x3_partially(ker):0, conv_5x3_partially(ker):0, conv_5x3_partially(ker):2, conv_5x3_partially(ker):1, conv_5x3_partially(ker):2, conv_5x3_partially(ker):1, conv_5x3_partially(ker):2, conv_5x3_partially(ker):1, conv_5x3_partially(ker):0]
+__t3 = [conv_5x3_partially(ker):0, conv_5x3_partially(ker):0, conv_5x3_partially(ker):2, conv_5x3_partially(ker):1, conv_5x3_partially(ker):2, conv_5x3_partially(ker):1, conv_5x3_partially(ker):2, conv_5x3_partially(ker):1, conv_5x3_partially(ker):0]
+__v1 = __t2 ~ __t3
+__t4 = blend(__s0@100001010, __s1@011010100, __v0@000100001)
+__v2 = __t4 * __v1
+__s2 = __v2 >> 3
+__s3 = __v2 >> 6
+__t5 = blend(__v2@000101000, __s3@000010000)
+__t6 = blend(__s3@000100000, __v2@000010000, __s2@000001000)
+__v3 = __t5 + __t6
+__v4 = __s3 + __v3
+__v5 = __s2 + __v3

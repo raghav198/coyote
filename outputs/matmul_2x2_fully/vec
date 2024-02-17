@@ -1,0 +1,11 @@
+__t0 = [matmul_2x2_fully(a):1;1, matmul_2x2_fully(a):0;1, matmul_2x2_fully(a):1;0, matmul_2x2_fully(a):0;0, matmul_2x2_fully(a):1;1, matmul_2x2_fully(a):0;0, matmul_2x2_fully(a):1;0, matmul_2x2_fully(a):0;1]
+__t1 = [matmul_2x2_fully(a):1;1, matmul_2x2_fully(a):0;1, matmul_2x2_fully(a):1;0, matmul_2x2_fully(a):0;0, matmul_2x2_fully(a):1;1, matmul_2x2_fully(a):0;0, matmul_2x2_fully(a):1;0, matmul_2x2_fully(a):0;1]
+__v0 = __t0 ~ __t1
+__t2 = [matmul_2x2_fully(b):1;1, matmul_2x2_fully(b):1;0, matmul_2x2_fully(b):0;1, matmul_2x2_fully(b):0;0, matmul_2x2_fully(b):1;0, matmul_2x2_fully(b):0;1, matmul_2x2_fully(b):0;0, matmul_2x2_fully(b):1;1]
+__t3 = [matmul_2x2_fully(b):1;1, matmul_2x2_fully(b):1;0, matmul_2x2_fully(b):0;1, matmul_2x2_fully(b):0;0, matmul_2x2_fully(b):1;0, matmul_2x2_fully(b):0;1, matmul_2x2_fully(b):0;0, matmul_2x2_fully(b):1;1]
+__v1 = __t2 ~ __t3
+__v2 = __v0 * __v1
+__s0 = __v2 >> 2
+__t4 = blend(__v2@00110010, __s0@00000001)
+__t5 = blend(__s0@00110010, __v2@00000001)
+__v3 = __t4 + __t5

@@ -1,0 +1,16 @@
+__t0 = [0, conv_4x2_un(sig):2, conv_4x2_un(sig):0, 0, conv_4x2_un(sig):3, conv_4x2_un(sig):1]
+__t1 = [0, conv_4x2_un(sig):2, conv_4x2_un(sig):0, 0, conv_4x2_un(sig):3, conv_4x2_un(sig):1]
+__v0 = __t0 ~ __t1
+__s0 = __v0 >> 5
+__t2 = [0, 0, conv_4x2_un(ker):0, conv_4x2_un(ker):1, 0, 0]
+__t3 = [0, 0, conv_4x2_un(ker):0, conv_4x2_un(ker):1, 0, 0]
+__v1 = __t2 ~ __t3
+__s1 = __v1 >> 2
+__s2 = __v1 >> 4
+__t4 = blend(__s0@100110, __v0@011001)
+__t5 = blend(__s2@110000, __v1@001100, __s1@000011)
+__v2 = __t4 * __t5
+__s3 = __v2 >> 3
+__t6 = blend(__v2@101000, __s3@010000)
+__t7 = blend(__s3@101000, __v2@010000)
+__v3 = __t6 + __t7
