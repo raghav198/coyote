@@ -20,10 +20,10 @@ class Interleave:
         self.sched_outer = Schedule(outer[1].lanes, outer[1].alignment, outer[0])         # The outer schedule
         self.expansion_size = expansion_size          # Expansion size (assuming this might be used somewhere within the class)
         self.instr_interleave = []
-        self.lanes_inner = self.sched_inner[1].lanes
-        self.lanes_outer = self.sched_outer[1].lanes
+        self.lanes_inner = inner[1].lanes
+        self.lanes_outer = outer[1].lanes
         self.lanes_interleave = []
-        self.alignment_inner =  self.sched_inner[1].alignment
+        self.alignment_inner =  inner[1].alignment
         self.alignment_interleave = []
         self.empty_reg = ["_"]
         self.inner_sched_len = self.reg_len(self.sched_inner.steps)
@@ -31,7 +31,7 @@ class Interleave:
         self.expand_reg_lane = ["_"] * self.inner_sched_len
         self.expand_reg_num = [0]  * self.inner_sched_len
         self.expand_reg_dic = {}
-  
+        self.interleave()
 
 
 
@@ -47,32 +47,38 @@ class Interleave:
                             op_instr = instr.op
                             self.instr_interleave.append(Instr(dest_reg, Atom(lhs_reg), Atom(rhs_reg), op_instr))
                         else:
-                            self.instr_interleave.append(Instr(dest_value, instr.lhs.val, instr.rhs.val, "~"))
+                            self.instr_interleave.append(Instr(dest_reg, instr.lhs.val, instr.rhs.val, "~"))
                     for x in self.sched_inner.steps[len(self.sched_inner.steps)-1]:
                         self.expand_reg_lane[self.sched_inner.lanes[x]] = self.sched_inner.lanes[x]
                         self.expand_reg_num[self.sched_inner.lanes[x]] = x
-        
                     if itr > 0: 
                         for i, reg in enumerate(self.expand_reg_num):
                             if reg > 0:       
-                                self.expand_reg_num[i] = reg + self.sched_inner_instr  * itr
-                            
+                                self.expand_reg_num[i] = reg + self.instr_inner_len  * itr
+
                     self.expand_reg_dic.setdefault(step[itr], [])
                     for i in range(self.inner_sched_len):
                             if isinstance(self.expand_reg_lane[i], int):
                                 self.expand_reg_dic[step[itr]].append(self.expand_reg_num[i])
                             else:
-                                self.expand_reg_dic[temp].append("_")
+                                self.expand_reg_dic[step[itr]].append("_")
                
-                self.lanes_interleave = self.lane()
-                self.alignment_interleave = self.alignment_inner * self.expansion_size
+                    # self.lanes_interleave = self.lane()
+                    temp_lane = [(itr+1) * l for l in self.lanes_inner]
+                    self.lanes_interleave = temp_lane[:]
+                    for x in range(self.expansion_size - 1):
+                        for k in  self.lanes_inner:
+                            self.lanes_interleave.append(k + x + 1) 
+                    self.alignment_interleave = self.alignment_inner * (itr + 1)
                 intermediate_schedule = Schedule(self.lanes_interleave, self.alignment_interleave, self.instr_interleave)
+                for i in intermediate_schedule:
+                    print(i)
             else:
                 intermediate_sche_len = len(intermediate_schedule.steps)
                 for i,reg_o in enumerate(step):
-                    self.expand_reg_dic.setdefault(i, [])
-                    if self.expand_reg_dic.instructions[reg_o].lhs.val in self.expand_reg_dic:
-                        for j,reg_i in enumerate(self.expand_reg_dic[self.sched_outer[reg_o].lhs.val]):
+                    self.expand_reg_dic.setdefault(reg_o, [])
+                    if self.sched_outer.instructions[reg_o].lhs.val in self.expand_reg_dic:
+                        for j,reg_i in enumerate(self.expand_reg_dic[self.sched_outer.instructions[reg_o].lhs.val]):
                             if isinstance(self.expand_reg_lane[i], int):
                                 self.instr_interleave.append(Instr(len(self.instr_interleave) , Atom(reg_i), Atom(self.expand_reg_dic[self.sched_outer.instructions[reg_i].rhs.val][j]), self.sched_outer.instructions[step[0]].op))
                                 if self.sched_outer.lanes[reg] > 0:
@@ -84,33 +90,21 @@ class Interleave:
                                 self.alignment_interleave.append(intermediate_sche_len)
                             else:
                                 self.expand_reg_dic[reg_o].append(reg_i)
-                                self.expand_reg_dic[reg_o].append(reg_i)
 
-                
-               
 
-    def lane(self):
-        # For each element in the lanes, it loops through the specified number 
-        # of schedules to interleave. In each iteration, it modifies the current element by multiplying 
-        # it by the total number of lanes and then adding the index of the current 
-        # iteration. The modification pattern is: for the first lanes list, each element 
-        # is multiplied by the expansion; for the second, one is added 
-        # to this product for each element, and so on, increasing the increment with 
-        # each subsequent lanes list.
-        lanes_interleave = []
-        for i in range(len(self.lanes_inner)):
-            for j in range(len(self.expansion_size)):
-                lanes_interleave.append(self.lanes_inner[i] * self.expansion_size + j)
-       
-        return 
 
-    def reg_len(self, list):
-        # calculate the difference between consecutive elements and their index, looking for differences of 1
-        groups = [1 for i, x in enumerate(list) if i == 0 or x - list[i-1] == 1]
-        # Count the lengths of consecutive groups
-        lengths = [sum(1 for _ in group) for _, group in groupby(groups)]
-        return max(lengths) if lengths else 0
+    def reg_len(self, para):
+        max_length = 0
+        for sublist in para:
+            if isinstance(sublist, list):
+                sublist_length = len(sublist)
+                if sublist_length > max_length:
+                    max_length = sublist_length
+
+        return max_length
 
 Interleaved = Interleave(inner, outer, 2)
 
-Interleaved_schedule = Schedule( Interleaved.lanes_interleave,  Interleaved.lanes_interleave, Interleaved.instr_interleave)
+Interleaved_schedule = Schedule( Interleaved.lanes_interleave,  Interleaved.alignment_interleave, Interleaved.instr_interleave)
+for i in Interleaved_schedule:
+    print(i)
