@@ -4,13 +4,10 @@ from coyote.coyote_ast import Atom, Instr
 from coyote.codegen import Schedule, codegen
 from coyote.vectorize_circuit import CodeObject
 import pickle 
-from itertools import groupby
+import sys
 
-# Open the file to read the schedule
-with open("code_object_dot3.pkl", "rb") as file:
-    inner = pickle.load(file) # inner schedule
-with open("code_object_dot6.pkl", "rb") as file_1:
-    outer = pickle.load(file_1) # outer schedule
+
+
 
 class Interleave:
     def __init__(self, inner, outer, expansion_size):
@@ -65,7 +62,7 @@ class Interleave:
 
                 self.alignment_interleave = self.alignment_inner * (self.expansion_size)
                 self.lane()
-                print(self.lanes_interleave)
+                print(self.expand_reg_dic)
 
                 intermediate_schedule = Schedule(self.lanes_interleave, self.alignment_interleave, self.instr_interleave)
 
@@ -77,15 +74,18 @@ class Interleave:
                         for j,reg_i in enumerate(self.expand_reg_dic[self.sched_outer.instructions[reg_o].lhs.val]):
                             if isinstance(reg_i, int):
                                 self.instr_interleave.append(Instr(len(self.instr_interleave) , Atom(reg_i), Atom(self.expand_reg_dic[self.sched_outer.instructions[reg_o].rhs.val][j]), self.sched_outer.instructions[step[0]].op))
-                                if self.sched_outer.lanes[reg] > 0:
-                                    new_lane = self.outer_sched_len * j 
-                                else:
+                                if self.sched_outer.lanes[reg_o] > 0:
                                     new_lane = self.outer_sched_len * j + self.lanes_outer[reg_o]
+                                else:
+                                    new_lane = self.outer_sched_len * j 
+
                                 self.lanes_interleave.append(new_lane)
-                                self.expand_reg_dic[reg_o].append(len(self.instr_interleave))
+                                self.expand_reg_dic[reg_o].append(len(self.instr_interleave) - 1)
                                 self.alignment_interleave.append(intermediate_sche_len)
                             else:
                                 self.expand_reg_dic[reg_o].append(reg_i)
+                print(self.expand_reg_dic)
+
 
     def lane(self):
         temp_lane = [self.expansion_size * l for l in self.lanes_inner]
@@ -105,8 +105,32 @@ class Interleave:
 
         return max_length
 
-Interleaved = Interleave(inner, outer, 2)
+def main(inner_schedule, outer_schedule):
+    # Open the file to read the schedule
+    with open(inner_schedule, "rb") as file:
+        inner = pickle.load(file)  # inner schedule
+    with open(outer_schedule, "rb") as file_1:
+        outer = pickle.load(file_1)  # outer schedule
 
-Interleaved_schedule = Schedule( Interleaved.lanes_interleave,  Interleaved.alignment_interleave, Interleaved.instr_interleave)
-for i in Interleaved_schedule:
-    print(i)
+    # Initialize  Interleave class
+    Interleaved = Interleave(inner, outer, 3)
+
+    # do interleaveing
+    Interleaved_schedule = Schedule(Interleaved.lanes_interleave, Interleaved.alignment_interleave, Interleaved.instr_interleave)
+    
+    # print interleaved schedule
+    for i in Interleaved_schedule:
+        print(i)
+
+if __name__ == "__main__":
+    # Check if the correct number of arguments 
+    if len(sys.argv) != 3:
+        print("Usage: script_name.py arg1 arg2")
+        sys.exit(1)
+
+    #  sys.argv[1] and sys.argv[2] are the inner schedule and outer schedule 
+    arg1 = sys.argv[1]  # inner schedule
+    arg2 = sys.argv[2]  # outer schedule
+
+
+    main(arg1, arg2)
