@@ -111,6 +111,6 @@ class Interleave:
         lengths = [sum(1 for _ in group) for _, group in groupby(groups)]
         return max(lengths) if lengths else 0
 
+Interleaved = Interleave(inner, outer, 2)
 
-
-new_schedule = Schedule( Interleave.lanes_interleave,  Interleave.lanes_interleave, Interleave.instr_interleave)
+Interleaved_schedule = Schedule( Interleaved.lanes_interleave,  Interleaved.lanes_interleave, Interleaved.instr_interleave)
