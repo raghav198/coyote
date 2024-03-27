@@ -4,7 +4,7 @@ from coyote import *
 from coyote.vectorize_circuit import vectorize
 import pickle 
 import time
-import threading
+import multiprocessing
 
 start_time = time.time()
 
@@ -197,6 +197,14 @@ def conv8by4(v1, v2):
             output.append(recursive_sum([v1[i + k] * v2[k] for k in range(4)]))
     return output
 
+@coyote.define_circuit(v1=vector(10), v2=vector(5))
+def conv10by2(v1, v2):
+    output = []
+    for i in range(6):
+            output.append(recursive_sum([v1[i + k] * v2[k] for k in range(5)]))
+    return output
+
+
 @coyote.define_circuit(xs=vector(10), ys=vector(10))
 def distances_1_1(xs, ys):
     return [(x - y) * (x - y) for x in xs[:5] for y in ys[:5]]
@@ -205,87 +213,9 @@ def distances_1_1(xs, ys):
 def distances_2_2(xs, ys):
     return [(x - y) * (x - y) for x in xs[5:10] for y in ys[5:10]]
 
-
-# @coyote.define_circuit(xs=vector(15), ys=vector(15))
-# def distances_3(xs, ys):
-#     return [(x - y) * (x - y) for x in xs[10:15] for y in ys[10:15]]
-
-# def loop(v1, v2):
-#     sched1 = coyote.instantiate('loop1')
-#     sched2 = coyote.instantiate('loop2')
-#     interleave(sched1, sched2)
-
-# @coyote.define_circuit(signal=vector(8), kernel=vector(4))
-# def blocked_convolve_1(signal, kernel):
-#     block1 = conv(signal[0:5], kernel)
-#     block2 = conv(signal[3:7], kernel)
-#     return block2
-# @coyote.define_circuit(signal=vector(8), kernel=vector(4))
-# def blocked_convolve_2(signal: vector(8), kernel: vector(4)):
-#     block1 = conv(signal[0:5], kernel[0:2])
-#     block2 = conv(signal[2:7], kernel[2:4])
-#     return block1 + block2
-
-# @coyote.define_circuit(v1 = scalar(), v2 =  scalar(), v3 = scalar(), v4 = scalar())
-# def interleave_conv(v1, v2, v3, v4):
-#     return [v1*v3 + v2*v4]
-
-
-# coyote.instantiate('loop1')
-# # coyote.instantiate('interleave_conv')
-
-# # code = vectorize(coyote.compiler)
-# # print(code.instructions)
-# # # coyote.instantiate('block2x2')
-# # # coyote.instantiate('dot6')
-
-# # code_objecet = vectorize(coyote.compiler)
-
-# # # file_out = [coyote.compiler.code, code_objecet]
-# # # # print(code_objecet.lanes, code_objecet.alignment)
-# # # with open("code_object_dot3.pkl", "wb") as file:
-# # #     # Serialize the object and write it to the file
-# # #     pickle.dump(file_out, file)
-# # end_time = time.time()
-# # elapsed_time = end_time - start_time
-# # print(f"Elapsed time: {elapsed_time} seconds")
-
-# # coyote.instantiate('block2')
-
-# code = vectorize(coyote.compiler)
-# print(code.instructions)
-# # coyote.instantiate('block2x2')
-# # coyote.instantiate('dot6')
-
-# code_objecet = vectorize(coyote.compiler)
-
-# file_out = [coyote.compiler.code, code_objecet]
-# # # print(code_objecet.lanes, code_objecet.alignment)
-# with open("loop1.pkl", "wb") as file:
-#     # Serialize the object and write it to the file
-#     pickle.dump(file_out, file)
-
-# coyote.instantiate('loop2')
-
-
-# code = vectorize(coyote.compiler)
-# print(code.instructions)
-# # coyote.instantiate('block2x2')
-# # coyote.instantiate('dot6')
-
-# code_objecet = vectorize(coyote.compiler)
-
-# file_out = [coyote.compiler.code, code_objecet]
-# # # print(code_objecet.lanes, code_objecet.alignment)
-# with open("loop1.pkl", "wb") as file:
-#     # Serialize the object and write it to the file
-#     pickle.dump(file_out, file)
-
 def process_sequence(instantiate_label, file_name):
     coyote.instantiate(instantiate_label)
-    code = vectorize(coyote.compiler)
-    # print(code.instructions)
-
+    # code = vectorize(coyote.compiler)
     code_object = vectorize(coyote.compiler)
     file_out = [coyote.compiler.code, code_object]
 
@@ -293,19 +223,36 @@ def process_sequence(instantiate_label, file_name):
         # Serialize the object and write it to the file
         pickle.dump(file_out, file)
 
-# Define threads for each sequence
-thread1 = threading.Thread(target=process_sequence, args=('loop1', 'loop1.pkl'))
-thread2 = threading.Thread(target=process_sequence, args=('loop2', 'loop2.pkl'))
-# thread3 = threading.Thread(target=process_sequence, args=('distances_3', 'distance3.pkl'))
+    # Capture the start time
 
-# Start the threads
-thread1.start()
-thread2.start()
+def main():
+    start_time = time.time()
+    
+    # Process arguments (label and filename)
+    processes_info = [
+        ('loop1_conv102', 'loop1_conv102.pkl'),
+        ('loop2_conv102', 'loop2_conv102.pkl'),
+        ('loop3_conv102', 'loop3_conv102.pkl'),
+    ]
+    
+    # Create a list to keep track of processes
+    processes = []
+    
+    # Initialize and start processes
+    for instantiate_label, file_name in processes_info:
+        p = multiprocessing.Process(target=process_sequence, args=(instantiate_label, file_name))
+        p.start()
+        processes.append(p)
+    
+    # Wait for all processes to complete
+    for p in processes:
+        p.join()
+    
+    # Calculate elapsed time
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print('Convolutoin 10 by 2 With Titling')
+    print(f"Elapsed time: {elapsed_time} seconds")
 
-# Wait for both threads to complete
-thread1.join()
-thread2.join()
-
-end_time = time.time()
-elapsed_time = end_time - start_time
-print(f"Elapsed time: {elapsed_time} seconds")
+if __name__ == '__main__':
+    main()
